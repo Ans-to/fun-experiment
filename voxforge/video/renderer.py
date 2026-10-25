@@ -12,11 +12,13 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+import cv2
 import numpy as np
 import soundfile as sf
 
@@ -53,6 +55,8 @@ class RenderSegmentTask:
     animate_hud_reveal: bool = False
     camera_label: str = "broll_cinema"
     lens_variant: int = 0
+    dissolve_in_png: Path | None = None
+    write_tail_jpg: bool = False
 
 
 def _escape_filter_path(p: Path) -> str:
@@ -368,6 +372,18 @@ def _encode_single_segment(
             )
         cur_v = "base"
 
+    # Subtle broadcast cross-dissolve: previous shot's tail frame dissolves out over the first 0.34s
+    # (duration-preserving overlay so master audio A/V sync stays frame-exact; captions remain crisp).
+    if task.dissolve_in_png is not None and task.dissolve_in_png.exists() and exact_dur >= 0.9:
+        inputs.extend(["-loop", "1", "-t", f"{exact_dur:.3f}", "-r", str(fps), "-i", str(task.dissolve_in_png)])
+        fc_parts.append(
+            f"[{next_input_idx}:v]scale={VIDEO_SPEC.width}:{VIDEO_SPEC.height},setsar=1,format=rgba,"
+            f"fade=t=out:st=0:d=0.34:alpha=1[dov];"
+            f"[{cur_v}][dov]overlay=0:0:shortest=1[vdis]"
+        )
+        cur_v = "vdis"
+        next_input_idx += 1
+
     if task.hud_overlay is not None:
         hud_path, _, _, _ = task.hud_overlay
         inputs.extend(["-i", str(hud_path)])
@@ -458,6 +474,14 @@ def _encode_single_segment(
 
     if not use_pipe:
         subprocess.run(cmd, check=True)
+        if task.write_tail_jpg:
+            src_img = cv2.imread(str(task.layout.image_path))
+            if src_img is not None:
+                cv2.imwrite(
+                    str(task.out_mp4.with_name(f"tail_{task.seg_index:04d}.jpg")),
+                    src_img,
+                    [int(cv2.IMWRITE_JPEG_QUALITY), 92],
+                )
         return task.out_mp4
 
     proc = subprocess.Popen(
@@ -538,7 +562,9 @@ def _encode_single_segment(
                 prev_year=task.layout.prev_chronology_year,
             )
 
+        last_rgb: np.ndarray | None = None
         for rgb in frame_iter:
+            last_rgb = rgb
             proc.stdin.write(rgb.tobytes())
     except BrokenPipeError:
         pass
@@ -553,6 +579,12 @@ def _encode_single_segment(
     if rc != 0:
         raise RuntimeError(
             f"FFmpeg documentary segment {task.seg_index} failed (rc={rc}): {err_bytes.decode(errors='replace')}"
+        )
+    if task.write_tail_jpg and last_rgb is not None:
+        cv2.imwrite(
+            str(task.out_mp4.with_name(f"tail_{task.seg_index:04d}.jpg")),
+            np.ascontiguousarray(last_rgb[:, :, ::-1]),
+            [int(cv2.IMWRITE_JPEG_QUALITY), 92],
         )
     return task.out_mp4
 
@@ -883,19 +915,38 @@ def render_episode_video(
     x264_preset = "veryfast" if is_marathon_cpu else "superfast"
     workers = max(2, min(4, cpu_count))
 
+    # Subtle 0.34s broadcast cross-dissolves on interior editorial cuts (act cards, cold-open &
+    # end-card stay as crisp hard cuts; durations preserved so master audio sync stays exact).
+    ordered_pre = sorted(tasks, key=lambda x: x.seg_index)
+    _hard_cut_labels = {"intro_bumper", "chapter_card", "outro_card"}
+    for i in range(1, len(ordered_pre)):
+        prev_t, cur_t = ordered_pre[i - 1], ordered_pre[i]
+        if (
+            cur_t.camera_label not in _hard_cut_labels
+            and prev_t.camera_label not in _hard_cut_labels
+            and cur_t.duration_sec >= 1.0
+            and prev_t.duration_sec >= 0.8
+        ):
+            prev_t.write_tail_jpg = True
+            cur_t.dissolve_in_png = prev_t.out_mp4.with_name(f"tail_{prev_t.seg_index:04d}.jpg")
+
+    tail_events: dict[int, threading.Event] = {t.seg_index: threading.Event() for t in tasks}
+
+    def _run_segment_task(t: RenderSegmentTask) -> Path:
+        if t.dissolve_in_png is not None:
+            tail_events[t.seg_index - 1].wait(timeout=1800)
+        try:
+            return _encode_single_segment(
+                t, animator, env.ffmpeg_bin, master_wav, x264_preset, is_marathon_cpu
+            )
+        finally:
+            tail_events[t.seg_index].set()
+
     completed = 0
     total_tasks = len(tasks)
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {
-            pool.submit(
-                _encode_single_segment,
-                t,
-                animator,
-                env.ffmpeg_bin,
-                master_wav,
-                x264_preset,
-                is_marathon_cpu,
-            ): t.seg_index
+            pool.submit(_run_segment_task, t): t.seg_index
             for t in tasks
         }
         for fut in as_completed(futures):

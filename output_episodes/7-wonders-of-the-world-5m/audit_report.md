@@ -48,7 +48,7 @@
 | ID | Check | Status | Score | Measured | Target Spec |
 |---|---|---|---|---|---|
 | `V1` | 1080p Widescreen Broadcast Resolution | **PASS** | `100.0` | 15/15 plates at 1920x1080 | 100% plates matched to 1920x1080 SAR 1:1 |
-| `V2` | Optical Sharpness & Detail (Laplacian Variance) | **PASS** | `100.0` | 15/15 sharp (min var=282.3) | Laplacian variance >= 32.0 |
+| `V2` | Optical Sharpness & Detail (Laplacian Variance) | **PASS** | `100.0` | 15/15 sharp (min var=285.9) | Laplacian variance >= 32.0 |
 | `V3` | Broadcast Luminance & Contrast Range | **PASS** | `100.0` | 15/15 plates within Rec.709 broadcast luma range | Mean Y luminance between 16 and 228 (Rec.709 IRE safe) |
 | `V4` | Visual Pacing & Camera Cut Cadence | **PASS** | `100.0` | 65 camera cuts (avg 4.4s / shot) | Avg shot length 3.0s – 22.0s for viewer retention |
 | `V5` | Multicam Coverage, Inserts, Callouts & Bookends | **PASS** | `100.0` | Intro 4.2s, Outro 5.0s, Angles=7 (Wide/CU/React/Insert/Callout=6/6) | Intro 3-5s + Wide + Close-ups + Reactions + Studio Inserts + Callouts + Outro |
@@ -62,10 +62,10 @@
 |---|---|---|---|---|---|
 | `D1` | Container & Cinema Broadcast Stream Spec | **PASS** | `100.0` | 1920x1080 h264 (yuv420p) + aac 48000Hz 2ch | 1920x1080 h264 (yuv420p) + aac 48000Hz stereo |
 | `D2` | Audio/Video Stream Synchronization Lock | **PASS** | `100.0` | Video 288.00s / Audio 288.00s (drift 0 ms) | A/V duration drift <= 350 ms |
-| `D3` | Decoded Frame Integrity & Live Motion Telemetry | **PASS** | `100.0` | 4 checkpoints decoded, min Y=30.5, motion delta=3.380 | Zero black frames (Y > 8.0) & active motion (> 0.02) |
+| `D3` | Decoded Frame Integrity & Live Motion Telemetry | **PASS** | `100.0` | 4 checkpoints decoded, min Y=31.4, motion delta=7.472 | Zero black frames (Y > 8.0) & active motion (> 0.02) |
 | `D4` | Captions (100% Word Fidelity SRT/VTT) & Chapter Metadata | **PASS** | `100.0` | 577/577 words (100.0%), 7 chapters embedded | 100% spoken-word caption fidelity + embedded MP4 chapters + valid SRT/VTT |
-| `D5` | Branded Intro Bumper, Outro End-Card & Rec.709 Grade | **PASS** | `100.0` | Intro Y=62.0, Outro Y=52.4, Color=bt709 (Rec.709 TV) | Decoded Intro (3-5s) + Outro End-Card + Rec.709 colorimetry |
-| `D6` | 24fps Documentary Parallax, Cartography & Telemetry Liveness | **PASS** | `100.0` | p75 frame step min=0.72, mean=2.13 across 4 acts | Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames) |
+| `D5` | Branded Intro Bumper, Outro End-Card & Rec.709 Grade | **PASS** | `100.0` | Intro Y=57.9, Outro Y=50.6, Color=bt709 (Rec.709 TV) | Decoded Intro (3-5s) + Outro End-Card + Rec.709 colorimetry |
+| `D6` | 24fps Documentary Parallax, Cartography & Telemetry Liveness | **PASS** | `100.0` | p75 frame step min=2.25, mean=4.22 across 4 acts | Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames) |
 
 ---
 

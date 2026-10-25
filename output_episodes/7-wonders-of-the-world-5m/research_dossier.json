@@ -73,13 +73,13 @@
       ],
       "visual_assets": [
         {
-          "asset_id": "566fff7a8a",
+          "asset_id": "4f69667cb7",
           "subject_tag": "The Ancient Seven & The Great Pyramid of Giza",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_monument.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch01_code3d_monument.jpg",
           "width": 1920,
           "height": 1080,
-          "sharpness_score": 383.78,
-          "mean_luminance": 66.45,
+          "sharpness_score": 400.95,
+          "mean_luminance": 62.98,
           "caption": "3D Architectural Reconstruction \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
           "credit": "VoxForge Pure-Code 3D & Physics Engine",
           "license_name": "100% Algorithmic Code Synthesis",
@@ -88,9 +88,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "992c9b35a6",
+          "asset_id": "d2a17753fb",
           "subject_tag": "The Ancient Seven & The Great Pyramid of Giza",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_lidar.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch01_code3d_lidar.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 3574.2,
@@ -103,9 +103,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "7a010caf1a",
+          "asset_id": "60ca8e548f",
           "subject_tag": "The Ancient Seven & The Great Pyramid of Giza",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_physics.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch01_code3d_physics.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 432.26,
@@ -171,13 +171,13 @@
       ],
       "visual_assets": [
         {
-          "asset_id": "032635c4d3",
+          "asset_id": "9cf88f9433",
           "subject_tag": "The Great Wall of China: Continental Defense & Sticky-Rice Mortar",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_monument.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch02_code3d_monument.jpg",
           "width": 1920,
           "height": 1080,
-          "sharpness_score": 403.25,
-          "mean_luminance": 73.32,
+          "sharpness_score": 425.08,
+          "mean_luminance": 70.56,
           "caption": "3D Architectural Reconstruction \u00b7 Ming Great Wall at Jinshanling",
           "credit": "VoxForge Pure-Code 3D & Physics Engine",
           "license_name": "100% Algorithmic Code Synthesis",
@@ -186,9 +186,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "bbebe3ad13",
+          "asset_id": "97d8e05e81",
           "subject_tag": "The Great Wall of China: Continental Defense & Sticky-Rice Mortar",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_lidar.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch02_code3d_lidar.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 2462.02,
@@ -201,9 +201,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "63ed62ffb0",
+          "asset_id": "4ba2b697f4",
           "subject_tag": "The Great Wall of China: Continental Defense & Sticky-Rice Mortar",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_physics.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch02_code3d_physics.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 398.07,
@@ -280,13 +280,13 @@
       ],
       "visual_assets": [
         {
-          "asset_id": "a8c7bdc340",
+          "asset_id": "4d9335d85b",
           "subject_tag": "Petra & The Roman Colosseum: Stone Hydraulics & Imperial Concrete",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_monument.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch03_code3d_monument.jpg",
           "width": 1920,
           "height": 1080,
-          "sharpness_score": 367.42,
-          "mean_luminance": 100.87,
+          "sharpness_score": 384.92,
+          "mean_luminance": 98.61,
           "caption": "3D Architectural Reconstruction \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
           "credit": "VoxForge Pure-Code 3D & Physics Engine",
           "license_name": "100% Algorithmic Code Synthesis",
@@ -295,9 +295,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "4450a2fb5d",
+          "asset_id": "af571a7491",
           "subject_tag": "Petra & The Roman Colosseum: Stone Hydraulics & Imperial Concrete",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_lidar.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch03_code3d_lidar.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 2730.85,
@@ -310,9 +310,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "9b5b2862b1",
+          "asset_id": "31b5c5172b",
           "subject_tag": "Petra & The Roman Colosseum: Stone Hydraulics & Imperial Concrete",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_physics.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch03_code3d_physics.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 1036.16,
@@ -387,13 +387,13 @@
       ],
       "visual_assets": [
         {
-          "asset_id": "f53671fcd2",
+          "asset_id": "1da1412f6c",
           "subject_tag": "Citadels of the Americas: Chich\u00e9n Itz\u00e1 & Machu Picchu",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_monument.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch04_code3d_monument.jpg",
           "width": 1920,
           "height": 1080,
-          "sharpness_score": 282.33,
-          "mean_luminance": 101.54,
+          "sharpness_score": 285.92,
+          "mean_luminance": 100.86,
           "caption": "3D Architectural Reconstruction \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
           "credit": "VoxForge Pure-Code 3D & Physics Engine",
           "license_name": "100% Algorithmic Code Synthesis",
@@ -402,9 +402,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "359ee291f4",
+          "asset_id": "fb51019979",
           "subject_tag": "Citadels of the Americas: Chich\u00e9n Itz\u00e1 & Machu Picchu",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_lidar.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch04_code3d_lidar.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 3560.95,
@@ -417,9 +417,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "3943a6372c",
+          "asset_id": "4f88f52d1c",
           "subject_tag": "Citadels of the Americas: Chich\u00e9n Itz\u00e1 & Machu Picchu",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_physics.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch04_code3d_physics.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 588.74,
@@ -494,13 +494,13 @@
       ],
       "visual_assets": [
         {
-          "asset_id": "5363e9db41",
+          "asset_id": "2bd4958b1c",
           "subject_tag": "Mughal Marble & Modern Horizon: The Taj Mahal & Christ the Redeemer",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_monument.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch05_code3d_monument.jpg",
           "width": 1920,
           "height": 1080,
-          "sharpness_score": 599.93,
-          "mean_luminance": 57.05,
+          "sharpness_score": 635.23,
+          "mean_luminance": 60.08,
           "caption": "3D Architectural Reconstruction \u00b7 Rio de Janeiro",
           "credit": "VoxForge Pure-Code 3D & Physics Engine",
           "license_name": "100% Algorithmic Code Synthesis",
@@ -509,9 +509,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "058475d059",
+          "asset_id": "ce0f1a48cd",
           "subject_tag": "Mughal Marble & Modern Horizon: The Taj Mahal & Christ the Redeemer",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_lidar.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch05_code3d_lidar.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 1692.01,
@@ -524,9 +524,9 @@
           "passed_qa": true
         },
         {
-          "asset_id": "aa95b1d008",
+          "asset_id": "37834a2246",
           "subject_tag": "Mughal Marble & Modern Horizon: The Taj Mahal & Christ the Redeemer",
-          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_physics.jpg",
+          "file_path": "/tmp/voxforge_7-wonders-of-the-world-5m_z42ma2jx/media_plates/ch05_code3d_physics.jpg",
           "width": 1920,
           "height": 1080,
           "sharpness_score": 369.68,

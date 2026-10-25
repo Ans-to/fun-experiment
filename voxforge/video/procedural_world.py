@@ -1094,6 +1094,14 @@ class Monument3DEngine:
         img = cv2.resize(img_low, (w, h), interpolation=cv2.INTER_CUBIC)
         zbuf = cv2.resize(zbuf_low, (w, h), interpolation=cv2.INTER_NEAREST)
 
+        # Cinematic aerial-perspective depth fog: distant geometry & water recede into twilight haze
+        # (masked to real geometry so the obsidian starfield backdrop stays pristine!).
+        geo_mask = (zbuf < 90.0).astype(np.float32)
+        fog_t = np.clip((zbuf - 6.5) / 16.0, 0.0, 1.0)
+        fog_f = ((1.0 - np.exp(-2.2 * fog_t * fog_t)) * 0.52 * geo_mask)[..., None]
+        haze = np.array([58.0, 34.0, 26.0], dtype=np.float32)  # BGR warm indigo-amber twilight haze
+        img = np.clip(img.astype(np.float32) * (1.0 - fog_f) + haze * fog_f, 0.0, 255.0).astype(np.uint8)
+
         # Project Z-tested 28,000 Volumetric LiDAR Surface Points + Sweeping Laser Cross-Section!
         focal = fov * float(h)
         hw, hh = 0.5 * w, 0.5 * h
