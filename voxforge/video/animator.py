@@ -439,6 +439,18 @@ class StudioCharacterAnimator:
         g_view = self._grain_i16[off_y : off_y + self.h]
         with_grain = np.clip(u8.astype(np.int16) + g_view, 0, 255).astype(np.uint8)
         out = cv2.LUT(with_grain, self._rec709_lut)
+
+        # Filmic halation: warm red-orange emulsion bloom bleeding out of specular highlights.
+        hl = np.clip(out.astype(np.float32) - 205.0, 0.0, 50.0) / 50.0
+        halo = cv2.GaussianBlur(hl.max(axis=2), (0, 0), 7.0)
+        out = np.clip(out.astype(np.float32) + halo[..., None] * np.array([24.0, 9.0, 3.0]), 0.0, 255.0).astype(np.uint8)
+
+        # Organic film-gate weave: slow sub-pixel-quantized drift of the photographed plate only
+        # (burned-in graphics & captions are added optically afterwards, exactly like a real finish).
+        wx = int(round(0.85 * math.sin(frame_idx * 0.29) + 0.55 * math.sin(frame_idx * 0.113 + 1.3)))
+        wy = int(round(0.75 * math.sin(frame_idx * 0.23 + 2.1) + 0.5 * math.sin(frame_idx * 0.091 + 0.4)))
+        if wx or wy:
+            out = np.roll(out, (wy, wx), axis=(0, 1))
         if letterbox:
             out[:LETTERBOX_BAR_PX, :] = (16, 17, 20)
             out[self.h - LETTERBOX_BAR_PX :, :] = (16, 17, 20)

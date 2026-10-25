@@ -1059,6 +1059,15 @@ class Monument3DEngine:
         sl = 1.0 / math.sqrt(sun[0] ** 2 + sun[1] ** 2 + sun[2] ** 2)
         sx, sy, sz = sun[0] * sl, sun[1] * sl, sun[2] * sl
 
+        # Project the twilight sun into screen space once (reused by sun-disc glow + god rays)
+        sdot_fw = sx * fw[0] + sy * fw[1] + sz * fw[2]
+        px_sun = py_sun = -1e9
+        if sdot_fw > 0.25:
+            z_sun = 60.0 * sdot_fw
+            px_sun = 0.5 * w + (sx * 60.0 * rt[0] + sy * 60.0 * rt[1] + sz * 60.0 * rt[2]) * (fov * float(h)) / z_sun
+            py_sun = 0.5 * h - (sx * 60.0 * up[0] + sy * 60.0 * up[1] + sz * 60.0 * up[2]) * (fov * float(h)) / z_sun
+        sun_in_frame = -w * 0.35 < px_sun < w * 1.35 and -h * 0.35 < py_sun < h * 1.35
+
         # Rasterize solid Z-buffered facets at 1/2 internal resolution (`960x540` -> bicubic `1920x1080`),
         # then overlay native `1920x1080` 28k LiDAR points & anti-aliased CAD edges (`3x` faster, razor-sharp 1080p!)
         rw = max(64, w // 2)
@@ -1094,6 +1103,22 @@ class Monument3DEngine:
             img_low[water_mask, 0] = 8
             img_low[water_mask, 1] = 15
             img_low[water_mask, 2] = 28
+
+        # Analytic twilight sun disc + wide atmospheric glow painted into the pristine sky only
+        # (mesh rasterization afterwards occludes it correctly behind monument silhouettes).
+        if sun_in_frame:
+            pxl, pyl = px_sun * rw / float(w), py_sun * rh / float(h)
+            yy2, xx2 = np.mgrid[0:rh, 0:rw].astype(np.float32)
+            d2 = (xx2 - pxl) ** 2 + (yy2 - pyl) ** 2
+            sig1 = max(2.0, rh * 0.030)
+            sig2 = rh * 0.15
+            disk = np.exp(-d2 / (2.0 * sig1 * sig1)) + 0.38 * np.exp(-d2 / (2.0 * sig2 * sig2))
+            disk *= zbuf_low > 90.0
+            img_low = np.clip(
+                img_low.astype(np.float32) + disk[..., None] * np.array([255.0, 216.0, 150.0]),
+                0.0,
+                255.0,
+            ).astype(np.uint8)
             _rasterize_mesh_zbuf(
                 img_low, zbuf_low, tris, cols, emit,
                 ro[0], ro[1], ro[2], rt[0], rt[1], rt[2],
@@ -1115,6 +1140,56 @@ class Monument3DEngine:
         fog_f = ((1.0 - np.exp(-2.2 * fog_t * fog_t)) * 0.52 * geo_mask)[..., None]
         haze = np.array([58.0, 34.0, 26.0], dtype=np.float32)  # BGR warm indigo-amber twilight haze
         img = np.clip(img.astype(np.float32) * (1.0 - fog_f) + haze * fog_f, 0.0, 255.0).astype(np.uint8)
+
+        # Screen-space volumetric god rays: radially blur the occluded twilight sky toward the sun's
+        # screen position so crepuscular light shafts stream from behind monument silhouettes!
+        if sdot_fw > 0.25 and sun_in_frame:
+            qw, qh = max(64, w // 4), max(36, h // 4)
+            small = cv2.resize(img, (qw, qh), interpolation=cv2.INTER_AREA).astype(np.float32) / 255.0
+            lum_q = small[..., 0] * 0.2126 + small[..., 1] * 0.7152 + small[..., 2] * 0.0722
+            zq = cv2.resize(zbuf, (qw, qh), interpolation=cv2.INTER_NEAREST)
+            srcm = np.clip((np.where(zq > 90.0, lum_q, 0.0) - 0.10) * 1.6, 0.0, 1.0)
+            fxq, fyq = px_sun * qw / float(w), py_sun * qh / float(h)
+            yyq, xxq = np.mgrid[0:qh, 0:qw].astype(np.float32)
+            # Angular cloud-gap modulation around the sun -> radial blur yields crepuscular spokes
+            ang_q = np.arctan2(yyq - fyq, xxq - fxq)
+            t_sp = time_s * 0.35
+            gap = np.clip(
+                0.55
+                + 0.30 * np.sin(5.0 * ang_q + t_sp)
+                + 0.25 * np.sin(9.0 * ang_q - t_sp * 0.7 + 1.9)
+                + 0.18 * np.sin(14.0 * ang_q + 2.1),
+                0.12,
+                1.2,
+            )
+            srcm = srcm * gap
+            # In-frame emissive beacons/fires also scatter crepuscular spokes through the mist
+            hot_q = np.clip((lum_q - 0.60) * 2.2, 0.0, 1.0)
+            if float(hot_q.max()) > 0.10:
+                ys_h, xs_h = np.nonzero(hot_q > 0.35)
+                if xs_h.size >= 2:
+                    bx_q, by_q = xs_h.mean(), ys_h.mean()
+                    ang_b = np.arctan2(yyq - by_q, xxq - bx_q)
+                    gap_b = np.clip(
+                        0.55 + 0.30 * np.sin(6.0 * ang_b + t_sp) + 0.25 * np.sin(10.0 * ang_b - t_sp * 0.7 + 0.8),
+                        0.12,
+                        1.2,
+                    )
+                    srcm = np.maximum(srcm, hot_q * gap_b)
+            dxq, dyq = fxq - xxq, fyq - yyq
+            acc = np.zeros((qh, qw), dtype=np.float32)
+            wgt, wsum = 1.0, 0.0
+            for k in range(18):
+                t_s = (k + 1) / 18.0 * 0.32
+                xi = np.clip((xxq + dxq * t_s).astype(np.int32), 0, qw - 1)
+                yi = np.clip((yyq + dyq * t_s).astype(np.int32), 0, qh - 1)
+                acc += srcm[yi, xi] * wgt
+                wsum += wgt
+                wgt *= 0.82
+            rays = np.clip(acc / wsum - 0.10, 0.0, 1.0) * 0.85
+            rays_f = cv2.resize(rays, (w, h), interpolation=cv2.INTER_LINEAR)[..., None]
+            tint = np.array([255.0, 196.0, 120.0], dtype=np.float32) / 255.0
+            img = np.clip(img.astype(np.float32) + rays_f * tint * 160.0, 0.0, 255.0).astype(np.uint8)
 
         # Project Z-tested 28,000 Volumetric LiDAR Surface Points + Sweeping Laser Cross-Section!
         focal = fov * float(h)
