@@ -1041,6 +1041,20 @@ class Monument3DEngine:
         tris, cols, emit, edges, water_y = self._get_scene(scene_id)
         lidar_pts = self._lidar_cache[scene_id]
         ro, ta, sun, fov = self._camera_for(scene_id, u, lens_variant=lens_variant)
+
+        # Organic handheld camera breathing: dual-sine sub-decimeter position sway + micro pan drift
+        # (deterministic in `time_s` so parallel out-of-order frame renders stay perfectly consistent).
+        ph = 1.7 * (scene_id % 5)
+        ro = (
+            ro[0] + 0.055 * math.sin(time_s * 0.83 + ph) + 0.028 * math.sin(time_s * 2.17 + 1.3),
+            ro[1] + 0.042 * math.sin(time_s * 1.11 + 0.7) + 0.018 * math.sin(time_s * 2.83 + 2.2),
+            ro[2] + 0.055 * math.cos(time_s * 0.97 + ph * 0.5),
+        )
+        ta = (
+            ta[0] + 0.030 * math.sin(time_s * 0.71 + 2.0),
+            ta[1] + 0.022 * math.sin(time_s * 1.29 + 0.4),
+            ta[2] + 0.030 * math.cos(time_s * 0.83 + 1.1),
+        )
         rt, up, fw = _camera_basis(ro, ta)
         sl = 1.0 / math.sqrt(sun[0] ** 2 + sun[1] ** 2 + sun[2] ** 2)
         sx, sy, sz = sun[0] * sl, sun[1] * sl, sun[2] * sl
@@ -1183,6 +1197,23 @@ class Monument3DEngine:
         glow = cv2.resize(glow_sm, (w, h), interpolation=cv2.INTER_LINEAR)
         img = cv2.addWeighted(img, 0.90, wire_ov, 0.68, 0.0)
         img = cv2.addWeighted(img, 1.0, glow, 0.48, 0.0)
+
+        # Anamorphic cinema lens flare: horizontal cyan-blue streaks blooming out of every golden
+        # emissive beacon / fire / finial (RGB convention; white LiDAR scan points stay streak-free).
+        rf = img[:, :, 0].astype(np.float32)
+        gf = img[:, :, 1].astype(np.float32)
+        bf = img[:, :, 2].astype(np.float32)
+        hot = (
+            np.clip((rf - 225.0) / 30.0, 0.0, 1.0)
+            * np.clip((gf - 150.0) / 60.0, 0.0, 1.0)
+            * np.clip((160.0 - bf) / 160.0, 0.0, 1.0)
+        )
+        if float(hot.max()) > 0.05:
+            streak = np.clip(cv2.blur(hot, (201, 1)) * 6.0, 0.0, 1.0) ** 1.35
+            core = cv2.GaussianBlur(hot, (31, 31), 9.0)
+            img[:, :, 0] = np.clip(rf + streak * 40.0 + core * 70.0, 0.0, 255.0).astype(np.uint8)
+            img[:, :, 1] = np.clip(gf + streak * 90.0 + core * 50.0, 0.0, 255.0).astype(np.uint8)
+            img[:, :, 2] = np.clip(bf + streak * 190.0 + core * 25.0, 0.0, 255.0).astype(np.uint8)
         return img
 
 
