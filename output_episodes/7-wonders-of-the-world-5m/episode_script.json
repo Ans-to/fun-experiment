@@ -1,0 +1,794 @@
+{
+  "spec": {
+    "raw_command": "build a 5 minute documentary on 7 wonders of the world",
+    "topic": "7 Wonders of the World",
+    "show_title": "DEEP HORIZON",
+    "episode_title": "7 Wonders of the World: Architecture of the Impossible",
+    "episode_subtitle": "Deep Horizon Original Documentary \u00b7 5-Minute Cinema Edition",
+    "target_duration_sec": 300.0,
+    "target_word_count": 565,
+    "chapter_count": 5,
+    "words_per_minute": 140.0,
+    "style": "cinema_documentary",
+    "slug": "7-wonders-of-the-world-5m"
+  },
+  "chapters": [
+    {
+      "chapter_index": 1,
+      "title": "The Ancient Seven & The Great Pyramid of Giza",
+      "subtitle": "Why six classical marvels vanished while Khufu's limestone mountain endured 4,500 years",
+      "era_or_date": "c. 2nd Century BCE \u2013 2007 CE \u00b7 c. 2560 BCE",
+      "location": "Mediterranean Basin & Global Heritage Sites & Giza Plateau, Egypt",
+      "music_cue": "cold_open_pulse",
+      "card_duration_sec": 0.0,
+      "card_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_monument.jpg",
+      "turns": [
+        {
+          "turn_id": 1,
+          "chapter_index": 1,
+          "speaker": "HOST_A",
+          "text": "Out of the original Seven Wonders cataloged by Greek travelers two thousand years ago, earthquakes, fire, and human greed destroyed six \u2014 leaving only a 4,500-year-old limestone mountain on the edge of Cairo. Across forty-five centuries of human ambition, these monuments chart the outer boundary of stone, geometry, and civilization.",
+          "spoken_text": "Out of the original Seven Wonders cataloged by Greek travelers two thousand years ago, earthquakes, fire, and human greed destroyed six, leaving only a 45 hundred-year-old limestone mountain on the edge of Cairo. Across forty-five centuries of human ambition, these monuments chart the outer boundary of stone, geometry, and civilization.",
+          "camera": "wide_studio",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "The Ancient Seven & The Great Pyramid of Giza",
+          "fact_metrics": [
+            {
+              "label": "Original Canon",
+              "value": "c. 140 BCE (Antipater)"
+            },
+            {
+              "label": "Ancient Survivors",
+              "value": "1 of 7 (Giza)"
+            },
+            {
+              "label": "Original Height",
+              "value": "146.6 m (481 ft)"
+            },
+            {
+              "label": "Total Stone Mass",
+              "value": "~6.0 Million Tons"
+            }
+          ],
+          "pull_quote": "Across forty-five centuries of human ambition, these monuments chart the outer boundary of stone, geometry, and civilization.",
+          "insert_variant": "",
+          "music_cue": "cold_open_pulse",
+          "pause_after_ms": 265,
+          "is_chapter_opener": true,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_e984c66594085a.wav",
+          "duration_sec": 22.658,
+          "start_sec": 4.2,
+          "end_sec": 26.858
+        },
+        {
+          "turn_id": 2,
+          "chapter_index": 1,
+          "speaker": "HOST_B",
+          "text": "Beneath the iconic silhouettes lies a forensic engineering mystery: how pre-industrial builders defied gravity, flash floods, and seismic shock.",
+          "spoken_text": "Beneath the iconic silhouettes lies a forensic engineering mystery: how pre-industrial builders defied gravity, flash floods, and seismic shock.",
+          "camera": "quote_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "The Ancient Seven & The Great Pyramid of Giza",
+          "fact_metrics": [
+            {
+              "label": "Original Canon",
+              "value": "c. 140 BCE (Antipater)"
+            },
+            {
+              "label": "Ancient Survivors",
+              "value": "1 of 7 (Giza)"
+            },
+            {
+              "label": "Original Height",
+              "value": "146.6 m (481 ft)"
+            },
+            {
+              "label": "Total Stone Mass",
+              "value": "~6.0 Million Tons"
+            }
+          ],
+          "pull_quote": "Beneath the iconic silhouettes lies a forensic engineering mystery: how pre-industrial builders defied gravity, flash floods, and seismic shock.",
+          "insert_variant": "",
+          "music_cue": "cold_open_pulse",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_6e2263b30785a0.wav",
+          "duration_sec": 8.904,
+          "start_sec": 27.123,
+          "end_sec": 36.027
+        },
+        {
+          "turn_id": 3,
+          "chapter_index": 1,
+          "speaker": "HOST_A",
+          "text": "Built for Pharaoh Khufu under royal vizier and chief architect Hemiunu, the Great Pyramid stood 146.6 meters tall \u2014 remaining the tallest human-made structure on Earth for more than 3,800 years.",
+          "spoken_text": "Built for Pharaoh Khufu under royal vizier and chief architect Hemiunu, the Great Pyramid stood 146.6 meters tall, remaining the tallest human-made structure on Earth for more than 38 hundred years.",
+          "camera": "broll_cinema",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch01_code3d_physics.jpg",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "The Ancient Seven & The Great Pyramid of Giza",
+          "fact_metrics": [
+            {
+              "label": "Original Canon",
+              "value": "c. 140 BCE (Antipater)"
+            },
+            {
+              "label": "Ancient Survivors",
+              "value": "1 of 7 (Giza)"
+            },
+            {
+              "label": "Original Height",
+              "value": "146.6 m (481 ft)"
+            },
+            {
+              "label": "Total Stone Mass",
+              "value": "~6.0 Million Tons"
+            }
+          ],
+          "pull_quote": "Built for Pharaoh Khufu under royal vizier and chief architect Hemiunu, the Great Pyramid stood 146.6 meters tall",
+          "insert_variant": "",
+          "music_cue": "cold_open_pulse",
+          "pause_after_ms": 600,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_ffc688c51791ef.wav",
+          "duration_sec": 14.378,
+          "start_sec": 36.292,
+          "end_sec": 50.67
+        }
+      ],
+      "start_sec": 4.2,
+      "end_sec": 51.27
+    },
+    {
+      "chapter_index": 2,
+      "title": "The Great Wall of China: Continental Defense & Sticky-Rice Mortar",
+      "subtitle": "Twenty-one thousand kilometers of mountain fortification, optical telemetry, and Ming chemistry",
+      "era_or_date": "7th Century BCE \u2013 1644 CE (Ming Zenith)",
+      "location": "Northern China Frontier",
+      "music_cue": "wonder_pad",
+      "card_duration_sec": 2.4,
+      "card_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_monument.jpg",
+      "turns": [
+        {
+          "turn_id": 4,
+          "chapter_index": 2,
+          "speaker": "HOST_B",
+          "text": "Far from a single unbroken ribbon, the Great Wall is an evolutionary military network stretching 21,196 kilometers across deserts, loess plateaus, and knife-edge granite ridges.",
+          "spoken_text": "Far from a single unbroken ribbon, the Great Wall is an evolutionary military network stretching 21196 kilometers across deserts, loess plateaus, and knife-edge granite ridges.",
+          "camera": "broll_cinema",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Ming Great Wall at Jinshanling",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "The Great Wall of China",
+          "fact_metrics": [
+            {
+              "label": "Total Surveyed Network",
+              "value": "21,196 km"
+            },
+            {
+              "label": "Ming Dynasty Core",
+              "value": "8,851 km"
+            },
+            {
+              "label": "Mortar Secret",
+              "value": "Lime + Amylopectin Rice"
+            },
+            {
+              "label": "Beacon Towers",
+              "value": "29,000+ Nodes"
+            }
+          ],
+          "pull_quote": "Far from a single unbroken ribbon, the Great Wall is an evolutionary military network stretching 21,196 kilometers across deserts, loess plateaus, and knife-edge granite ridges.",
+          "insert_variant": "",
+          "music_cue": "wonder_pad",
+          "pause_after_ms": 265,
+          "is_chapter_opener": true,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_81a7a097279bed.wav",
+          "duration_sec": 13.057333333333334,
+          "start_sec": 53.67,
+          "end_sec": 66.7273
+        },
+        {
+          "turn_id": 5,
+          "chapter_index": 2,
+          "speaker": "HOST_A",
+          "text": "Rival Warring States first raised stamped-earth ramparts in the seventh century BCE, which First Emperor Qin Shi Huang linked after unifying China in 221 BCE under general Meng Tian to check nomadic Xiongnu cavalry raids from the Eurasian steppe.",
+          "spoken_text": "Rival Warring States first raised stamped-earth ramparts in the seventh century B C E, which First Emperor Qin Shi Huang linked after unifying China in 221 B C E under general Meng Tian to check nomadic Xiongnu cavalry raids from the Eurasian steppe.",
+          "camera": "split_fact_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_physics.jpg",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Ming Great Wall at Jinshanling",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "The Great Wall of China",
+          "fact_metrics": [
+            {
+              "label": "Total Surveyed Network",
+              "value": "21,196 km"
+            },
+            {
+              "label": "Ming Dynasty Core",
+              "value": "8,851 km"
+            },
+            {
+              "label": "Mortar Secret",
+              "value": "Lime + Amylopectin Rice"
+            },
+            {
+              "label": "Beacon Towers",
+              "value": "29,000+ Nodes"
+            }
+          ],
+          "pull_quote": "Rival Warring States first raised stamped-earth ramparts in the seventh century BCE, which First Emperor Qin Shi Huang linked after unifying China in 221 BCE under general Meng Tian to check nomadic Xiongnu cavalry raids from the Eurasian steppe.",
+          "insert_variant": "",
+          "music_cue": "wonder_pad",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_87ae9b81eaa05e.wav",
+          "duration_sec": 17.308,
+          "start_sec": 66.9923,
+          "end_sec": 84.3003
+        },
+        {
+          "turn_id": 6,
+          "chapter_index": 2,
+          "speaker": "HOST_B",
+          "text": "The iconic crenellated stone-and-brick dragon clinging to vertical peaks near Beijing, Jinshanling, and Simatai dates not to Qin antiquity, but to the Ming Dynasty after a disastrous 1449 battle at Tumu where Oirat Mongols captured the Zhengtong Emperor himself.",
+          "spoken_text": "The iconic crenellated stone-and-brick dragon clinging to vertical peaks near Beijing, Jinshanling, and Simatai dates not to Qin antiquity, but to the Ming Dynasty after a disastrous 14 49 battle at Tumu where Oirat Mongols captured the Zhengtong Emperor himself.",
+          "camera": "studio_insert",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch02_code3d_monument.jpg",
+          "visual_caption": "3D Architectural Reconstruction \u00b7 Ming Great Wall at Jinshanling",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "The Great Wall of China",
+          "fact_metrics": [
+            {
+              "label": "Total Surveyed Network",
+              "value": "21,196 km"
+            },
+            {
+              "label": "Ming Dynasty Core",
+              "value": "8,851 km"
+            },
+            {
+              "label": "Mortar Secret",
+              "value": "Lime + Amylopectin Rice"
+            },
+            {
+              "label": "Beacon Towers",
+              "value": "29,000+ Nodes"
+            }
+          ],
+          "pull_quote": "The iconic crenellated stone-and-brick dragon clinging to vertical peaks near Beijing, Jinshanling, and Simatai dates not to Qin antiquity, but to the Ming Dynasty after a disastrous 1449 battle at Tumu where Oirat Mongols captured the Zhengtong Emperor himself.",
+          "insert_variant": "mic_detail",
+          "music_cue": "wonder_pad",
+          "pause_after_ms": 600,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_a44b33e7e701e0.wav",
+          "duration_sec": 17.264,
+          "start_sec": 84.5653,
+          "end_sec": 101.8293
+        }
+      ],
+      "start_sec": 51.27,
+      "end_sec": 102.4293
+    },
+    {
+      "chapter_index": 3,
+      "title": "Petra & The Roman Colosseum: Stone Hydraulics & Imperial Concrete",
+      "subtitle": "Desert flash-flood mastery in Jordan and subterranean crowd engineering in Rome",
+      "era_or_date": "c. 4th Century BCE \u2013 106 CE \u00b7 70 \u2013 80 CE",
+      "location": "Ma'an Governorate, Southern Jordan & Rome, Italy",
+      "music_cue": "ambient_warm",
+      "card_duration_sec": 2.4,
+      "card_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_monument.jpg",
+      "turns": [
+        {
+          "turn_id": 7,
+          "chapter_index": 3,
+          "speaker": "HOST_A",
+          "text": "Hidden behind the 1.2-kilometer tectonic slot gorge of the Siq, Petra was the glittering caravan capital of the Nabataean Kingdom \u2014 carved top-down into living Paleozoic sandstone.",
+          "spoken_text": "Hidden behind the 1.2-kilometer tectonic slot gorge of the Siq, Petra was the glittering caravan capital of the Nabataean Kingdom, carved top-down into living Paleozoic sandstone.",
+          "camera": "closeup_host_a",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_metrics": [
+            {
+              "label": "Al-Khazneh Height",
+              "value": "39.1 Meters"
+            },
+            {
+              "label": "Annual Rainfall",
+              "value": "~12 cm / Year"
+            },
+            {
+              "label": "Ellipse Footprint",
+              "value": "189 \u00d7 156 Meters"
+            },
+            {
+              "label": "Construction Speed",
+              "value": "9\u201310 Years (70\u201380 CE)"
+            }
+          ],
+          "pull_quote": "Hidden behind the 1.2-kilometer tectonic slot gorge of the Siq, Petra was the glittering caravan capital of the Nabataean Kingdom",
+          "insert_variant": "",
+          "music_cue": "ambient_warm",
+          "pause_after_ms": 265,
+          "is_chapter_opener": true,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_28f402e749122b.wav",
+          "duration_sec": 12.418,
+          "start_sec": 104.8293,
+          "end_sec": 117.2473
+        },
+        {
+          "turn_id": 8,
+          "chapter_index": 3,
+          "speaker": "HOST_B",
+          "text": "Built in under ten years over Emperor Nero's private artificial lake, the Flavian Amphitheatre remains the blueprint for every modern sports stadium on Earth.",
+          "spoken_text": "Built in under ten years over Emperor Nero's private artificial lake, the Flavian Amphitheatre remains the blueprint for every modern sports stadium on Earth.",
+          "camera": "quote_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_metrics": [
+            {
+              "label": "Al-Khazneh Height",
+              "value": "39.1 Meters"
+            },
+            {
+              "label": "Annual Rainfall",
+              "value": "~12 cm / Year"
+            },
+            {
+              "label": "Ellipse Footprint",
+              "value": "189 \u00d7 156 Meters"
+            },
+            {
+              "label": "Construction Speed",
+              "value": "9\u201310 Years (70\u201380 CE)"
+            }
+          ],
+          "pull_quote": "Built in under ten years over Emperor Nero's private artificial lake, the Flavian Amphitheatre remains the blueprint for every modern sports stadium on Earth.",
+          "insert_variant": "",
+          "music_cue": "ambient_warm",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_ea8a495b01a360.wav",
+          "duration_sec": 9.252,
+          "start_sec": 117.5123,
+          "end_sec": 126.7643
+        },
+        {
+          "turn_id": 9,
+          "chapter_index": 3,
+          "speaker": "HOST_A",
+          "text": "Originally nomadic Arab traders, the Nabataeans cornered the ancient world's most lucrative luxury supply chain. Frankincense and myrrh from southern Arabia, Indian spices, and Dead Sea bitumen prized by Egypt and Rome.",
+          "spoken_text": "Originally nomadic Arab traders, the Nabataeans cornered the ancient world's most lucrative luxury supply chain. Frankincense and myrrh from southern Arabia, Indian spices, and Dead Sea bitumen prized by Egypt and Rome.",
+          "camera": "broll_cinema",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_physics.jpg",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_metrics": [
+            {
+              "label": "Al-Khazneh Height",
+              "value": "39.1 Meters"
+            },
+            {
+              "label": "Annual Rainfall",
+              "value": "~12 cm / Year"
+            },
+            {
+              "label": "Ellipse Footprint",
+              "value": "189 \u00d7 156 Meters"
+            },
+            {
+              "label": "Construction Speed",
+              "value": "9\u201310 Years (70\u201380 CE)"
+            }
+          ],
+          "pull_quote": "Originally nomadic Arab traders, the Nabataeans cornered the ancient world's most lucrative luxury supply chain.",
+          "insert_variant": "",
+          "music_cue": "ambient_warm",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_14ad49d1d8da55.wav",
+          "duration_sec": 14.717,
+          "start_sec": 127.0293,
+          "end_sec": 141.7463
+        },
+        {
+          "turn_id": 10,
+          "chapter_index": 3,
+          "speaker": "HOST_B",
+          "text": "Following Nero's suicide and the chaotic Year of the Four Emperors, General Vespasian launched the amphitheatre in 70 CE as a masterstroke of political rehabilitation: draining Nero's private pleasure lake in the Domus Aurea to return Rome's valley center to the public.",
+          "spoken_text": "Following Nero's suicide and the chaotic Year of the Four Emperors, General Vespasian launched the amphitheatre in 70 C E as a masterstroke of political rehabilitation: draining Nero's private pleasure lake in the Domus Aurea to return Rome's valley center to the public.",
+          "camera": "wide_studio",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch03_code3d_monument.jpg",
+          "visual_caption": "3D Architectural Reconstruction \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_metrics": [
+            {
+              "label": "Al-Khazneh Height",
+              "value": "39.1 Meters"
+            },
+            {
+              "label": "Annual Rainfall",
+              "value": "~12 cm / Year"
+            },
+            {
+              "label": "Ellipse Footprint",
+              "value": "189 \u00d7 156 Meters"
+            },
+            {
+              "label": "Construction Speed",
+              "value": "9\u201310 Years (70\u201380 CE)"
+            }
+          ],
+          "pull_quote": "Following Nero's suicide and the chaotic Year of the Four Emperors, General Vespasian launched the amphitheatre in 70 CE as a masterstroke of political rehabilitation",
+          "insert_variant": "",
+          "music_cue": "ambient_warm",
+          "pause_after_ms": 600,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_e48417bb56b394.wav",
+          "duration_sec": 17.098,
+          "start_sec": 142.0113,
+          "end_sec": 159.1093
+        }
+      ],
+      "start_sec": 102.4293,
+      "end_sec": 159.7093
+    },
+    {
+      "chapter_index": 4,
+      "title": "Citadels of the Americas: Chich\u00e9n Itz\u00e1 & Machu Picchu",
+      "subtitle": "Maya astronomical stone acoustics in Yucat\u00e1n and Inca seismic ashlar high in the Andes",
+      "era_or_date": "c. 1450 \u2013 1532 CE \u00b7 c. 600 \u2013 1200 CE",
+      "location": "Cusco Region, Peruvian Andes & Yucat\u00e1n Peninsula, Mexico",
+      "music_cue": "tension_drone",
+      "card_duration_sec": 2.4,
+      "card_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_monument.jpg",
+      "turns": [
+        {
+          "turn_id": 11,
+          "chapter_index": 4,
+          "speaker": "HOST_B",
+          "text": "Perched on a narrow granite fault saddle nearly eight thousand feet above sea level above the raging Urubamba River, Machu Picchu is a triumph of geotechnical and seismic design.",
+          "spoken_text": "Perched on a narrow granite fault saddle nearly eight thousand feet above sea level above the raging Urubamba River, Machu Picchu is a triumph of geotechnical and seismic design.",
+          "camera": "broll_cinema",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Citadels of the Americas",
+          "fact_metrics": [
+            {
+              "label": "Elevation",
+              "value": "2,430 m (7,972 ft)"
+            },
+            {
+              "label": "Subsurface Effort",
+              "value": "~60% Foundation/Drains"
+            },
+            {
+              "label": "Total Calendar Steps",
+              "value": "365 (4 \u00d7 91 + 1)"
+            },
+            {
+              "label": "Pyramid Nested Shells",
+              "value": "3 Concentric Pyramids"
+            }
+          ],
+          "pull_quote": "Perched on a narrow granite fault saddle nearly eight thousand feet above sea level above the raging Urubamba River, Machu Picchu is a triumph of geotechnical and seismic design.",
+          "insert_variant": "",
+          "music_cue": "tension_drone",
+          "pause_after_ms": 265,
+          "is_chapter_opener": true,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_b4221cac031dd5.wav",
+          "duration_sec": 11.264,
+          "start_sec": 162.1093,
+          "end_sec": 173.3733
+        },
+        {
+          "turn_id": 12,
+          "chapter_index": 4,
+          "speaker": "HOST_A",
+          "text": "At the center of a vast karst limestone plain devoid of surface rivers, Chich\u00e9n Itz\u00e1 fused naked-eye Maya astronomy, architectural acoustics, and sacred subterranean hydrology.",
+          "spoken_text": "At the center of a vast karst limestone plain devoid of surface rivers, Chich\u00e9n Itz\u00e1 fused naked-eye Maya astronomy, architectural acoustics, and sacred subterranean hydrology.",
+          "camera": "split_fact_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_physics.jpg",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Citadels of the Americas",
+          "fact_metrics": [
+            {
+              "label": "Elevation",
+              "value": "2,430 m (7,972 ft)"
+            },
+            {
+              "label": "Subsurface Effort",
+              "value": "~60% Foundation/Drains"
+            },
+            {
+              "label": "Total Calendar Steps",
+              "value": "365 (4 \u00d7 91 + 1)"
+            },
+            {
+              "label": "Pyramid Nested Shells",
+              "value": "3 Concentric Pyramids"
+            }
+          ],
+          "pull_quote": "At the center of a vast karst limestone plain devoid of surface rivers, Chich\u00e9n Itz\u00e1 fused naked-eye Maya astronomy, architectural acoustics, and sacred subterranean hydrology.",
+          "insert_variant": "",
+          "music_cue": "tension_drone",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_91e859abe300ad.wav",
+          "duration_sec": 12.598,
+          "start_sec": 173.6383,
+          "end_sec": 186.2363
+        },
+        {
+          "turn_id": 13,
+          "chapter_index": 4,
+          "speaker": "HOST_B",
+          "text": "Radiocarbon accelerator mass spectrometry published by Lucy Salazar and Richard Burger placed Machu Picchu's construction starting around 1420\u20131450 CE as a royal winter estate for Inca Emperor Pachacuti after his campaigns down the Urubamba Valley.",
+          "spoken_text": "Radiocarbon accelerator mass spectrometry published by Lucy Salazar and Richard Burger placed Machu Picchu's construction starting around 14 20 to 14 50 C E as a royal winter estate for Inca Emperor Pachacuti after his campaigns down the Urubamba Valley.",
+          "camera": "split_fact_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_monument.jpg",
+          "visual_caption": "3D Architectural Reconstruction \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Citadels of the Americas",
+          "fact_metrics": [
+            {
+              "label": "Elevation",
+              "value": "2,430 m (7,972 ft)"
+            },
+            {
+              "label": "Subsurface Effort",
+              "value": "~60% Foundation/Drains"
+            },
+            {
+              "label": "Total Calendar Steps",
+              "value": "365 (4 \u00d7 91 + 1)"
+            },
+            {
+              "label": "Pyramid Nested Shells",
+              "value": "3 Concentric Pyramids"
+            }
+          ],
+          "pull_quote": "Radiocarbon accelerator mass spectrometry published by Lucy Salazar and Richard Burger placed Machu Picchu's construction starting around 1420\u20131450 CE as a royal winter estate for Inca Emperor Pachacuti after his campaigns down the Urubamba Valley.",
+          "insert_variant": "",
+          "music_cue": "tension_drone",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_dc8b9383c9da1f.wav",
+          "duration_sec": 17.614,
+          "start_sec": 186.5013,
+          "end_sec": 204.1153
+        },
+        {
+          "turn_id": 14,
+          "chapter_index": 4,
+          "speaker": "HOST_A",
+          "text": "Named for the 'Mouth of the Well of the Itza,' the metropolis grew around massive natural sinkholes, cenotes, formed where groundwater collapsed porous limestone resting inside the outer ring of the Chicxulub asteroid impact basin.",
+          "spoken_text": "Named for the 'Mouth of the Well of the Itza,' the metropolis grew around massive natural sinkholes, cenotes, formed where groundwater collapsed porous limestone resting inside the outer ring of the Chicxulub asteroid impact basin.",
+          "camera": "reaction_shot",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch04_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Citadels of the Americas",
+          "fact_metrics": [
+            {
+              "label": "Elevation",
+              "value": "2,430 m (7,972 ft)"
+            },
+            {
+              "label": "Subsurface Effort",
+              "value": "~60% Foundation/Drains"
+            },
+            {
+              "label": "Total Calendar Steps",
+              "value": "365 (4 \u00d7 91 + 1)"
+            },
+            {
+              "label": "Pyramid Nested Shells",
+              "value": "3 Concentric Pyramids"
+            }
+          ],
+          "pull_quote": "Named for the 'Mouth of the Well of the Itza,' the metropolis grew around massive natural sinkholes, cenotes, formed where groundwater collapsed porous limestone resting inside the outer ring of the Chicxulub asteroid impact basin.",
+          "insert_variant": "",
+          "music_cue": "tension_drone",
+          "pause_after_ms": 600,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_9d86ef69ad1bc0.wav",
+          "duration_sec": 14.832,
+          "start_sec": 204.3803,
+          "end_sec": 219.2123
+        }
+      ],
+      "start_sec": 159.7093,
+      "end_sec": 219.8123
+    },
+    {
+      "chapter_index": 5,
+      "title": "Mughal Marble & Modern Horizon: The Taj Mahal & Christ the Redeemer",
+      "subtitle": "Riverfront well foundations in Agra and reinforced Art Deco engineering atop Corcovado",
+      "era_or_date": "1632 \u2013 1653 CE \u00b7 1922 \u2013 1931 CE & Synthesis",
+      "location": "Agra, Uttar Pradesh, India & Mount Corcovado, Rio de Janeiro, Brazil",
+      "music_cue": "finale_resolve",
+      "card_duration_sec": 2.4,
+      "card_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_monument.jpg",
+      "turns": [
+        {
+          "turn_id": 15,
+          "chapter_index": 5,
+          "speaker": "HOST_A",
+          "text": "Commissioned by Mughal Emperor Shah Jahan for his beloved wife Mumtaz Mahal, the Taj Mahal marries poetic grief with daring seventeenth-century structural and geotechnical engineering.",
+          "spoken_text": "Commissioned by Mughal Emperor Shah Jahan for his beloved wife Mumtaz Mahal, the Taj Mahal marries poetic grief with daring seventeenth-century structural and geotechnical engineering.",
+          "camera": "wide_studio",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Rio de Janeiro",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_metrics": [
+            {
+              "label": "Central Finial Height",
+              "value": "73 Meters (240 ft)"
+            },
+            {
+              "label": "Artisan Workforce",
+              "value": "~20,000 Specialists"
+            },
+            {
+              "label": "Corcovado Peak",
+              "value": "710 m Above Rio"
+            },
+            {
+              "label": "Arm Wingspan",
+              "value": "28 Meters (92 ft)"
+            }
+          ],
+          "pull_quote": "Commissioned by Mughal Emperor Shah Jahan for his beloved wife Mumtaz Mahal, the Taj Mahal marries poetic grief with daring seventeenth-century structural and geotechnical engineering.",
+          "insert_variant": "",
+          "music_cue": "finale_resolve",
+          "pause_after_ms": 265,
+          "is_chapter_opener": true,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_385a236a0c8e16.wav",
+          "duration_sec": 12.122,
+          "start_sec": 222.2123,
+          "end_sec": 234.3343
+        },
+        {
+          "turn_id": 16,
+          "chapter_index": 5,
+          "speaker": "HOST_B",
+          "text": "Crowning a 710-meter granite pinnacle battered by Atlantic gales and tropical lightning, Christ the Redeemer brings ancient monumental ambition into the reinforced-concrete modern era.",
+          "spoken_text": "Crowning a 710-meter granite pinnacle battered by Atlantic gales and tropical lightning, Christ the Redeemer brings ancient monumental ambition into the reinforced-concrete modern era.",
+          "camera": "quote_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_lidar.jpg",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Rio de Janeiro",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_metrics": [
+            {
+              "label": "Central Finial Height",
+              "value": "73 Meters (240 ft)"
+            },
+            {
+              "label": "Artisan Workforce",
+              "value": "~20,000 Specialists"
+            },
+            {
+              "label": "Corcovado Peak",
+              "value": "710 m Above Rio"
+            },
+            {
+              "label": "Arm Wingspan",
+              "value": "28 Meters (92 ft)"
+            }
+          ],
+          "pull_quote": "Crowning a 710-meter granite pinnacle battered by Atlantic gales and tropical lightning, Christ the Redeemer brings ancient monumental ambition into the reinforced-concrete modern era.",
+          "insert_variant": "",
+          "music_cue": "finale_resolve",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_815603859fcc40.wav",
+          "duration_sec": 12.222,
+          "start_sec": 234.5993,
+          "end_sec": 246.8213
+        },
+        {
+          "turn_id": 17,
+          "chapter_index": 5,
+          "speaker": "HOST_A",
+          "text": "In June 1631, Empress Mumtaz Mahal died at Burhanpur giving birth to their fourteenth child; contemporary court chronicles record the emperor's beard turned silver within months. That lost lineup included Shah Jahan's trusted political confidante who accompanied him on military campaigns.",
+          "spoken_text": "In June 16 31, Empress Mumtaz Mahal died at Burhanpur giving birth to their fourteenth child; contemporary court chronicles record the emperor's beard turned silver within months. That lost lineup included Shah Jahan's trusted political confidante who accompanied him on military campaigns.",
+          "camera": "split_fact_card",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_physics.jpg",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Rio de Janeiro",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_metrics": [
+            {
+              "label": "Central Finial Height",
+              "value": "73 Meters (240 ft)"
+            },
+            {
+              "label": "Artisan Workforce",
+              "value": "~20,000 Specialists"
+            },
+            {
+              "label": "Corcovado Peak",
+              "value": "710 m Above Rio"
+            },
+            {
+              "label": "Arm Wingspan",
+              "value": "28 Meters (92 ft)"
+            }
+          ],
+          "pull_quote": "That lost lineup included Shah Jahan's trusted political confidante who accompanied him on military campaigns.",
+          "insert_variant": "",
+          "music_cue": "finale_resolve",
+          "pause_after_ms": 265,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_dbe3f51e19e39e.wav",
+          "duration_sec": 20.348,
+          "start_sec": 247.0863,
+          "end_sec": 267.4343
+        },
+        {
+          "turn_id": 18,
+          "chapter_index": 5,
+          "speaker": "HOST_B",
+          "text": "Across millennia of shifting empires, earthquakes, and desert winds, the 7 Wonders of the World endure as humanity's boldest signature in stone. Proof of what happens when geometry and imagination refuse to accept the impossible.",
+          "spoken_text": "Across millennia of shifting empires, earthquakes, and desert winds, the 7 Wonders of the World endure as humanity's boldest signature in stone. Proof of what happens when geometry and imagination refuse to accept the impossible.",
+          "camera": "wide_studio",
+          "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_r30r3s00/media_plates/ch05_code3d_monument.jpg",
+          "visual_caption": "3D Architectural Reconstruction \u00b7 Rio de Janeiro",
+          "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
+          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_metrics": [
+            {
+              "label": "Central Finial Height",
+              "value": "73 Meters (240 ft)"
+            },
+            {
+              "label": "Artisan Workforce",
+              "value": "~20,000 Specialists"
+            },
+            {
+              "label": "Corcovado Peak",
+              "value": "710 m Above Rio"
+            },
+            {
+              "label": "Arm Wingspan",
+              "value": "28 Meters (92 ft)"
+            }
+          ],
+          "pull_quote": "Across millennia of shifting empires, earthquakes, and desert winds, the 7 Wonders of the World endure as humanity's boldest signature in stone.",
+          "insert_variant": "",
+          "music_cue": "finale_resolve",
+          "pause_after_ms": 600,
+          "is_chapter_opener": false,
+          "audio_path": "/home/user/.cache/voxforge/utterances/utt_9e00fb49a0ba72.wav",
+          "duration_sec": 14.968,
+          "start_sec": 267.6993,
+          "end_sec": 282.6673
+        }
+      ],
+      "start_sec": 219.8123,
+      "end_sec": 283.2673
+    }
+  ],
+  "llm_backend_used": "corpus_showrunner",
+  "revision_number": 1,
+  "intro_duration_sec": 4.2,
+  "outro_duration_sec": 5.0,
+  "next_episode_tease": "Lost Megacities of Antiquity: Angkor Wat, Teotihuacan & The Library of Alexandria"
+}
