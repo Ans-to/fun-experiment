@@ -80,10 +80,17 @@ def _make_sheet(mp4: Path, plan: dict, out_path: Path, n: int = 4) -> None:
 
 def main() -> int:
     out_root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/home/user/qa_niches")
+    only = set(sys.argv[2].split(",")) if len(sys.argv) > 2 else None
     out_root.mkdir(parents=True, exist_ok=True)
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    results: list[dict] = []
+    results_file = EVIDENCE_DIR / "niche_matrix_results.json"
+    by_tag: dict[str, dict] = {}
+    if results_file.exists():
+        for prev in json.loads(results_file.read_text(encoding="utf-8")):
+            by_tag[prev["niche"]] = prev
     for tag, topic in NICHES:
+        if only and tag not in only:
+            continue
         t0 = time.time()
         rec: dict = {"niche": tag, "topic": topic}
         print(f"\n=== [{tag}] {topic} ===", flush=True)
@@ -116,9 +123,10 @@ def main() -> int:
             shutil.copy(r.audit_json_path, EVIDENCE_DIR / f"{tag}_audit_report.json")
         except Exception:  # noqa: BLE001
             rec.update(certified=False, error=traceback.format_exc()[-800:], secs=round(time.time() - t0))
-        results.append(rec)
+        by_tag[tag] = rec
         print("RESULT " + json.dumps(rec), flush=True)
-        (EVIDENCE_DIR / "niche_matrix_results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+        merged = [by_tag[t] for t, _ in NICHES if t in by_tag]
+        results_file.write_text(json.dumps(merged, indent=2), encoding="utf-8")
     print("\n=== MATRIX COMPLETE ===", flush=True)
     return 0
 

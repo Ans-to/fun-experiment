@@ -285,6 +285,61 @@ def audit_and_improve_script(
         if dedup_removed:
             improvements.append(f"Eliminated {dedup_removed} repetitive turns to guarantee lexical freshness.")
 
+        # 3b. Sentence-level lexical freshness rewrite: swap sentences whose phrasing repeats
+        #     earlier narration for grounded non-overlapping analysis from the chapter dossier,
+        #     fixing E2 6-gram overlap without gutting whole turns (word budget refills in step 4).
+        seen_ng2: set[tuple[str, ...]] = set()
+        rewritten_sents = 0
+        dropped_sents = 0
+        for ch, st in zip(script.chapters, dossier.subtopics):
+            pool = (
+                _build_non_overlapping_expansion_pool(st, ch.chapter_index)
+                + list(st.legacy_and_modern_science)
+                + list(st.human_stories_and_paradoxes)
+                + list(st.engineering_and_mechanics)
+            )
+            pool = [p for p in pool if p and len(p.split()) >= 8]
+            for t in ch.turns:
+                sents = [s for s in re.split(r"(?<=[.!?])\s+", t.text) if s.strip()]
+                keep: list[str] = []
+                changed = False
+                for s in sents:
+                    toks = re.findall(r"[a-z0-9]+", s.lower())
+                    ngs = [tuple(toks[i : i + 6]) for i in range(max(0, len(toks) - 5))]
+                    hits = sum(1 for ng in ngs if ng in seen_ng2)
+                    if ngs and hits / len(ngs) > 0.35:
+                        rep = ""
+                        for cand in pool:
+                            ctoks = re.findall(r"[a-z0-9]+", cand.lower())
+                            cngs = [tuple(ctoks[i : i + 6]) for i in range(max(0, len(ctoks) - 5))]
+                            if cngs and not any(ng in seen_ng2 for ng in cngs):
+                                rep = cand
+                                for ng in cngs:
+                                    seen_ng2.add(ng)
+                                pool.remove(cand)
+                                break
+                        if rep:
+                            keep.append(rep)
+                            rewritten_sents += 1
+                            changed = True
+                            continue
+                        if keep:
+                            dropped_sents += 1
+                            changed = True
+                            continue
+                        # No fresh replacement and nothing kept yet: retain the original
+                        # sentence so the turn never empties out.
+                    for ng in ngs:
+                        seen_ng2.add(ng)
+                    keep.append(s)
+                if changed and keep:
+                    t.text = " ".join(keep)
+        if rewritten_sents or dropped_sents:
+            improvements.append(
+                f"Rewrote {rewritten_sents} repetitive sentences with grounded non-overlapping analysis "
+                f"and removed {dropped_sents} irrecoverable duplicates (lexical freshness)."
+            )
+
         # 4. Word-budget calibration (expand with non-overlapping analysis or trim surplus)
         target_w = script.spec.target_word_count
         diff_w = target_w - script.total_words

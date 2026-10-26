@@ -29,6 +29,22 @@ Every frame across the film is generated algorithmically in code via `@numba.nji
 - **32-Bit `FP32 Kokoro-82M v1.0` Neural Voiceover + Geodesic SLERP Voice Blending**: Alternates seamlessly between **Alex Vance** (*Lead Narrator & Cultural Historian*) and **Dr. Maya Lin** (*Field Archaeologist & Structural Specialist*) with spoken-ear rewriting and zero podcast banter (**Stage A QA**).
 - **5-Stage Vocal Console + Bowed Chamber Score + `-16.0 LUFS` Mastering**: Butterworth HPF → mud cut → optical compression → dynamic de-esser → air shelf → sidechain-ducked chamber strings/piano → two-pass FFmpeg ITU-R BS.1770-4 / EBU R128 loudness mastering (**Stage B QA**).
 - **PyAV Stream & Motion Liveness Inspection**: Verifies Rec.709 H.264 `yuv420p` + `48 kHz` stereo AAC sync, continuous 24fps motion liveness across all acts, `100%` verbatim subtitle word fidelity (`captions.srt` / `captions.vtt`), and clickable MP4 chapters (**Stage C & D QA**).
+- **Narration-Aligned Scene Plan + Stage E Semantic A/V Sync Gate**: Every rendered scene is bound to its exact spoken clause in `scene_plan.json` (clause text, audio-derived start/end, subject, semantic intent, required visual, pure-code asset source, relevance criteria, validation status). After the mux, Stage E **decodes the final MP4** and validates every scene with pixel-evidence frame classification (globe = deep ocean-blue disc, twilight monument = warm stone mass + sky gradient, sim/telemetry = near-black HUD glyphs, quote = large white typography), dense probes 0.2s after each cut-in, black/frozen-frame detection, A/V drift and caption-presence checks — any unresolved semantic mismatch **blocks studio certification** (**Stage E QA**).
+
+---
+
+## Narration↔Visual Sync Certification (Stage E)
+
+```bash
+# Build any film — scene_plan.json + Stage E verdicts are produced automatically
+./documentary "build a 5 minute documentary on 7 wonders of the world"
+
+# Re-run the 10-niche certification matrix (evidence sheets land in qa_evidence/)
+.venv/bin/python tools/run_niche_matrix.py /tmp/qa_niches
+
+# Clause planner, scene-plan model, frame classifier & sync-gate unit tests
+.venv/bin/python -m pytest tests/test_av_sync_plan.py -q
+```
 
 ---
 

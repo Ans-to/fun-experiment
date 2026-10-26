@@ -269,8 +269,29 @@ def _build_general_fallback_dossier(spec: ShowSpec) -> ResearchDossier:
     ]
     count = max(3, min(spec.chapter_count, len(lenses)))
     subtopics: list[SubTopicDossier] = []
+    # Lexical-freshness guard: the full topic string appears only in the cold-open summary and
+    # visual queries; every other narration sentence varies its reference so repeated 6-grams
+    # (Stage A / E2) cannot accumulate across acts.
+    aliases = [
+        "this phenomenon", "the system", "this practice", "the field",
+        "these developments", "the subject", "this tradition", "the mechanism",
+        "the discipline", "this undertaking",
+    ]
+    summary_templates = [
+        "Examining {ref} through the lens of {lens} reveals how small structural decisions compound over decades.",
+        "Placing {ref} inside {lens} shows why early constraints still steer later outcomes.",
+        "A close reading of {ref} under {lens} exposes trade-offs that sources rarely state outright.",
+        "Tracking {ref} across {lens} connects isolated milestones into one causal chain.",
+        "Weighing {ref} against {lens} separates durable evidence from popular retelling.",
+        "Framing {ref} with {lens} clarifies which variables truly drive the result.",
+    ]
     for i in range(count):
         t_name, t_sub, era = lenses[i % len(lenses)]
+
+        def a(k: int) -> str:
+            return aliases[(i * 4 + k) % len(aliases)]
+
+        summary_ref = spec.topic if i == 0 else a(0)
         subtopics.append(
             SubTopicDossier(
                 index=i + 1,
@@ -278,20 +299,20 @@ def _build_general_fallback_dossier(spec: ShowSpec) -> ResearchDossier:
                 subtitle=t_sub,
                 era_or_date=era,
                 location="Global Investigation",
-                summary=f"Examining {spec.topic} through the lens of {t_name.lower()} reveals how small structural decisions compound over decades.",
+                summary=summary_templates[i % len(summary_templates)].format(ref=summary_ref, lens=t_name.lower()),
                 origin_and_context=[
-                    f"Every rigorous study of {spec.topic} begins by separating popular shorthand from documented primary origins.",
-                    f"Early pioneers working on {spec.topic} operated under severe material and measurement constraints that shaped every downstream design.",
+                    f"Every rigorous study of {a(1)} begins by separating popular shorthand from documented primary origins.",
+                    f"Early pioneers working on {a(2)} operated under severe material and measurement constraints that shaped every downstream design.",
                 ],
                 engineering_and_mechanics=[
-                    f"At a systems level, {spec.topic} depends on tightly coupled feedback loops between scale, energy efficiency, and structural resilience.",
-                    f"Quantitative analysis shows that scaling {spec.topic} exposes non-linear bottlenecks invisible in small prototypes.",
+                    f"At a systems level, {a(3)} depends on tightly coupled feedback loops between scale, energy efficiency, and structural resilience.",
+                    f"Quantitative analysis shows that scaling {a(4)} exposes non-linear bottlenecks invisible in small prototypes.",
                 ],
                 human_stories_and_paradoxes=[
-                    f"Behind the technical milestones of {spec.topic} sit intense debates among practitioners whose rival hypotheses forced sharper evidence.",
+                    f"Behind the technical milestones of {a(5)} sit intense debates among practitioners whose rival hypotheses forced sharper evidence.",
                 ],
                 legacy_and_modern_science=[
-                    f"Modern high-resolution telemetry continues to revise textbook explanations of {spec.topic}, opening fresh questions for the next generation.",
+                    f"Modern high-resolution telemetry continues to revise textbook explanations of {a(6)}, opening fresh questions for the next generation.",
                 ],
                 metrics=[
                     KeyMetric("Act Focus", t_name[:22]),
