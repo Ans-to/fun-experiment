@@ -109,8 +109,25 @@ def test_frame_group_classifier_separates_families() -> None:
     assert classify_frame_group(hud) == "darkhud"
     # quote: dark backdrop with large white text block
     quote = np.full((360, 640, 3), 22, dtype=np.uint8)
-    quote[100:260, 60:560] = (235, 235, 235)
+    for yq in range(110, 250, 20):
+        quote[yq : yq + 6, 60:560] = (235, 235, 235)
     assert classify_frame_group(quote) == "quote"
+    # noon-bright warm stone must NOT read as quote despite high white-pixel mass
+    noon = np.full((360, 640, 3), 205, dtype=np.uint8)
+    noon[..., 0] -= 12
+    noon += rng.integers(0, 14, noon.shape, dtype=np.uint8)
+    assert classify_frame_group(noon) == "monument"
+    # night-lit statue: small warm mass on dark sky
+    night = np.full((360, 640, 3), 30, dtype=np.uint8)
+    night[90:300, 260:380] = (165, 160, 150)
+    assert classify_frame_group(night) == "monument"
+    # dense blue LiDAR point cloud (no landmass, incoherent blocks) is darkhud, not geo
+    lidar = np.full((360, 640, 3), 6, dtype=np.uint8)
+    ys, xs = np.mgrid[0:360, 0:640]
+    ring = ((ys - 180) ** 2 / 90 ** 2 + (xs - 320) ** 2 / 240 ** 2)
+    dots = ((ring > 0.85) & (ring < 1.15) & ((xs + ys) % 5 < 2)) | ((ring > 0.4) & (ring < 0.6) & ((xs * 3 + ys) % 7 < 2))
+    lidar[dots] = (230, 140, 40)
+    assert classify_frame_group(lidar) == "darkhud"
 
 
 def test_generic_explanatory_simulation_renders() -> None:

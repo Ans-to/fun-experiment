@@ -61,18 +61,32 @@ def classify_frame_group(frame_bgr: np.ndarray) -> str:
     white_frac = float(np.mean((r > 198.0) & (g > 198.0) & (b > 198.0)))
     chan_spread = np.maximum(np.abs(r - g), np.maximum(np.abs(g - b), np.abs(r - b)))
     stone_frac = float(np.mean((lum > 70.0) & (lum < 215.0) & (chan_spread < 46.0)))
-    if white_frac > 0.045:
+    dark_frac = float(np.mean(lum < 25.0))
+    hh, ww = lum.shape
+    deep_mask = b - r > 70.0
+    coherent_deep = float(np.mean(deep_mask.reshape(hh // 8, 8, ww // 8, 8).mean(axis=(1, 3)) > 0.7))
+    land_frac = float(np.mean((g - r > 8.0) & (g > 55.0) & (b - g < 30.0) & (lum > 45.0) & (lum < 210.0)))
+    if white_frac > 0.045 and mean_lum < 75.0:
+        # Quote cards: white typography on a dark backdrop (noon-bright stone must not qualify).
         return "quote"
+    if deep_blue_frac > 0.06 and blue_frac > 0.12 and (
+        land_frac > 0.08 or (coherent_deep > 0.12 and deep_blue_frac > 0.13)
+    ):
+        # GIS globe: coherent saturated ocean disc with landmasses; sparse blue LiDAR
+        # point clouds fail the land/coherence+luma conjunction.
+        return "geo"
     if stone_frac > 0.30:
         return "monument"
-    if deep_blue_frac > 0.06 and blue_frac > 0.12:
-        return "geo"
-    if blue_frac > 0.25 and float(lum.std()) > 28.0 and float(np.mean(lum < 25.0)) < 0.55:
+    if blue_frac > 0.25 and float(lum.std()) > 28.0 and dark_frac < 0.55:
         # Blue-hour monument cinema: broad sky gradient, no saturated ocean disc.
         return "monument"
     stone_dark_frac = float(np.mean((lum > 45.0) & (lum < 215.0) & (chan_spread < 46.0)))
-    if stone_dark_frac > 0.14 and mean_lum > 36.0 and float(np.mean(lum < 25.0)) < 0.55:
-        # Night-lit stone monument: warm neutral masonry mass above the HUD luma floor.
+    if stone_dark_frac > 0.09 and mean_lum > 36.0 and dark_frac < 0.55:
+        # Night-lit stone/steel monument: warm neutral mass above the HUD luma floor.
+        return "monument"
+    if stone_dark_frac > 0.07 and float(lum.std()) > 32.0 and mean_lum > 36.0 and dark_frac < 0.5:
+        # Tight night closeups: smaller warm mass but strong highlight/shadow gradient
+        # (HUD panels are flat-field and never reach this luma std).
         return "monument"
     if mean_lum < 70.0:
         return "darkhud"
