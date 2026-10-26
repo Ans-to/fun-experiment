@@ -45,3 +45,7 @@ Every frame across the film is generated algorithmically in code via `@numba.nji
 # Run the automated test suite (verifies zero stock/seed photos + all 4 code-render engines)
 .venv/bin/pytest -v
 ```
+
+### Test ANY topic/script on Google Colab (free CPU, zero setup)
+
+Open [`notebooks/VoxForge_Google_Colab.ipynb`](notebooks/VoxForge_Google_Colab.ipynb), edit the `TOPIC` cell to your own command (any subject, 90 s → 3 h), and run top-to-bottom: it clones this repo, installs the engine, produces the film on the Colab CPU (~45–60 min for a 5-minute film), previews it inline, and downloads the MP4 / MP3 / SRT / QC report to your machine (optional Google Drive backup cell included).

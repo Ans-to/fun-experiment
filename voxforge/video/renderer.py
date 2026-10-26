@@ -63,6 +63,61 @@ def _escape_filter_path(p: Path) -> str:
     return str(p.resolve()).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
 
 
+# -----------------------------------------------------------------------------
+# CONTENT-AWARE SHOT DIRECTOR: every beat's visual family is chosen from what the
+# narrator is actually saying in that turn, so picture always answers the voice:
+#   eng   -> engineering/structure lines  => live physics sims & counting telemetry
+#   geo   -> place/trade/movement lines    => 3D orbital Earth GIS maps & route arcs
+#   quote -> chronicler/inscription lines  => verbatim primary-source quote cards
+#   people-> rulers/events/ritual lines    => monument cinema + archival desk inserts
+#   scene -> default                       => 3D monument cinematography & details
+# -----------------------------------------------------------------------------
+_RE_INTENT_ENG = re.compile(
+    r"\b(built|build|engineer|engineers|engineering|mortar|drain|drainage|hydraulic|siphon|aqueduct|"
+    r"acoustic|acoustics|echo|cantilever|seismic|foundation|construct|laborers|workers|"
+    r"survey|aligned|alignment|astronom\w*|degrees?|slope|concrete|arches|vault|dome|"
+    r"terraces?|irrigation|cistern|quarry|ramp|lever|crane|masonry|fortif\w*|erected|"
+    r"staircase|columns?|pillars?|roof)\b",
+    re.I,
+)
+_RE_INTENT_GEO = re.compile(
+    r"\b(located|situated|kilomet\w*|kilometer\w*|km|miles?|journey|route|travel|caravan|ships?|"
+    r"sailed?|cross|crossing|expedition|trade|traded|"
+    r"spices?|bitumen|commerce|merchants?|roads?|pass|border|reach|spread|network|harbor|port|oasis)\b",
+    re.I,
+)
+_RE_INTENT_QUOTE = re.compile(
+    r"\b(wrote|written|recorded|chronicle\w*|inscription|poem|verse|praised|proclaimed|words|"
+    r"described|account|eyewitness|historian|poet|said|declared|famously|renowned|called it)\b",
+    re.I,
+)
+_RE_INTENT_PEOPLE = re.compile(
+    r"\b(emperor\w*|empress\w*|king|queen|pharaoh\w*|dynasty|dynast\w*|ruled|reign|commission\w*|"
+    r"ordered|decree|died|death|birth|born|war|siege|conquest|abandon\w*|collapsed|earthquake\w*|"
+    r"rediscover\w*|explorer\w*|arrived|discover\w*|tomb|burial|ritual|ceremon\w*|gods?|goddess|"
+    r"belief|faith|pilgrim\w*)\b",
+    re.I,
+)
+_INTENT_PRIMARY = {
+    "eng": "split_fact_card",
+    "geo": "wide_studio",
+    "quote": "quote_card",
+    "people": "studio_insert",
+}
+
+
+def _turn_visual_intent(text: str) -> str:
+    """Score narration text against visual-intent lexicons; strongest signal directs the picture."""
+    counts = {
+        "eng": len(_RE_INTENT_ENG.findall(text or "")),
+        "people": len(_RE_INTENT_PEOPLE.findall(text or "")),
+        "geo": len(_RE_INTENT_GEO.findall(text or "")),
+        "quote": len(_RE_INTENT_QUOTE.findall(text or "")),
+    }
+    best = max(counts, key=lambda k: (counts[k], -("eng people geo quote".split().index(k))))
+    return best if counts[best] > 0 else "scene"
+
+
 def _read_segment_mono_audio(master_wav: Path, start_sec: float, duration_sec: float) -> tuple[np.ndarray, int]:
     """Read exact segment slice from master WAV as mono float32 (decimated to 24kHz for fast FFT telemetry)."""
     info = sf.info(str(master_wav))
@@ -166,7 +221,8 @@ def _plan_turn_editorial_beats(
     """Decompose a narration segment into 3.2–5.2s documentary cinema, cartography & telemetry beats."""
     total_dur = max(0.4, turn_end_sec - turn_start_sec)
     spk_cu: CameraAngle = "closeup_host_a" if turn.speaker == "HOST_A" else "closeup_host_b"
-    primary = turn.camera
+    intent = _turn_visual_intent(turn.text)
+    primary = turn.camera if intent == "scene" else _INTENT_PRIMARY[intent]
 
     if total_dur < 5.6:
         if primary == "reaction_shot":
@@ -197,6 +253,42 @@ def _plan_turn_editorial_beats(
             (spk_cu, 3.6),
             ("wide_studio", 4.2),
             ("broll_cinema", 4.4),
+        ]
+    elif intent == "eng":
+        # Narrator explains engineering -> picture runs the live physics/telemetry simulation
+        pattern = [
+            (spk_cu, 3.4),
+            ("split_fact_card", 5.0),
+            ("broll_cinema", 4.2),
+            (spk_cu, 3.4),
+            ("split_fact_card", 4.6),
+        ]
+    elif intent == "geo":
+        # Narrator places/trades/moves -> picture flies the 3D orbital Earth GIS map
+        pattern = [
+            ("wide_studio", 4.4),
+            ("broll_cinema", 4.4),
+            ("wide_studio", 4.0),
+            (spk_cu, 3.4),
+            ("broll_cinema", 4.4),
+        ]
+    elif intent == "quote" or (primary == "quote_card" and intent in ("scene", "people")):
+        # Narrator cites a chronicler -> picture sets the verbatim primary-source inscription
+        pattern = [
+            (spk_cu, 3.3),
+            ("quote_card", 5.2),
+            ("broll_cinema", 4.7),
+            (spk_cu, 3.3),
+            ("broll_cinema", 4.5),
+        ]
+    elif intent == "people":
+        # Narrator tells ruler/event/ritual story -> monument cinema + archival desk inserts
+        pattern = [
+            ("broll_cinema", 4.6),
+            ("studio_insert", 4.2),
+            (spk_cu, 3.6),
+            ("broll_cinema", 4.6),
+            (spk_cu, 3.2),
         ]
     elif primary == "reaction_shot":
         pattern = [
