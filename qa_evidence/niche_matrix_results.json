@@ -129,11 +129,11 @@
     "niche": "07_cooking",
     "topic": "the science of baking bread",
     "certified": true,
-    "overall_final": 97.5,
+    "overall_final": 98.3,
     "stage_scores": {
-      "Stage A \u00b7 Editorial & Dramaturgical QA": 89.2,
-      "Stage B \u00b7 Broadcast Audio & Loudness QA": 98.3,
-      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 95.4,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 99.5,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 96.7,
       "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
       "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
     },
@@ -141,10 +141,10 @@
     "stage_e_passed": true,
     "semantic_mismatches": 0,
     "av_drift_sec": 0.0,
-    "scenes_planned": 19,
-    "scenes_validated": 19,
+    "scenes_planned": 21,
+    "scenes_validated": 21,
     "output_dir": "/home/user/qa_niches/the-science-of-baking-bread-90s",
-    "secs": 434
+    "secs": 739
   },
   {
     "niche": "08_wildlife_nature",

@@ -3,7 +3,7 @@
 - **Documentary Feature**: 7 Wonders of the World: Architecture of the Impossible
 - **Command**: `build a 5 minute documentary on 7 wonders of the world`
 - **Certification Status**: **PASS — STUDIO CERTIFIED**
-- **Composite Studio Score**: **99.8 / 100.0** *(Improved from 99.0 / 100.0)*
+- **Composite Studio Score**: **99.8 / 100.0** *(Improved from 99.2 / 100.0)*
 - **Master Runtime**: `288.3s` (`4.80 min`)
 - **Master Loudness**: `-15.99 LUFS` | True Peak `-1.25 dBTP` | LRA `4.50 LU`
 - **Neural Narration Engine**: `kokoro` (18 narration segments across 5 acts)
@@ -61,11 +61,25 @@
 | ID | Check | Status | Score | Measured | Target Spec |
 |---|---|---|---|---|---|
 | `D1` | Container & Cinema Broadcast Stream Spec | **PASS** | `100.0` | 1920x1080 h264 (yuv420p) + aac 48000Hz 2ch | 1920x1080 h264 (yuv420p) + aac 48000Hz stereo |
-| `D2` | Audio/Video Stream Synchronization Lock | **PASS** | `100.0` | Video 288.00s / Audio 288.00s (drift 0 ms) | A/V duration drift <= 350 ms |
-| `D3` | Decoded Frame Integrity & Live Motion Telemetry | **PASS** | `100.0` | 4 checkpoints decoded, min Y=29.1, motion delta=12.781 | Zero black frames (Y > 8.0) & active motion (> 0.02) |
+| `D2` | Audio/Video Stream Synchronization Lock | **PASS** | `100.0` | Video 288.08s / Audio 288.06s (drift 19 ms) | A/V duration drift <= 350 ms |
+| `D3` | Decoded Frame Integrity & Live Motion Telemetry | **PASS** | `100.0` | 4 checkpoints decoded, min Y=30.1, motion delta=6.081 | Zero black frames (Y > 8.0) & active motion (> 0.02) |
 | `D4` | Captions (100% Word Fidelity SRT/VTT) & Chapter Metadata | **PASS** | `100.0` | 577/577 words (100.0%), 7 chapters embedded | 100% spoken-word caption fidelity + embedded MP4 chapters + valid SRT/VTT |
 | `D5` | Branded Intro Bumper, Outro End-Card & Rec.709 Grade | **PASS** | `100.0` | Intro Y=58.0, Outro Y=50.6, Color=bt709 (Rec.709 TV) | Decoded Intro (3-5s) + Outro End-Card + Rec.709 colorimetry |
-| `D6` | 24fps Documentary Parallax, Cartography & Telemetry Liveness | **PASS** | `100.0` | p75 frame step min=3.18, mean=6.70 across 4 acts | Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames) |
+| `D6` | 24fps Documentary Parallax, Cartography & Telemetry Liveness | **PASS** | `100.0` | p75 frame step min=2.06, mean=3.82 across 4 acts | Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames) |
+
+## AUDIT_E_AV_SYNC_SEMANTIC
+- **Score Progression**: `100.0` -> **`100.0 / 100`** (1 pass)
+- **Autonomous Improvements Applied**:
+  - Validated 67 scene-plan entries against decoded final-render frames.
+
+| ID | Check | Status | Score | Measured | Target Spec |
+|---|---|---|---|---|---|
+| `av_duration_drift` | A/V duration drift | **PASS** | `100.0` | 0.000s | <=0.15s |
+| `audio_stream_present` | Audio stream present | **PASS** | `100.0` | present | AAC track |
+| `semantic_scene_match` | Semantic scene match | **PASS** | `100.0` | 67/67 | 67/67 |
+| `black_scenes` | No black scenes | **PASS** | `100.0` | 0 | 0 |
+| `frozen_scenes` | No frozen scenes | **PASS** | `100.0` | 0 | 0 |
+| `caption_sync_spotcheck` | Caption sync spot-check | **PASS** | `100.0` | 6/6 | 6/6 |
 
 ---
 
