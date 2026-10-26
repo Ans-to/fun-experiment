@@ -1,0 +1,273 @@
+{
+  "episode_slug": "7-wonders-of-the-world-5m",
+  "overall_initial_score": 99.0,
+  "overall_final_score": 99.8,
+  "studio_certified": true,
+  "stages": [
+    {
+      "stage_name": "Stage A \u00b7 Editorial & Dramaturgical QA",
+      "initial_score": 99.3,
+      "final_score": 99.3,
+      "passed": true,
+      "iterations": 1,
+      "improvements_applied": [
+        "Initial script passed all 5 editorial studio checks on first draft."
+      ],
+      "checks": [
+        {
+          "check_id": "E1",
+          "name": "Word & Duration Budget Lock",
+          "passed": true,
+          "score": 95.8,
+          "measured_value": "577 words (target 565, diff 2.1%)",
+          "target_spec": "Within \u00b110.0% of target spoken word budget",
+          "notes": ""
+        },
+        {
+          "check_id": "E2",
+          "name": "Lexical Diversity & Anti-Repetition",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "0.00% 6-gram overlap (0/515)",
+          "target_spec": "<= 2.50% repeated 6-word phrases across episode",
+          "notes": ""
+        },
+        {
+          "check_id": "E3",
+          "name": "Broadcast Prose Purity (Zero AI Clich\u00e9s)",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "0 clich\u00e9 phrases detected",
+          "target_spec": "0 synthetic filler clich\u00e9s",
+          "notes": ""
+        },
+        {
+          "check_id": "E4",
+          "name": "Conversational Cadence & Host Balance",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "Host A 52.9% / Host B 47.1%, 0 overlong turns",
+          "target_spec": "Host split 36%-64% and 0 turns > 64 words",
+          "notes": ""
+        },
+        {
+          "check_id": "E5",
+          "name": "Multicam Cutaway & Angle Rhythm",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "72.2% B-roll/Fact shots, 0 static 3-turn runs",
+          "target_spec": ">= 22% documentary cutaways, 0 triple static runs",
+          "notes": ""
+        },
+        {
+          "check_id": "E6",
+          "name": "Spoken-Ear Orality & Pronunciation Hygiene",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "0 eye-only notation traps across 18 turns",
+          "target_spec": "0 parenthetical placards or raw abbreviations in spoken copy",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "stage_name": "Stage B \u00b7 Broadcast Audio & Loudness QA",
+      "initial_score": 99.8,
+      "final_score": 99.8,
+      "passed": true,
+      "iterations": 1,
+      "improvements_applied": [
+        "Applied two-pass ITU-R BS.1770-4 mastering (-16.0 LUFS -> -16.0 LUFS, peak -1.25 dBTP)."
+      ],
+      "checks": [
+        {
+          "check_id": "A1",
+          "name": "Neural Utterance Integrity & Prosody Pace",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "18/18 healthy utterances",
+          "target_spec": "100% utterances within 1.1\u20135.2 words/sec, zero dropouts",
+          "notes": ""
+        },
+        {
+          "check_id": "A2",
+          "name": "Integrated Programme Loudness (ITU-R BS.1770-4)",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "-15.99 LUFS",
+          "target_spec": "-16.0 LUFS \u00b1 0.85 LU",
+          "notes": ""
+        },
+        {
+          "check_id": "A3",
+          "name": "Oversampled True-Peak Ceiling",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "-1.25 dBTP",
+          "target_spec": "<= -1.0 dBTP",
+          "notes": ""
+        },
+        {
+          "check_id": "A4",
+          "name": "Dynamic Loudness Range (LRA)",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "4.50 LU",
+          "target_spec": "1.5 \u2013 11.5 LU",
+          "notes": ""
+        },
+        {
+          "check_id": "A5",
+          "name": "Dead-Air & Room-Tone Continuity",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "Max silence 0.00s",
+          "target_spec": "<= 1.65s continuous dead air",
+          "notes": ""
+        },
+        {
+          "check_id": "A6",
+          "name": "Episode Runtime Lock vs Requested Duration",
+          "passed": true,
+          "score": 98.4,
+          "measured_value": "288.3s (4.80 min) vs target 300.0s",
+          "target_spec": "Within \u00b112% of requested target duration",
+          "notes": ""
+        },
+        {
+          "check_id": "A7",
+          "name": "Vocal Sibilance Comfort & Dynamic Crest",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "Sibilance -13.2 dB rel core, Crest 17.7 dB",
+          "target_spec": "5.5-8.5kHz <= -6.0 dB vs speech core & Crest 7.5-20.0 dB",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "stage_name": "Stage C \u00b7 Cinematography & Visual Asset QA",
+      "initial_score": 96.7,
+      "final_score": 100.0,
+      "passed": true,
+      "iterations": 1,
+      "improvements_applied": [
+        "Verified 100% of 1080p Rec.709 studio, insert, cinema & blueprint plates passed optical QA.",
+        "Injected missing broadcast camera coverage (closeup_host_a)."
+      ],
+      "checks": [
+        {
+          "check_id": "V1",
+          "name": "1080p Widescreen Broadcast Resolution",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "15/15 plates at 1920x1080",
+          "target_spec": "100% plates matched to 1920x1080 SAR 1:1",
+          "notes": ""
+        },
+        {
+          "check_id": "V2",
+          "name": "Optical Sharpness & Detail (Laplacian Variance)",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "15/15 sharp (min var=283.5)",
+          "target_spec": "Laplacian variance >= 32.0",
+          "notes": ""
+        },
+        {
+          "check_id": "V3",
+          "name": "Broadcast Luminance & Contrast Range",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "15/15 plates within Rec.709 broadcast luma range",
+          "target_spec": "Mean Y luminance between 16 and 228 (Rec.709 IRE safe)",
+          "notes": ""
+        },
+        {
+          "check_id": "V4",
+          "name": "Visual Pacing & Camera Cut Cadence",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "65 camera cuts (avg 4.4s / shot)",
+          "target_spec": "Avg shot length 3.0s \u2013 22.0s for viewer retention",
+          "notes": ""
+        },
+        {
+          "check_id": "V5",
+          "name": "Multicam Coverage, Inserts, Callouts & Bookends",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "Intro 4.2s, Outro 5.0s, Angles=7 (Wide/CU/React/Insert/Callout=6/6)",
+          "target_spec": "Intro 3-5s + Wide + Close-ups + Reactions + Studio Inserts + Callouts + Outro",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "stage_name": "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC",
+      "initial_score": 100.0,
+      "final_score": 100.0,
+      "passed": true,
+      "iterations": 1,
+      "improvements_applied": [
+        "Verified H.264 High/Main yuv420p + 48kHz AAC faststart mux, continuous 24fps 2.5D monument parallax, animated GPS cartography, staggered telemetry reveals, and embedded chapters."
+      ],
+      "checks": [
+        {
+          "check_id": "D1",
+          "name": "Container & Cinema Broadcast Stream Spec",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "1920x1080 h264 (yuv420p) + aac 48000Hz 2ch",
+          "target_spec": "1920x1080 h264 (yuv420p) + aac 48000Hz stereo",
+          "notes": ""
+        },
+        {
+          "check_id": "D2",
+          "name": "Audio/Video Stream Synchronization Lock",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "Video 288.00s / Audio 288.00s (drift 0 ms)",
+          "target_spec": "A/V duration drift <= 350 ms",
+          "notes": ""
+        },
+        {
+          "check_id": "D3",
+          "name": "Decoded Frame Integrity & Live Motion Telemetry",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "4 checkpoints decoded, min Y=29.1, motion delta=12.781",
+          "target_spec": "Zero black frames (Y > 8.0) & active motion (> 0.02)",
+          "notes": ""
+        },
+        {
+          "check_id": "D4",
+          "name": "Captions (100% Word Fidelity SRT/VTT) & Chapter Metadata",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "577/577 words (100.0%), 7 chapters embedded",
+          "target_spec": "100% spoken-word caption fidelity + embedded MP4 chapters + valid SRT/VTT",
+          "notes": ""
+        },
+        {
+          "check_id": "D5",
+          "name": "Branded Intro Bumper, Outro End-Card & Rec.709 Grade",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "Intro Y=58.0, Outro Y=50.6, Color=bt709 (Rec.709 TV)",
+          "target_spec": "Decoded Intro (3-5s) + Outro End-Card + Rec.709 colorimetry",
+          "notes": ""
+        },
+        {
+          "check_id": "D6",
+          "name": "24fps Documentary Parallax, Cartography & Telemetry Liveness",
+          "passed": true,
+          "score": 100.0,
+          "measured_value": "p75 frame step min=3.18, mean=6.70 across 4 acts",
+          "target_spec": "Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames)",
+          "notes": ""
+        }
+      ]
+    }
+  ]
+}
