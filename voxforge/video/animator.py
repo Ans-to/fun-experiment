@@ -443,7 +443,7 @@ class StudioCharacterAnimator:
         # Filmic halation: warm red-orange emulsion bloom bleeding out of specular highlights.
         hl = np.clip(out.astype(np.float32) - 205.0, 0.0, 50.0) / 50.0
         halo = cv2.GaussianBlur(hl.max(axis=2), (0, 0), 7.0)
-        out = np.clip(out.astype(np.float32) + halo[..., None] * np.array([24.0, 9.0, 3.0]), 0.0, 255.0).astype(np.uint8)
+        out = np.clip(out.astype(np.float32) + halo[..., None] * np.array([12.0, 5.0, 2.0]), 0.0, 255.0).astype(np.uint8)
 
         # Organic film-gate weave: slow sub-pixel-quantized drift of the photographed plate only
         # (burned-in graphics & captions are added optically afterwards, exactly like a real finish).

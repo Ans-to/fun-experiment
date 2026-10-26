@@ -1110,10 +1110,11 @@ class Monument3DEngine:
             pxl, pyl = px_sun * rw / float(w), py_sun * rh / float(h)
             yy2, xx2 = np.mgrid[0:rh, 0:rw].astype(np.float32)
             d2 = (xx2 - pxl) ** 2 + (yy2 - pyl) ** 2
-            sig1 = max(2.0, rh * 0.030)
-            sig2 = rh * 0.15
-            disk = np.exp(-d2 / (2.0 * sig1 * sig1)) + 0.38 * np.exp(-d2 / (2.0 * sig2 * sig2))
+            sig1 = max(2.0, rh * 0.020)
+            sig2 = rh * 0.13
+            disk = np.exp(-d2 / (2.0 * sig1 * sig1)) + 0.30 * np.exp(-d2 / (2.0 * sig2 * sig2))
             disk *= zbuf_low > 90.0
+            disk += (np.random.default_rng(1234).random((rh, rw)) - 0.5) * 0.006  # 1-LSB dither vs banding
             img_low = np.clip(
                 img_low.astype(np.float32) + disk[..., None] * np.array([255.0, 216.0, 150.0]),
                 0.0,
@@ -1151,31 +1152,8 @@ class Monument3DEngine:
             srcm = np.clip((np.where(zq > 90.0, lum_q, 0.0) - 0.10) * 1.6, 0.0, 1.0)
             fxq, fyq = px_sun * qw / float(w), py_sun * qh / float(h)
             yyq, xxq = np.mgrid[0:qh, 0:qw].astype(np.float32)
-            # Angular cloud-gap modulation around the sun -> radial blur yields crepuscular spokes
-            ang_q = np.arctan2(yyq - fyq, xxq - fxq)
-            t_sp = time_s * 0.35
-            gap = np.clip(
-                0.55
-                + 0.30 * np.sin(5.0 * ang_q + t_sp)
-                + 0.25 * np.sin(9.0 * ang_q - t_sp * 0.7 + 1.9)
-                + 0.18 * np.sin(14.0 * ang_q + 2.1),
-                0.12,
-                1.2,
-            )
-            srcm = srcm * gap
-            # In-frame emissive beacons/fires also scatter crepuscular spokes through the mist
-            hot_q = np.clip((lum_q - 0.60) * 2.2, 0.0, 1.0)
-            if float(hot_q.max()) > 0.10:
-                ys_h, xs_h = np.nonzero(hot_q > 0.35)
-                if xs_h.size >= 2:
-                    bx_q, by_q = xs_h.mean(), ys_h.mean()
-                    ang_b = np.arctan2(yyq - by_q, xxq - bx_q)
-                    gap_b = np.clip(
-                        0.55 + 0.30 * np.sin(6.0 * ang_b + t_sp) + 0.25 * np.sin(10.0 * ang_b - t_sp * 0.7 + 0.8),
-                        0.12,
-                        1.2,
-                    )
-                    srcm = np.maximum(srcm, hot_q * gap_b)
+            # Smooth (spoke-free) source field: radial blur yields a natural volumetric haze wash
+            # plus genuine crepuscular shafts wherever monument silhouettes occlude the sun.
             dxq, dyq = fxq - xxq, fyq - yyq
             acc = np.zeros((qh, qw), dtype=np.float32)
             wgt, wsum = 1.0, 0.0
@@ -1186,10 +1164,10 @@ class Monument3DEngine:
                 acc += srcm[yi, xi] * wgt
                 wsum += wgt
                 wgt *= 0.82
-            rays = np.clip(acc / wsum - 0.10, 0.0, 1.0) * 0.85
-            rays_f = cv2.resize(rays, (w, h), interpolation=cv2.INTER_LINEAR)[..., None]
-            tint = np.array([255.0, 196.0, 120.0], dtype=np.float32) / 255.0
-            img = np.clip(img.astype(np.float32) + rays_f * tint * 160.0, 0.0, 255.0).astype(np.uint8)
+                rays = np.clip(acc / wsum - 0.10, 0.0, 1.0) * 0.50
+                rays_f = cv2.resize(rays, (w, h), interpolation=cv2.INTER_LINEAR)[..., None]
+                tint = np.array([255.0, 196.0, 120.0], dtype=np.float32) / 255.0
+                img = np.clip(img.astype(np.float32) + rays_f * tint * 40.0, 0.0, 255.0).astype(np.uint8)
 
         # Project Z-tested 28,000 Volumetric LiDAR Surface Points + Sweeping Laser Cross-Section!
         focal = fov * float(h)
