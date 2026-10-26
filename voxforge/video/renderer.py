@@ -43,6 +43,7 @@ from voxforge.video.animator import (
 from voxforge.video.compositor import MulticamCompositor, PlateLayout
 from voxforge.video.procedural_world import (
     SCENE_CLASSICAL_GENERIC,
+    detect_explicit_scene_id,
     resolve_procedural_scene_id,
     resolve_visual_subject,
 )
@@ -162,7 +163,69 @@ def _family_for_intent(intent: str, scene_mapped: bool, beat_idx: int) -> str:
     return "broll_cinema" if scene_mapped else ("split_fact_card" if beat_idx % 2 == 0 else "studio_insert")
 
 
+# Narration that enumerates the wonders which NO LONGER exist must not be illustrated with
+# the one wonder that survived. These clauses get a rapid montage of the lost monuments.
+_RE_STRONG_LOSS = re.compile(
+    r"\b(destroy\w*|vanish\w*|lost|losing|collapse\w*|ruin\w*|earthquake\w*|quake\w*|"
+    r"greed|razed|crumbled|crumble|toppled|shatter\w*|swallow\w*|erased|"
+    r"perished|demolish\w*)\b",
+    re.I,
+)
+_RE_WEAK_LOSS = re.compile(r"\b(fire|flames|fell|fallen|gone|burnt|burned)\b", re.I)
+_RE_WONDER_GROUP = re.compile(
+    r"\b(wonder\w*|marvel\w*|theamata|seven|six|6|7|monuments?)\b", re.I
+)
+_RE_WONDER_ENUM = re.compile(
+    r"\b(seven wonders?|six wonders?|wonders? of the world|theamata|catalog\w*|"
+    r"catalogue\w*|listed|list of|original)\b",
+    re.I,
+)
+
+
+def is_lost_wonders_reference(clause: str, scene_context: str = "") -> bool:
+    """True when a clause is about the ancient wonders that no longer exist.
+
+    Covers two shapes found in real narration:
+      * destruction of the group ("earthquakes, fire and greed destroyed six") — even when
+        the same breath names the survivor ("leaving only the pyramid at Cairo");
+      * bare enumeration of the canon ("the original Seven Wonders cataloged by Greek
+        travelers") where no single surviving monument is the subject.
+
+    Such clauses have no surviving subject to photograph, so they are illustrated with a
+    montage of the lost monuments instead of the one that is still standing.
+    """
+    text = clause or ""
+    if not text:
+        return False
+    ctx = f"{text} {scene_context or ''}"
+    if not _RE_WONDER_GROUP.search(ctx):
+        return False
+    # Destruction language about the group wins even if the survivor is named in passing.
+    if _RE_STRONG_LOSS.search(text) and _RE_WONDER_GROUP.search(ctx):
+        return True
+    if _RE_WEAK_LOSS.search(text) and _RE_WONDER_GROUP.search(text):
+        return True
+    # Otherwise: pure enumeration with no specific monument named.
+    if detect_explicit_scene_id(text) is not None:
+        return False
+    return bool(_RE_WONDER_ENUM.search(text))
+
+
+# Anti-repetition rotation: when consecutive beats would show the same subject through the
+# same treatment, step to the next representation (3D cinema -> physics/LiDAR insert ->
+# telemetry -> orbital globe) instead of holding one holographic screen.
+_VARIETY_ROTATION: tuple[CameraAngle, ...] = (
+    "broll_cinema",
+    "studio_insert",
+    "broll_cinema",
+    "split_fact_card",
+    "broll_cinema",
+    "wide_studio",
+)
+
+
 def _read_segment_mono_audio(master_wav: Path, start_sec: float, duration_sec: float) -> tuple[np.ndarray, int]:
+
     """Read exact segment slice from master WAV as mono float32 (decimated to 24kHz for fast FFT telemetry)."""
     info = sf.info(str(master_wav))
     sr = int(info.samplerate)
@@ -317,6 +380,36 @@ def _plan_turn_editorial_beats(
     scene_context: str = "",
     lead_attribution_sec: float = 0.0,
 ) -> list[tuple[CameraAngle, float, str]]:
+    """Clause-aligned visual beats (camera, end time, exact narration clause)."""
+    beats, _ = _plan_turn_editorial_beats_detail(
+        turn,
+        turn_start_sec,
+        turn_end_sec,
+        env_50hz,
+        is_episode_opener=is_episode_opener,
+        is_episode_closer=is_episode_closer,
+        scene_context=scene_context,
+        lead_attribution_sec=lead_attribution_sec,
+    )
+    return beats
+
+
+def _plan_turn_editorial_beats_detail(
+    turn: DialogueTurn,
+    turn_start_sec: float,
+    turn_end_sec: float,
+    env_50hz: np.ndarray,
+    is_episode_opener: bool,
+    is_episode_closer: bool,
+    scene_context: str = "",
+    lead_attribution_sec: float = 0.0,
+) -> tuple[list[tuple[CameraAngle, float, str]], list[bool]]:
+    """Return `(beats, montage_flags)`.
+
+    `montage_flags[i]` is True when beat `i` must run the lost-wonders montage. It is
+    returned alongside the beats (rather than re-derived at render time) because the
+    decision depends on clause-to-clause continuation state inside the planner.
+    """
     """Decompose a narration segment into clause-aligned documentary visual beats.
 
     Each beat carries the exact narration clause it illustrates, so picture changes track
@@ -342,31 +435,52 @@ def _plan_turn_editorial_beats(
         return [(primary, turn_end_sec, turn.text)]
 
     # ---- Clause-aligned beat construction: one visual beat per meaningful spoken clause ----
+    # Openers and closers are clause-driven too. A canned camera pattern meant the cold open
+    # held one monument while the narrator described something else entirely (e.g. the six
+    # destroyed wonders shown as the pyramid that survived them).
     specs: list[tuple[CameraAngle, float, str]] = []
-    if is_episode_opener:
-        specs = [
-            ("broll_cinema", 4.4, ""),
-            ("wide_studio", 4.1, ""),
-            (spk_cu, 3.8, ""),
-            ("broll_cinema", 4.6, ""),
-            ("studio_insert", 4.0, ""),
-        ]
-    elif is_episode_closer:
-        specs = [
-            ("broll_cinema", 4.5, ""),
-            (spk_cu, 3.6, ""),
-            ("wide_studio", 4.2, ""),
-            ("broll_cinema", 4.4, ""),
-        ]
-    else:
-        if lead_attribution_sec > 0.0:
-            specs.append((spk_cu, lead_attribution_sec, ""))
-        clauses = _split_turn_clauses(turn.text)
-        for ci, clause in enumerate(clauses):
-            intent_c = _turn_visual_intent(clause)
-            sid_c, _ = resolve_procedural_scene_id(f"{clause} || {scene_context}", fallback_idx=ci + 1)
-            fam = _family_for_intent(intent_c, sid_c != SCENE_CLASSICAL_GENERIC, ci)
-            specs.append((fam, float(max(3, len(clause.split()))), clause))
+    spec_sids: list[int] = []
+    spec_montage: list[bool] = []
+    if lead_attribution_sec > 0.0:
+        specs.append((spk_cu, lead_attribution_sec, ""))
+        spec_sids.append(-1)
+        spec_montage.append(False)
+
+    clauses = _split_turn_clauses(turn.text)
+    prev_lost = False
+    prev_names_survivor = False
+    for ci, clause in enumerate(clauses):
+        intent_c = _turn_visual_intent(clause)
+        sid_c, _ = resolve_procedural_scene_id(f"{clause} || {scene_context}", fallback_idx=ci + 1)
+        fam = _family_for_intent(intent_c, sid_c != SCENE_CLASSICAL_GENERIC, ci)
+        lost_ref = is_lost_wonders_reference(clause, scene_context)
+        if (
+            not lost_ref
+            and prev_lost
+            and not prev_names_survivor
+            and detect_explicit_scene_id(clause) is None
+        ):
+            # Mid-list continuation ("...by Greek travelers two thousand years ago"):
+            # still enumerating the canon, so stay inside the montage. The chain stops at
+            # the clause that names the surviving monument — that is where the picture is
+            # finally allowed to become a subject shot.
+            lost_ref = True
+        prev_lost = lost_ref
+        prev_names_survivor = detect_explicit_scene_id(clause) is not None
+        if lost_ref:
+            # Enumerating the wonders that no longer exist: run the lost-wonders montage.
+            # Any other treatment would show the survivor while he describes the dead ones.
+            fam = "broll_cinema"
+        specs.append((fam, float(max(3, len(clause.split()))), clause))
+        spec_sids.append(sid_c)
+        spec_montage.append(lost_ref)
+
+    if is_episode_opener and specs:
+        # One clean establishing wide before the clause-by-clause storytelling begins.
+        establish_sid = spec_sids[0] if spec_sids else -1
+        specs.insert(0, ("wide_studio", 3.4, clauses[0] if clauses else turn.text))
+        spec_sids.insert(0, establish_sid)
+        spec_montage.insert(0, False)
 
     # Merge beats that would fall below the 2.2s minimum shot length
     def _scaled_min_ok(weights: list[float], total: float) -> bool:
@@ -374,12 +488,29 @@ def _plan_turn_editorial_beats(
         return all(w * total / s >= 2.2 for w in weights)
 
     while len(specs) > 2 and not _scaled_min_ok([w for _, w, _ in specs], total_dur):
-        # merge the shortest adjacent pair
-        idx = min(range(1, len(specs)), key=lambda i: specs[i][1])
+        # merge the shortest adjacent pair — never across a lost-wonders montage beat,
+        # or the montage gets folded into a neighbouring treatment and disappears.
+        mergeable = [
+            i
+            for i in range(1, len(specs))
+            if not (
+                (i < len(spec_montage) and spec_montage[i])
+                or (i - 1 < len(spec_montage) and spec_montage[i - 1])
+            )
+        ]
+        if not mergeable:
+            break
+        idx = min(mergeable, key=lambda i: specs[i][1])
         prev = specs[idx - 1]
         merged = (prev[0], prev[1] + specs[idx][1], f"{prev[2]} {specs[idx][2]}".strip())
         specs[idx - 1] = merged
         specs.pop(idx)
+        if idx < len(spec_sids):
+            spec_sids.pop(idx)
+        if idx < len(spec_montage):
+            m_a, m_b = spec_montage[idx - 1], spec_montage[idx]
+            spec_montage[idx - 1] = m_a or m_b
+            spec_montage.pop(idx)
 
     # Long-narration rule: never hold one picture beyond ~6.2s — split the heaviest clause.
     while len(specs) < 8:
@@ -391,6 +522,7 @@ def _plan_turn_editorial_beats(
         i_h = max(heavy, key=lambda i: specs[i][1])
         cam_h, w_h, cl_h = specs[i_h]
         words_h = (cl_h or "").split()
+        sid_h = spec_sids[i_h] if i_h < len(spec_sids) else -1
         if len(words_h) >= 6:
             mid_h = len(words_h) // 2
             specs[i_h : i_h + 1] = [
@@ -399,6 +531,14 @@ def _plan_turn_editorial_beats(
             ]
         else:
             specs[i_h : i_h + 1] = [(cam_h, w_h / 2.0, cl_h), (cam_h, w_h / 2.0, cl_h)]
+        spec_sids[i_h : i_h + 1] = [sid_h, sid_h]
+        m_h = spec_montage[i_h] if i_h < len(spec_montage) else False
+        # A split montage clause hands the flag to its first half, and to the second half
+        # only while that half is still part of the list. As soon as the split isolates a
+        # clause that names the surviving monument, the montage must stop there.
+        tail_text = " ".join(words_h[mid_h:]) if len(words_h) >= 6 else (cl_h or "")
+        m_tail = bool(m_h) and detect_explicit_scene_id(tail_text) is None
+        spec_montage[i_h : i_h + 1] = [m_h, m_tail]
 
     if is_episode_closer and specs[-1][0] != "broll_cinema":
         specs[-1] = ("broll_cinema", specs[-1][1], specs[-1][2])
@@ -413,10 +553,39 @@ def _plan_turn_editorial_beats(
         replacement = clause_pool[min(i, len(clause_pool) - 1)] if clause_pool else turn.text
         specs[i] = (cam, wgt, replacement)
 
+    # ---- Anti-repetition: never let two consecutive beats show the same subject twice ----
+    # through the same treatment. Long single-subject stretches (a full minute on the
+    # pyramid) rotate camera angle + representation so the picture keeps changing.
+    rot_i = 0
+    prev_fam: CameraAngle | None = None
+    prev_sid: int | None = None
+    for i in range(len(specs)):
+        cam, wgt, clause = specs[i]
+        sid = spec_sids[i] if i < len(spec_sids) else -1
+        locked = spec_montage[i] if i < len(spec_montage) else False
+        same_subject = prev_fam is not None and (sid < 0 or prev_sid is None or sid == prev_sid)
+        if locked:
+            # Lost-wonders montage beats keep the cinema treatment (they are already a
+            # rapid multi-subject cut, so rotating them away would reintroduce the bug).
+            prev_fam, prev_sid = cam, sid
+            continue
+        if prev_fam == cam and same_subject and len(specs) > 1:
+            for _ in range(len(_VARIETY_ROTATION)):
+                cand = _VARIETY_ROTATION[rot_i % len(_VARIETY_ROTATION)]
+                rot_i += 1
+                if cand != prev_fam:
+                    cam = cand
+                    specs[i] = (cam, wgt, clause)
+                    break
+        prev_fam = cam
+        prev_sid = sid
+
     weight_sum = sum(w for _, w, _ in specs)
     beats: list[tuple[CameraAngle, float, str]] = []
+    beat_montage: list[bool] = []
     cur_t = turn_start_sec
     for idx_b, (cam, wgt, clause) in enumerate(specs):
+        beat_montage.append(bool(idx_b < len(spec_montage) and spec_montage[idx_b]))
         if idx_b == len(specs) - 1:
             beats.append((cam, turn_end_sec, clause))
             break
@@ -430,7 +599,9 @@ def _plan_turn_editorial_beats(
         beats.append((cam, snapped, clause))
         cur_t = snapped
 
-    return beats
+    while len(beat_montage) < len(beats):
+        beat_montage.append(False)
+    return beats, beat_montage[: len(beats)]
 
 
 def _encode_single_segment(
@@ -687,6 +858,13 @@ def _encode_single_segment(
                 scene_hint=task.layout.scene_hint,
                 scene_id=task.layout.scene_id,
             )
+        elif task.layout.montage:
+            frame_iter = animator.iter_lost_wonders_montage_frames(
+                n_frames=frames,
+                seg_seed=task.seg_index,
+                survivor_scene_id=task.layout.scene_id,
+                survivor_label=task.layout.primary_caption or task.layout.chapter_title_text,
+            )
         elif use_broll_depth:
             frame_iter = animator.iter_broll_depth_frames(
                 plate_path=task.layout.image_path,
@@ -891,7 +1069,7 @@ def render_episode_video(
             turn_source = turn
             # Restrained prestige documentary voice attribution: ONCE per voice across the film!
             want_turn_lt = turn_source.speaker not in attributed_speakers
-            beats = _plan_turn_editorial_beats(
+            beats, beat_montage_flags = _plan_turn_editorial_beats_detail(
                 turn_source,
                 turn_cur_start,
                 shot_end_sec,
@@ -902,6 +1080,7 @@ def render_episode_video(
                 lead_attribution_sec=2.9 if (want_turn_lt and not is_ep_opener) else 0.0,
             )
             lt_emitted = False
+            shot_variants: dict[tuple[int, str], int] = {}
 
             for b_i, (beat_cam, beat_end_sec, beat_clause) in enumerate(beats):
                 s_sec, dur_sec = _alloc_seg_duration(beat_end_sec)
@@ -1002,14 +1181,24 @@ def render_episode_video(
                         caption_override=f"Engineering Telemetry · {_caption_for_asset(p_f, ch, '', turn.text, topic=script.spec.topic)}",
                     )
                 else:
-                    chosen_p, cur_lens_variant = _next_distinct_plate(turn.text)
+                    chosen_p, plate_lens = _next_distinct_plate(turn.text)
+                    # Anti-repetition: every repeat of the same subject through the same
+                    # treatment gets a different camera angle, so a minute on the pyramid
+                    # is a minute of different shots rather than one held hologram.
+                    variant_key = (sid_b, beat_cam)
+                    shot_variants[variant_key] = shot_variants.get(variant_key, 0) + 1
+                    cur_lens_variant = (plate_lens + shot_variants[variant_key]) % 3
                     cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text, topic=script.spec.topic)
+                    use_montage = beat_cam == "broll_cinema" and (
+                        b_i < len(beat_montage_flags) and beat_montage_flags[b_i]
+                    )
                     layout = compositor.render_broll_cinema(
                         turn,
                         ch,
                         plate_file,
                         asset_override=chosen_p,
                         zoom_in_override=((seg_idx % 2) == 0),
+                        montage=use_montage,
                     )
                     hud_overlay = compositor.render_broll_hud_overlay(
                         turn,

@@ -158,6 +158,9 @@ class PlateLayout:
     hud_overlay_path: Path | None = None
     scene_hint: str = ""
     scene_id: int | None = None
+    # Rapid-cut montage of the lost ancient wonders (narration enumerates monuments that
+    # no longer exist, so a single surviving subject would be the wrong picture).
+    montage: bool = False
 
 
 def _hex_to_rgba(hex_str: str, alpha: int = 255) -> tuple[int, int, int, int]:
@@ -791,6 +794,7 @@ class MulticamCompositor:
         out_path: Path,
         asset_override: Path | None = None,
         zoom_in_override: bool | None = None,
+        montage: bool = False,
     ) -> PlateLayout:
         """Render clean full-bleed Rec.709 1920x1080 Pure-Code 3D Monument plate."""
         del asset_override
@@ -804,9 +808,10 @@ class MulticamCompositor:
             image_path=out_path,
             use_ken_burns=True,
             ken_burns_zoom_in=z_in,
-            anim_mode="none",
+            anim_mode="broll_depth" if montage else "none",
             scene_hint=s_hint,
             scene_id=sid,
+            montage=montage,
         )
 
     def render_broll_hud_overlay(

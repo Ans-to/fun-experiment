@@ -38,6 +38,7 @@ from voxforge.video.procedural_world import (
     SCENE_COLOSSEUM,
     SCENE_GIZA,
     SCENE_GREAT_WALL,
+    SCENE_PHAROS,
     SCENE_TAJ_MAHAL,
     Monument3DEngine,
     PhysicsSimulationEngine,
@@ -511,6 +512,92 @@ class StudioCharacterAnimator:
                     rgb = np.clip(rgb.astype(np.float32) * (1.0 + 0.06 * emp), 0.0, 255.0).astype(np.uint8)
 
             yield self._finish_cinema_frame(rgb, i, letterbox=True)
+
+    # The six Ancient Wonders that no longer exist. Narration enumerating their destruction
+    # gets a rapid montage of these, not the one wonder that survived.
+    _LOST_WONDERS: tuple[tuple[str, str, str, str, int], ...] = (
+        ("Pharos Lighthouse", "Alexandria, Egypt", "c. 280 BCE · earthquake", "3d", 0),
+        ("Colossus of Rhodes", "Rhodes, Greece", "c. 226 BCE · earthquake", "3d", 1),
+        ("Temple of Artemis", "Ephesus, Anatolia", "c. 550 BCE · fire & flood", "3d", 2),
+        ("Hanging Gardens", "Babylon, Mesopotamia", "c. 600 BCE · disputed site", "cad", 0),
+        ("Mausoleum at Halicarnassus", "Bodrum, Anatolia", "c. 350 BCE · earthquake", "cad", 1),
+        ("Statue of Zeus", "Olympia, Greece", "c. 435 BCE · fire", "3d", 2),
+    )
+
+    def _overlay_montage_caption(
+        self,
+        rgb: np.ndarray,
+        name: str,
+        place: str,
+        era: str,
+        survivor: bool,
+    ) -> np.ndarray:
+        """Burn a small lower-third identification plate (kept small so frame classification
+        still reads the shot as monument cinema, not a quote card)."""
+        im = Image.fromarray(rgb, mode="RGB")
+        draw = ImageDraw.Draw(im)
+        f_name = load_font("SpaceGrotesk-Bold.ttf", 30)
+        f_sub = load_font("Inter-Medium.ttf", 19)
+        f_kick = load_font("SpaceGrotesk-Bold.ttf", 17)
+
+        x0, y0 = 96, self.h - 232
+        w_box = min(760, 120 + max(int(draw.textlength(name, font=f_name)),
+                                   int(draw.textlength(f"{place}  ·  {era}", font=f_sub))))
+        draw.rectangle([x0, y0, x0 + w_box, y0 + 104], fill=(8, 12, 20))
+        accent = (86, 214, 255) if survivor else (229, 169, 60)
+        draw.rectangle([x0, y0, x0 + 6, y0 + 104], fill=accent)
+        draw.text(
+            (x0 + 26, y0 + 12),
+            "THE SURVIVING WONDER" if survivor else "LOST WONDER OF ANTIQUITY",
+            font=f_kick, fill=accent,
+        )
+        draw.text((x0 + 26, y0 + 38), name[:44], font=f_name, fill=(248, 250, 252))
+        draw.text((x0 + 26, y0 + 78), f"{place}  ·  {era}"[:56], font=f_sub, fill=(176, 190, 208))
+        return np.asarray(im, dtype=np.uint8)
+
+    def iter_lost_wonders_montage_frames(
+        self,
+        n_frames: int,
+        seg_seed: int = 0,
+        survivor_scene_id: int | None = None,
+        survivor_label: str = "",
+    ) -> Iterator[np.ndarray]:
+        """Stream a rapid-cut montage of the six lost Ancient Wonders (+ the survivor)."""
+        n_tot = max(1, n_frames)
+        entries: list[tuple[str, str, str, str, int, int]] = [
+            (name, place, era, kind, lv, SCENE_PHAROS)
+            for name, place, era, kind, lv in self._LOST_WONDERS
+        ]
+        if survivor_scene_id is not None:
+            entries.append((
+                survivor_label or "The Survivor",
+                "still standing",
+                "the only one remaining",
+                "3d",
+                0,
+                int(survivor_scene_id),
+            ))
+
+        per = max(6, int(math.ceil(n_tot / max(1, len(entries)))))
+        produced = 0
+        for idx, (name, place, era, kind, lv, sid) in enumerate(entries):
+            if produced >= n_tot:
+                break
+            cnt = min(per, n_tot - produced)
+            for j in range(cnt):
+                p = j / float(max(1, cnt - 1))
+                # Distinct orbit window per wonder so no two cards look like the same shot.
+                base = idx / float(max(1, len(entries)))
+                u = 0.12 + 0.70 * base + 0.14 * p
+                time_s = seg_seed * 2.5 + (idx * per + j) / 24.0
+                if kind == "cad":
+                    rgb = self._cad_lidar.render_cad_frame(sid, u, time_s, self.w, self.h)
+                else:
+                    rgb = self._monument_3d.render_frame(sid, u, time_s, self.w, self.h, lens_variant=lv)
+                frame = self._finish_cinema_frame(rgb, idx * per + j, letterbox=True)
+                survivor = survivor_scene_id is not None and idx == len(entries) - 1
+                yield self._overlay_montage_caption(frame, name, place, era, survivor)
+                produced += 1
 
     def iter_geo_map_frames(
         self,
