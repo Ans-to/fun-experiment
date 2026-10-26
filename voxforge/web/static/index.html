@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoxForge · Autonomous Cinema Documentary Film Studio</title>
+  <style>
+    :root {
+      --bg-0: #070b14;
+      --bg-1: #0e1628;
+      --bg-2: #16223b;
+      --border: rgba(255, 255, 255, 0.09);
+      --gold: #e5a93c;
+      --cyan: #38bdf8;
+      --green: #22c55e;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 0%, #131f3a 0%, var(--bg-0) 60%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: rgba(7, 11, 20, 0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 14px var(--gold);
+    }
+    .brand h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.06em; }
+    .badge-zero {
+      font-size: 12px; font-weight: 600; padding: 4px 10px;
+      border-radius: 999px; background: rgba(34, 197, 94, 0.14);
+      color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 28px 60px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 1024px) {
+      .shell { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: rgba(14, 22, 40, 0.86);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .panel-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .cmd-form textarea {
+      width: 100%;
+      min-height: 82px;
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+    .cmd-form textarea:focus { outline: 1px solid var(--cyan); }
+    .btn-primary {
+      width: 100%;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #e5a93c, #d97706);
+      color: #090d16;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.92; }
+    .job-box {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-size: 12px;
+      color: #bae6fd;
+      max-height: 150px;
+      overflow-y: auto;
+      display: none;
+    }
+    .ep-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .ep-card {
+      padding: 13px 14px;
+      border-radius: 12px;
+      background: rgba(7, 11, 20, 0.65);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .ep-card:hover, .ep-card.active {
+      border-color: var(--gold);
+      background: rgba(229, 169, 60, 0.08);
+    }
+    .ep-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .ep-meta { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+    .video-wrap {
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
+      aspect-ratio: 16 / 9;
+      margin-bottom: 18px;
+    }
+    video { width: 100%; height: 100%; display: block; }
+    .ep-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .ep-header h2 { font-size: 22px; font-weight: 700; }
+    .ep-sub { color: var(--muted); font-size: 14px; margin-top: 3px; }
+    .dl-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .dl-btn {
+      font-size: 12px; font-weight: 600; text-decoration: none;
+      padding: 7px 12px; border-radius: 8px;
+      background: var(--bg-2); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .dl-btn:hover { border-color: var(--cyan); }
+    .chapters-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+    .ch-pill {
+      flex: 0 0 auto;
+      padding: 8px 13px;
+      border-radius: 10px;
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .ch-pill:hover { border-color: var(--cyan); }
+    .ch-pill span { color: var(--gold); font-weight: 700; margin-right: 6px; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+    }
+    @media (max-width: 1120px) { .grid-2 { grid-template-columns: 1fr; } }
+    .transcript-box {
+      max-height: 460px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 6px;
+    }
+    .turn-row {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(7, 11, 20, 0.55);
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      font-size: 13.5px;
+    }
+    .turn-row.host-a { border-left-color: var(--gold); }
+    .turn-row.host-b { border-left-color: var(--cyan); }
+    .turn-row.current { background: rgba(56, 189, 248, 0.14); }
+    .turn-head {
+      display: flex; justify-content: space-between;
+      font-size: 11px; font-weight: 700; margin-bottom: 3px;
+      color: var(--muted);
+    }
+    .score-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      margin-bottom: 14px;
+    }
+    .score-num { font-size: 26px; font-weight: 800; color: #4ade80; }
+    .stage-card {
+      padding: 12px; border-radius: 10px;
+      background: rgba(7, 11, 20, 0.55);
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      font-size: 12.5px;
+    }
+    .stage-top { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
+    .imp-list { color: #cbd5e1; padding-left: 16px; margin-bottom: 6px; font-size: 12px; }
+    .check-pill {
+      display: inline-block; margin: 2px 4px 2px 0; padding: 2px 7px;
+      border-radius: 6px; font-size: 11px;
+      background: rgba(34, 197, 94, 0.15); color: #86efac;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <h1>VOXFORGE · AUTONOMOUS DOCUMENTARY FILM STUDIO</h1>
+    </div>
+    <div class="badge-zero">ZERO API KEYS · 24FPS 2.5D &amp; CARTOGRAPHY · EBU R128 CERTIFIED</div>
+  </header>
+
+  <main class="shell">
+    <aside style="display:flex;flex-direction:column;gap:20px;">
+      <section class="panel cmd-form">
+        <div class="panel-title">Single-Command Documentary Director</div>
+        <textarea id="cmdInput" placeholder='e.g. build a 1 hour documentary on 7 wonders of the world'></textarea>
+        <button class="btn-primary" id="produceBtn" onclick="launchJob()">Create · Audit · Improve Documentary</button>
+        <div class="job-box" id="jobBox"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Produced Documentary Films</div>
+        <div class="ep-list" id="epList">Loading documentaries...</div>
+      </section>
+    </aside>
+
+    <section id="mainStage">
+      <div class="panel" id="playerPanel">
+        <div class="video-wrap">
+          <video id="videoPlayer" controls preload="metadata">
+            <track id="vttTrack" kind="captions" srclang="en" label="English Documentary (CC)" />
+          </video>
+        </div>
+
+        <div class="ep-header">
+          <div>
+            <h2 id="epTitle">Select or Produce a Documentary Film</h2>
+            <div class="ep-sub" id="epSubtitle">Autonomous 1080p24 2.5D Parallax, Cartography &amp; -16 LUFS Audio</div>
+          </div>
+          <div class="dl-bar" id="dlBar"></div>
+        </div>
+
+        <div class="panel-title">Clickable Broadcast Chapters</div>
+        <div class="chapters-strip" id="chaptersStrip"></div>
+
+        <div class="grid-2">
+          <div class="panel" style="background:rgba(7,11,20,0.4);">
+            <div class="panel-title">Interactive Time-Synced Transcript (Click to Seek)</div>
+            <div class="transcript-box" id="transcriptBox"></div>
+          </div>
+
+          <div class="panel" style="background:rgba(7,11,20,0.4);">
+            <div class="panel-title">Create → Audit → Improve QA Telemetry</div>
+            <div id="auditBox"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let currentTurns = [];
+    let activeSlug = null;
+
+    function fmtTime(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      return h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`
+        : `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
+    }
+
+    async function loadEpisodes(selectSlug = null) {
+      const resp = await fetch('api/episodes');
+      const data = await resp.json();
+      const box = document.getElementById('epList');
+      if (!data.episodes.length) {
+        box.innerHTML = '<div style="color:var(--muted);font-size:13px;">No episodes yet. Enter a command above to produce one!</div>';
+        return;
+      }
+      box.innerHTML = '';
+      data.episodes.forEach((ep, i) => {
+        const card = document.createElement('div');
+        card.className = 'ep-card' + ((selectSlug ? ep.slug === selectSlug : i === 0) ? ' active' : '');
+        card.innerHTML = `
+          <h3>${ep.title}</h3>
+          <div class="ep-meta">
+            <span>${fmtTime(ep.duration_sec)} · ${ep.chapter_count} Acts</span>
+            <span style="color:#4ade80;font-weight:700;">QA ${ep.overall_final_score}/100</span>
+          </div>
+        `;
+        card.onclick = () => selectEpisode(ep.slug);
+        box.appendChild(card);
+      });
+      const target = selectSlug || data.episodes[0].slug;
+      await selectEpisode(target);
+    }
+
+    async function selectEpisode(slug) {
+      activeSlug = slug;
+      document.querySelectorAll('.ep-card').forEach(el => el.classList.remove('active'));
+      const resp = await fetch(`api/episodes/${encodeURIComponent(slug)}`);
+      const data = await resp.json();
+
+      const spec = data.script.spec;
+      document.getElementById('epTitle').textContent = spec.episode_title;
+      document.getElementById('epSubtitle').textContent = `${spec.episode_subtitle}  ·  Command: "${spec.raw_command}"`;
+
+      const vid = document.getElementById('videoPlayer');
+      const trk = document.getElementById('vttTrack');
+      vid.src = `api/episodes/${encodeURIComponent(slug)}/media/documentary_film.mp4`;
+      trk.src = `api/episodes/${encodeURIComponent(slug)}/media/captions.vtt`;
+
+      document.getElementById('dlBar').innerHTML = `
+        <a class="dl-btn" href="api/episodes/${encodeURIComponent(slug)}/download/documentary_film.mp4" download>⬇ Download Documentary MP4 (1080p)</a>
+        <a class="dl-btn" href="api/episodes/${encodeURIComponent(slug)}/download/documentary_audio.mp3" download>⬇ Download Audio MP3 (-16 LUFS)</a>
+        <a class="dl-btn" href="api/episodes/${encodeURIComponent(slug)}/download/captions.srt" download>⬇ SRT Captions</a>
+        <a class="dl-btn" href="api/episodes/${encodeURIComponent(slug)}/media/audit_report.md" target="_blank">Audit Report</a>
+      `;
+
+      const cStrip = document.getElementById('chaptersStrip');
+      cStrip.innerHTML = '';
+      currentTurns = [];
+      data.script.chapters.forEach(ch => {
+        const btn = document.createElement('button');
+        btn.className = 'ch-pill';
+        btn.innerHTML = `<span>ACT ${ch.chapter_index} · ${fmtTime(ch.start_sec)}</span>${ch.title}`;
+        btn.onclick = () => { vid.currentTime = ch.start_sec; vid.play(); };
+        cStrip.appendChild(btn);
+        ch.turns.forEach(t => currentTurns.push(t));
+      });
+
+      const tBox = document.getElementById('transcriptBox');
+      tBox.innerHTML = '';
+      const camLabels = {
+        wide_studio: '3D GIS SURVEY',
+        broll_cinema: '2.5D MONUMENT CINEMA',
+        closeup_host_a: 'ARCHITECTURAL DETAIL',
+        closeup_host_b: 'ARCHITECTURAL DETAIL',
+        reaction_shot: 'ARCHIVAL DIPTYCH',
+        studio_insert: 'ARCHIVAL LIGHT-TABLE',
+        split_fact_card: 'ENGINEERING TELEMETRY',
+        quote_card: 'PRIMARY INSCRIPTION',
+      };
+      currentTurns.forEach((t, idx) => {
+        const row = document.createElement('div');
+        row.id = `turn-row-${idx}`;
+        row.className = 'turn-row ' + (t.speaker === 'HOST_A' ? 'host-a' : 'host-b');
+        const spkName = t.speaker === 'HOST_A' ? 'ALEX VANCE' : 'DR. MAYA LIN';
+        const shotLabel = camLabels[t.camera] || t.camera.toUpperCase();
+        row.innerHTML = `
+          <div class="turn-head">
+            <span style="color:${t.speaker === 'HOST_A' ? 'var(--gold)' : 'var(--cyan)'}">${spkName} · [${shotLabel}]</span>
+            <span>${fmtTime(t.start_sec)}</span>
+          </div>
+          <div>${t.text}</div>
+        `;
+        row.onclick = () => { vid.currentTime = t.start_sec; vid.play(); };
+        tBox.appendChild(row);
+      });
+
+      const audit = data.audit;
+      let aHtml = `
+        <div class="score-banner">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#86efac;">STUDIO CERTIFICATION</div>
+            <div style="font-size:13px;color:var(--text);">Initial ${audit.overall_initial_score} → Improved ${audit.overall_final_score} / 100</div>
+          </div>
+          <div class="score-num">${audit.overall_final_score}</div>
+        </div>
+      `;
+      audit.stages.forEach(st => {
+        const imps = st.improvements_applied.map(i => `<li>${i}</li>`).join('');
+        const checks = st.checks.map(c => `<span class="check-pill">${c.check_id}: ${c.score}</span>`).join('');
+        aHtml += `
+          <div class="stage-card">
+            <div class="stage-top">
+              <span>${st.stage_name}</span>
+              <span style="color:var(--gold);">${st.initial_score} → ${st.final_score}</span>
+            </div>
+            <ul class="imp-list">${imps}</ul>
+            <div>${checks}</div>
+          </div>
+        `;
+      });
+      document.getElementById('auditBox').innerHTML = aHtml;
+    }
+
+    document.getElementById('videoPlayer').addEventListener('timeupdate', (e) => {
+      const t = e.target.currentTime;
+      currentTurns.forEach((turn, idx) => {
+        const el = document.getElementById(`turn-row-${idx}`);
+        if (!el) return;
+        if (t >= turn.start_sec && t <= turn.end_sec) {
+          el.classList.add('current');
+        } else {
+          el.classList.remove('current');
+        }
+      });
+    });
+
+    async function launchJob() {
+      const cmd = document.getElementById('cmdInput').value.trim();
+      if (!cmd) return;
+      const btn = document.getElementById('produceBtn');
+      const jBox = document.getElementById('jobBox');
+      btn.disabled = true;
+      jBox.style.display = 'block';
+      jBox.textContent = 'Starting autonomous pipeline...';
+
+      const resp = await fetch('api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: cmd })
+      });
+      const { job_id } = await resp.json();
+
+      const timer = setInterval(async () => {
+        const jr = await fetch(`api/jobs/${job_id}`);
+        const jd = await jr.json();
+        jBox.innerHTML = jd.logs.slice(-6).map(l => `<div>${l}</div>`).join('');
+        jBox.scrollTop = jBox.scrollHeight;
+        if (jd.status === 'completed') {
+          clearInterval(timer);
+          btn.disabled = false;
+          await loadEpisodes(jd.episode_slug);
+        } else if (jd.status === 'failed') {
+          clearInterval(timer);
+          btn.disabled = false;
+        }
+      }, 2000);
+    }
+
+    loadEpisodes();
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Python & virtualenvs
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Intermediate scratch audio & temporary oversized scratch dirs
+*.wav
+out/
+
+# OS / Editor
+.DS_Store
