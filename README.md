@@ -42,9 +42,24 @@ Every frame across the film is generated algorithmically in code via `@numba.nji
 # Re-run the 10-niche certification matrix (evidence sheets land in qa_evidence/)
 .venv/bin/python tools/run_niche_matrix.py /tmp/qa_niches
 
-# Clause planner, scene-plan model, frame classifier & sync-gate unit tests
-.venv/bin/python -m pytest tests/test_av_sync_plan.py -q
+# Clause planner, scene-plan model, subject binding & sync-gate unit tests
+.venv/bin/python -m pytest tests/test_av_sync_plan.py tests/test_narration_visual_binding.py -q
+
+# Video-free narration→subject binding audit for any rendered episode
+.venv/bin/python tools/audit_narration_visual_binding.py output_episodes/7-wonders-of-the-world-5m
 ```
+
+### Clause-level subject binding (mismatch fix)
+
+Mixed-subject acts no longer inherit one chapter-level monument. Each `DialogueTurn`
+stores an explicit `visual_scene_id` / `visual_subject`; each rendered beat derives an
+isolated clause-scoped copy of the original turn and passes that scene ID through the
+compositor into the 24 fps animator. A weighted resolver prioritizes proper nouns in the
+spoken clause over incidental geography in chapter context, and Stage E adds a
+`narration_subject_match` check that blocks certification when an exact clause resolves
+to a different scene than the plan records. Unmapped topics now render a neutral 3D data
+sculpture plus the narration-derived explanatory simulation instead of a classical
+sanctuary that depicts the wrong subject.
 
 ---
 

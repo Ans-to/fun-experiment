@@ -41,7 +41,11 @@ from voxforge.video.animator import (
     parse_historical_year,
 )
 from voxforge.video.compositor import MulticamCompositor, PlateLayout
-from voxforge.video.procedural_world import SCENE_CLASSICAL_GENERIC, resolve_procedural_scene_id
+from voxforge.video.procedural_world import (
+    SCENE_CLASSICAL_GENERIC,
+    resolve_procedural_scene_id,
+    resolve_visual_subject,
+)
 from voxforge.video.subtitles import (
     CaptionCue,
     build_all_caption_cues,
@@ -242,12 +246,43 @@ def _pick_plate_from_pool(
     return non_adj[rot_idx % len(non_adj)] if non_adj else pool[rot_idx % len(pool)]
 
 
-def _caption_for_asset(p: Path | None, ch: ChapterScript, fallback: str = "", turn_text: str = "") -> str:
+def _caption_for_asset(
+    p: Path | None,
+    ch: ChapterScript,
+    fallback: str = "",
+    turn_text: str = "",
+    topic: str = "",
+) -> str:
     del p
-    _, scene_title = resolve_procedural_scene_id(
-        f"{turn_text} || {ch.title} {ch.location}", fallback_idx=ch.chapter_index
+    _, scene_title = resolve_visual_subject(
+        f"{turn_text} || {ch.title} {ch.location}",
+        fallback_idx=ch.chapter_index,
+        topic=topic,
     )
     return f"3D Architectural & LiDAR Model · {scene_title}" if scene_title else (fallback or ch.title)
+
+
+def _bind_beat_turn(
+    turn: DialogueTurn,
+    clause: str,
+    chapter: ChapterScript,
+    topic: str,
+    fallback_idx: int,
+) -> tuple[DialogueTurn, int, str]:
+    """Create an isolated, clause-scoped turn copy with an explicit visual subject."""
+    hint = f"{clause} || {chapter.title} {chapter.subtitle} {chapter.location}"
+    sid, subject = resolve_visual_subject(hint, fallback_idx=fallback_idx, topic=topic)
+    prefix = turn.visual_caption.split("·", 1)[0].strip() or "Pure-Code Visual Model"
+    if sid == SCENE_CLASSICAL_GENERIC:
+        prefix = "Topic Explanatory Model"
+    bound = dataclasses.replace(
+        turn,
+        text=clause,
+        visual_scene_id=sid,
+        visual_subject=subject,
+        visual_caption=f"{prefix} · {subject}",
+    )
+    return bound, sid, subject
 
 
 _REQUIRED_VISUAL_TEXT = {
@@ -300,7 +335,7 @@ def _plan_turn_editorial_beats(
                 cut_t = _snap_to_breath_pause(
                     env_50hz, turn_end_sec - react_d, turn_start_sec + 1.8, turn_end_sec - 1.5
                 )
-                return [(spk_cu, cut_t, ""), ("studio_insert", turn_end_sec, turn.text)]
+                return [(spk_cu, cut_t, turn.text), ("studio_insert", turn_end_sec, turn.text)]
             return [(spk_cu, turn_end_sec, turn.text)]
         if is_episode_closer and primary != "wide_studio":
             return [("wide_studio", turn_end_sec, turn.text)]
@@ -363,10 +398,20 @@ def _plan_turn_editorial_beats(
                 (cam_h, w_h / 2.0, " ".join(words_h[mid_h:])),
             ]
         else:
-            specs[i_h : i_h + 1] = [(cam_h, w_h / 2.0, cl_h), (cam_h, w_h / 2.0, "")]
+            specs[i_h : i_h + 1] = [(cam_h, w_h / 2.0, cl_h), (cam_h, w_h / 2.0, cl_h)]
 
     if is_episode_closer and specs[-1][0] != "broll_cinema":
         specs[-1] = ("broll_cinema", specs[-1][1], specs[-1][2])
+
+    # Establishing / attribution beats must still name the exact words they cover.
+    # A placeholder makes the scene plan unauditable and lets the previous clause leak
+    # into the next beat's asset resolution.
+    clause_pool = _split_turn_clauses(turn.text, max_beats=max(1, len(specs)))
+    for i, (cam, wgt, clause) in enumerate(specs):
+        if clause and clause.strip():
+            continue
+        replacement = clause_pool[min(i, len(clause_pool) - 1)] if clause_pool else turn.text
+        specs[i] = (cam, wgt, replacement)
 
     weight_sum = sum(w for _, w, _ in specs)
     beats: list[tuple[CameraAngle, float, str]] = []
@@ -613,6 +658,7 @@ def _encode_single_segment(
                 n_frames=frames,
                 seg_seed=task.seg_index,
                 scene_hint=task.layout.scene_hint,
+                scene_id=task.layout.scene_id,
             )
         elif use_kinetic_quote:
             photo_src = task.layout.secondary_image_path or task.layout.image_path
@@ -624,6 +670,7 @@ def _encode_single_segment(
                 n_frames=frames,
                 seg_seed=task.seg_index,
                 scene_hint=task.layout.scene_hint,
+                scene_id=task.layout.scene_id,
             )
         elif use_telemetry:
             photo_src = task.layout.secondary_image_path or task.layout.image_path
@@ -638,6 +685,7 @@ def _encode_single_segment(
                 curves=curves,
                 seg_seed=task.seg_index,
                 scene_hint=task.layout.scene_hint,
+                scene_id=task.layout.scene_id,
             )
         elif use_broll_depth:
             frame_iter = animator.iter_broll_depth_frames(
@@ -648,6 +696,7 @@ def _encode_single_segment(
                 curves=curves,
                 lens_variant=task.lens_variant,
                 scene_hint=task.layout.scene_hint,
+                scene_id=task.layout.scene_id,
             )
         else:
             frame_iter = animator.iter_smooth_card_frames(
@@ -839,10 +888,11 @@ def render_episode_video(
                 shot_end_sec = outro_start_boundary
 
             turn_cur_start = accumulated_frames / fps
+            turn_source = turn
             # Restrained prestige documentary voice attribution: ONCE per voice across the film!
-            want_turn_lt = turn.speaker not in attributed_speakers
+            want_turn_lt = turn_source.speaker not in attributed_speakers
             beats = _plan_turn_editorial_beats(
-                turn,
+                turn_source,
                 turn_cur_start,
                 shot_end_sec,
                 env_50hz,
@@ -855,9 +905,12 @@ def render_episode_video(
 
             for b_i, (beat_cam, beat_end_sec, beat_clause) in enumerate(beats):
                 s_sec, dur_sec = _alloc_seg_duration(beat_end_sec)
-                # Clause-scoped turn copy: every downstream caption/plate/HUD resolves the
-                # picture from the exact spoken clause of THIS beat, not the whole turn.
-                turn = dataclasses.replace(turn, text=beat_clause) if beat_clause else turn
+                # Always derive this beat from the ORIGINAL turn.  Rebinding `turn` in place
+                # used to leak beat 1's clause into beats 2..N, producing stale pictures.
+                beat_text = (beat_clause or "").strip() or turn_source.text
+                turn, sid_b, scene_title_b = _bind_beat_turn(
+                    turn_source, beat_text, ch, script.spec.topic, seg_idx + 1
+                )
                 plate_file = plates_dir / f"seg_{seg_idx:04d}_{beat_cam}.jpg"
                 hud_overlay: tuple[Path, int, int, str] | None = None
 
@@ -882,7 +935,7 @@ def render_episode_video(
                     prev_map_hint = f"{turn.text} || {ch.title} {ch.location}"
                 elif beat_cam in ("closeup_host_a", "closeup_host_b"):
                     chosen_p, cur_lens_variant = _next_distinct_plate(turn.text)
-                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text)
+                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text, topic=script.spec.topic)
                     layout, hud_overlay = compositor.render_host_closeup(
                         turn,
                         ch,
@@ -904,8 +957,8 @@ def render_episode_video(
                         plate_file,
                         primary_asset=p1,
                         secondary_asset=p2,
-                        primary_caption=_caption_for_asset(p1, ch, "", turn.text),
-                        secondary_caption=_caption_for_asset(p2, ch, "", turn.text),
+                        primary_caption=_caption_for_asset(p1, ch, "", turn.text, topic=script.spec.topic),
+                        secondary_caption=_caption_for_asset(p2, ch, "", turn.text, topic=script.spec.topic),
                     )
                 elif beat_cam == "studio_insert":
                     p1, _ = _next_distinct_plate(turn.text)
@@ -919,8 +972,8 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_ins_hud.png",
                         primary_asset=p1,
                         secondary_asset=p2,
-                        primary_caption=_caption_for_asset(p1, ch, "", turn.text),
-                        secondary_caption=_caption_for_asset(p2, ch, "", turn.text),
+                        primary_caption=_caption_for_asset(p1, ch, "", turn.text, topic=script.spec.topic),
+                        secondary_caption=_caption_for_asset(p2, ch, "", turn.text, topic=script.spec.topic),
                     )
                 elif beat_cam == "quote_card":
                     p_q, _ = _next_distinct_plate(turn.text)
@@ -933,7 +986,7 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_q_hud.png",
                         total_chapters=total_ch,
                         show_title=show_title,
-                        caption_override=f"Primary-Source Inscription · {_caption_for_asset(p_q, ch, '', turn.text)}",
+                        caption_override=f"Primary-Source Inscription · {_caption_for_asset(p_q, ch, '', turn.text, topic=script.spec.topic)}",
                     )
                 elif beat_cam == "split_fact_card":
                     p_f, _ = _next_distinct_plate(turn.text)
@@ -946,11 +999,11 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_f_hud.png",
                         total_chapters=total_ch,
                         show_title=show_title,
-                        caption_override=f"Engineering Telemetry · {_caption_for_asset(p_f, ch, '', turn.text)}",
+                        caption_override=f"Engineering Telemetry · {_caption_for_asset(p_f, ch, '', turn.text, topic=script.spec.topic)}",
                     )
                 else:
                     chosen_p, cur_lens_variant = _next_distinct_plate(turn.text)
-                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text)
+                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text, topic=script.spec.topic)
                     layout = compositor.render_broll_cinema(
                         turn,
                         ch,
@@ -974,17 +1027,14 @@ def render_episode_video(
                 use_fade_in = False
                 use_fade_out = False
 
-                sid_b, scene_title_b = resolve_procedural_scene_id(
-                    f"{turn.text} || {ch.title} {ch.location}", fallback_idx=seg_idx + 1
-                )
-                intent_b = _turn_visual_intent(turn.text)
+                intent_b = _turn_visual_intent(beat_text)
                 plan.entries.append(
                     ScenePlanEntry(
                         scene_id=sid_b,
                         seg_index=seg_idx,
                         chapter_index=c_i,
                         turn_id=turn.turn_id,
-                        narration_clause=beat_clause or "(voice attribution / establishing beat)",
+                        narration_clause=beat_text,
                         narration_start_sec=round(s_sec, 3),
                         narration_end_sec=round(s_sec + dur_sec, 3),
                         subject=scene_title_b or ep_title,
@@ -994,10 +1044,11 @@ def render_episode_video(
                         visual_asset_source=_VISUAL_SOURCE.get(beat_cam, "pure-code engine"),
                         scene_start_sec=round(s_sec, 3),
                         scene_end_sec=round(s_sec + dur_sec, 3),
-                        on_screen_text=(ch.title if not beat_clause else beat_clause[:96]),
+                        on_screen_text=beat_text[:96],
                         relevance_criteria=(
-                            f"family={beat_cam} must depict intent={intent_b}; subject={scene_title_b}; "
-                            "clause keywords drive procedural scene resolution"
+                            f"family={beat_cam} must depict intent={intent_b}; "
+                            f"scene_id={sid_b}; subject={scene_title_b}; "
+                            "exact narration clause drives procedural scene resolution"
                         ),
                         validation_status="passed_plan_gate",
                     )

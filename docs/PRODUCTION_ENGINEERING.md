@@ -52,3 +52,22 @@ Every episode must pass 19 quantitative checks across four domains (`score ≥ 8
 | **Stage B · Audio QA** (`audio_qa.py`) | `A1` Neural Utterance Integrity (`1.1–5.2` words/s, zero clipping/dropouts), `A2` Integrated Loudness (`-16.0 ± 0.85 LUFS`), `A3` True Peak (`≤ -1.0 dBTP`), `A4` Loudness Range (`1.5–11.5 LU`), `A5` Dead-Air Continuity (`≤ 1.65 s`), `A6` Runtime Lock (`±12%`) | Re-synthesizes anomalous turns, adjusts prosody `speed_scale` (`0.88×–1.14×`) when duration drifts outside tolerance, and re-runs two-pass linear `loudnorm` + true-peak limiting |
 | **Stage C · Visual QA** (`visual_qa.py`) | `V1` `1920×1080` Resolution Compliance, `V2` Optical Sharpness (`Laplacian variance ≥ 32.0`), `V3` Broadcast IRE Luminance (`Y ∈ [22, 228]`), `V4` Camera Cut Cadence (`3.5–22.0 s` avg shot) | Replaces blurry, dark, or blown-out images with crisp 1080p procedural architectural blueprint plates before encoding |
 | **Stage D · Deliverable QC** (`deliverable_qa.py`) | `D1` Stream Spec (`h264 yuv420p` + `aac 48kHz 2ch`), `D2` A/V Sync Lock (`≤ 350 ms` drift over 1 hour), `D3` PyAV Multi-Point Frame Decode (`Y > 8.0`, live motion `> 0.02`), `D4` Embedded MP4 Chapters + `.srt`/`.vtt` | Triggers lossless stream re-mux with explicit audio resampling and `+faststart` metadata repair if container drift is detected |
+
+---
+
+## 4. Stage E Narration↔Visual Subject Binding
+
+Stage E now has two independent checks. The plan-level gate parses every exact narration
+clause in `scene_plan.json`, resolves unambiguous proper nouns to a procedural scene ID,
+and compares that ID and subject label with the binding recorded by the renderer. This
+catches mixed-act errors such as a Petra sentence recorded as a Colosseum shot. The
+frame-level classifier then decodes the final MP4 and verifies the promised visual family
+(globe, monument, HUD/telemetry or quote) at five timestamps per scene. Either check can
+block certification.
+
+The renderer isolates each clause in a fresh `DialogueTurn` copy carrying
+`visual_scene_id` and `visual_subject`. The compositor and 24 fps animators consume that
+explicit ID rather than re-resolving a mixed chapter title. Unmapped topics use a neutral
+3D data sculpture and a narration-derived explanatory simulation, avoiding the previous
+classical-rotunda fallback. `tools/audit_narration_visual_binding.py` runs the plan-level
+check without decoding video.

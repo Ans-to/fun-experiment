@@ -33,7 +33,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch01_code3d_lidar.jpg",
           "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "The Ancient Seven & The Great Pyramid of Giza",
+          "fact_callout_title": "Great Pyramid of Giza & Necropolis (2560 BCE)",
           "fact_metrics": [
             {
               "label": "Original Canon",
@@ -60,7 +60,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_e984c66594085a.wav",
           "duration_sec": 22.658,
           "start_sec": 4.2,
-          "end_sec": 26.858
+          "end_sec": 26.858,
+          "visual_subject": "Great Pyramid of Giza & Necropolis (2560 BCE)",
+          "visual_scene_id": 0
         },
         {
           "turn_id": 2,
@@ -72,7 +74,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch01_code3d_lidar.jpg",
           "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "The Ancient Seven & The Great Pyramid of Giza",
+          "fact_callout_title": "Great Pyramid of Giza & Necropolis (2560 BCE)",
           "fact_metrics": [
             {
               "label": "Original Canon",
@@ -99,7 +101,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_6e2263b30785a0.wav",
           "duration_sec": 8.904,
           "start_sec": 27.123,
-          "end_sec": 36.027
+          "end_sec": 36.027,
+          "visual_subject": "Great Pyramid of Giza & Necropolis (2560 BCE)",
+          "visual_scene_id": 0
         },
         {
           "turn_id": 3,
@@ -111,7 +115,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch01_code3d_physics.jpg",
           "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Great Pyramid of Giza & Necropolis (2560 BCE)",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "The Ancient Seven & The Great Pyramid of Giza",
+          "fact_callout_title": "Great Pyramid of Giza & Necropolis (2560 BCE)",
           "fact_metrics": [
             {
               "label": "Original Canon",
@@ -138,7 +142,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_ffc688c51791ef.wav",
           "duration_sec": 14.378,
           "start_sec": 36.292,
-          "end_sec": 50.67
+          "end_sec": 50.67,
+          "visual_subject": "Great Pyramid of Giza & Necropolis (2560 BCE)",
+          "visual_scene_id": 0
         }
       ],
       "start_sec": 4.2,
@@ -164,7 +170,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch02_code3d_lidar.jpg",
           "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Ming Great Wall at Jinshanling",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "The Great Wall of China",
+          "fact_callout_title": "Ming Great Wall at Jinshanling",
           "fact_metrics": [
             {
               "label": "Total Surveyed Network",
@@ -191,7 +197,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_81a7a097279bed.wav",
           "duration_sec": 13.057333333333334,
           "start_sec": 53.67,
-          "end_sec": 66.7273
+          "end_sec": 66.7273,
+          "visual_subject": "Ming Great Wall at Jinshanling",
+          "visual_scene_id": 2
         },
         {
           "turn_id": 5,
@@ -203,7 +211,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch02_code3d_physics.jpg",
           "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Ming Great Wall at Jinshanling",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "The Great Wall of China",
+          "fact_callout_title": "Ming Great Wall at Jinshanling",
           "fact_metrics": [
             {
               "label": "Total Surveyed Network",
@@ -230,7 +238,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_87ae9b81eaa05e.wav",
           "duration_sec": 17.308,
           "start_sec": 66.9923,
-          "end_sec": 84.3003
+          "end_sec": 84.3003,
+          "visual_subject": "Ming Great Wall at Jinshanling",
+          "visual_scene_id": 2
         },
         {
           "turn_id": 6,
@@ -242,7 +252,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch02_code3d_monument.jpg",
           "visual_caption": "3D Architectural Reconstruction \u00b7 Ming Great Wall at Jinshanling",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "The Great Wall of China",
+          "fact_callout_title": "Ming Great Wall at Jinshanling",
           "fact_metrics": [
             {
               "label": "Total Surveyed Network",
@@ -269,7 +279,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_a44b33e7e701e0.wav",
           "duration_sec": 17.264,
           "start_sec": 84.5653,
-          "end_sec": 101.8293
+          "end_sec": 101.8293,
+          "visual_subject": "Ming Great Wall at Jinshanling",
+          "visual_scene_id": 2
         }
       ],
       "start_sec": 51.27,
@@ -293,9 +305,9 @@
           "spoken_text": "Hidden behind the 1.2-kilometer tectonic slot gorge of the Siq, Petra was the glittering caravan capital of the Nabataean Kingdom, carved top-down into living Paleozoic sandstone.",
           "camera": "closeup_host_a",
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch03_code3d_lidar.jpg",
-          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Al-Khazneh & The Siq Canyon, Petra",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_callout_title": "Al-Khazneh & The Siq Canyon, Petra",
           "fact_metrics": [
             {
               "label": "Al-Khazneh Height",
@@ -322,7 +334,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_28f402e749122b.wav",
           "duration_sec": 12.418,
           "start_sec": 104.8293,
-          "end_sec": 117.2473
+          "end_sec": 117.2473,
+          "visual_subject": "Al-Khazneh & The Siq Canyon, Petra",
+          "visual_scene_id": 3
         },
         {
           "turn_id": 8,
@@ -334,7 +348,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch03_code3d_lidar.jpg",
           "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_callout_title": "Flavian Amphitheatre & Subterranean Hypogeum, Rome",
           "fact_metrics": [
             {
               "label": "Al-Khazneh Height",
@@ -361,7 +375,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_ea8a495b01a360.wav",
           "duration_sec": 9.252,
           "start_sec": 117.5123,
-          "end_sec": 126.7643
+          "end_sec": 126.7643,
+          "visual_subject": "Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_scene_id": 4
         },
         {
           "turn_id": 9,
@@ -371,9 +387,9 @@
           "spoken_text": "Originally nomadic Arab traders, the Nabataeans cornered the ancient world's most lucrative luxury supply chain. Frankincense and myrrh from southern Arabia, Indian spices, and Dead Sea bitumen prized by Egypt and Rome.",
           "camera": "broll_cinema",
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch03_code3d_physics.jpg",
-          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Al-Khazneh & The Siq Canyon, Petra",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_callout_title": "Al-Khazneh & The Siq Canyon, Petra",
           "fact_metrics": [
             {
               "label": "Al-Khazneh Height",
@@ -400,7 +416,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_14ad49d1d8da55.wav",
           "duration_sec": 14.717,
           "start_sec": 127.0293,
-          "end_sec": 141.7463
+          "end_sec": 141.7463,
+          "visual_subject": "Al-Khazneh & The Siq Canyon, Petra",
+          "visual_scene_id": 3
         },
         {
           "turn_id": 10,
@@ -412,7 +430,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch03_code3d_monument.jpg",
           "visual_caption": "3D Architectural Reconstruction \u00b7 Flavian Amphitheatre & Subterranean Hypogeum, Rome",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Petra & The Roman Colosseum",
+          "fact_callout_title": "Flavian Amphitheatre & Subterranean Hypogeum, Rome",
           "fact_metrics": [
             {
               "label": "Al-Khazneh Height",
@@ -439,7 +457,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_e48417bb56b394.wav",
           "duration_sec": 17.098,
           "start_sec": 142.0113,
-          "end_sec": 159.1093
+          "end_sec": 159.1093,
+          "visual_subject": "Flavian Amphitheatre & Subterranean Hypogeum, Rome",
+          "visual_scene_id": 4
         }
       ],
       "start_sec": 102.4293,
@@ -463,9 +483,9 @@
           "spoken_text": "Perched on a narrow granite fault saddle nearly eight thousand feet above sea level above the raging Urubamba River, Machu Picchu is a triumph of geotechnical and seismic design.",
           "camera": "broll_cinema",
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch04_code3d_lidar.jpg",
-          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Machu Picchu & Huayna Picchu",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Citadels of the Americas",
+          "fact_callout_title": "Machu Picchu & Huayna Picchu",
           "fact_metrics": [
             {
               "label": "Elevation",
@@ -492,7 +512,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_b4221cac031dd5.wav",
           "duration_sec": 11.264,
           "start_sec": 162.1093,
-          "end_sec": 173.3733
+          "end_sec": 173.3733,
+          "visual_subject": "Machu Picchu & Huayna Picchu",
+          "visual_scene_id": 5
         },
         {
           "turn_id": 12,
@@ -504,7 +526,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch04_code3d_physics.jpg",
           "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Citadels of the Americas",
+          "fact_callout_title": "El Castillo, Chich\u00e9n Itz\u00e1",
           "fact_metrics": [
             {
               "label": "Elevation",
@@ -531,7 +553,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_91e859abe300ad.wav",
           "duration_sec": 12.598,
           "start_sec": 173.6383,
-          "end_sec": 186.2363
+          "end_sec": 186.2363,
+          "visual_subject": "El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_scene_id": 6
         },
         {
           "turn_id": 13,
@@ -541,9 +565,9 @@
           "spoken_text": "Radiocarbon accelerator mass spectrometry published by Lucy Salazar and Richard Burger placed Machu Picchu's construction starting around 14 20 to 14 50 C E as a royal winter estate for Inca Emperor Pachacuti after his campaigns down the Urubamba Valley.",
           "camera": "split_fact_card",
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch04_code3d_monument.jpg",
-          "visual_caption": "3D Architectural Reconstruction \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_caption": "3D Architectural Reconstruction \u00b7 Machu Picchu & Huayna Picchu",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Citadels of the Americas",
+          "fact_callout_title": "Machu Picchu & Huayna Picchu",
           "fact_metrics": [
             {
               "label": "Elevation",
@@ -570,7 +594,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_dc8b9383c9da1f.wav",
           "duration_sec": 17.614,
           "start_sec": 186.5013,
-          "end_sec": 204.1153
+          "end_sec": 204.1153,
+          "visual_subject": "Machu Picchu & Huayna Picchu",
+          "visual_scene_id": 5
         },
         {
           "turn_id": 14,
@@ -582,7 +608,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch04_code3d_lidar.jpg",
           "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 El Castillo, Chich\u00e9n Itz\u00e1",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Citadels of the Americas",
+          "fact_callout_title": "El Castillo, Chich\u00e9n Itz\u00e1",
           "fact_metrics": [
             {
               "label": "Elevation",
@@ -609,7 +635,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_9d86ef69ad1bc0.wav",
           "duration_sec": 14.832,
           "start_sec": 204.3803,
-          "end_sec": 219.2123
+          "end_sec": 219.2123,
+          "visual_subject": "El Castillo, Chich\u00e9n Itz\u00e1",
+          "visual_scene_id": 6
         }
       ],
       "start_sec": 159.7093,
@@ -633,9 +661,9 @@
           "spoken_text": "Commissioned by Mughal Emperor Shah Jahan for his beloved wife Mumtaz Mahal, the Taj Mahal marries poetic grief with daring seventeenth-century structural and geotechnical engineering.",
           "camera": "wide_studio",
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch05_code3d_lidar.jpg",
-          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Rio de Janeiro",
+          "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Taj Mahal, Agra",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_callout_title": "Taj Mahal, Agra",
           "fact_metrics": [
             {
               "label": "Central Finial Height",
@@ -662,7 +690,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_385a236a0c8e16.wav",
           "duration_sec": 12.122,
           "start_sec": 222.2123,
-          "end_sec": 234.3343
+          "end_sec": 234.3343,
+          "visual_subject": "Taj Mahal, Agra",
+          "visual_scene_id": 7
         },
         {
           "turn_id": 16,
@@ -674,7 +704,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch05_code3d_lidar.jpg",
           "visual_caption": "Volumetric 3D LiDAR & X-Ray Blueprint \u00b7 Rio de Janeiro",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_callout_title": "Rio de Janeiro",
           "fact_metrics": [
             {
               "label": "Central Finial Height",
@@ -701,7 +731,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_815603859fcc40.wav",
           "duration_sec": 12.222,
           "start_sec": 234.5993,
-          "end_sec": 246.8213
+          "end_sec": 246.8213,
+          "visual_subject": "Rio de Janeiro",
+          "visual_scene_id": 8
         },
         {
           "turn_id": 17,
@@ -711,9 +743,9 @@
           "spoken_text": "In June 16 31, Empress Mumtaz Mahal died at Burhanpur giving birth to their fourteenth child; contemporary court chronicles record the emperor's beard turned silver within months. That lost lineup included Shah Jahan's trusted political confidante who accompanied him on military campaigns.",
           "camera": "split_fact_card",
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch05_code3d_physics.jpg",
-          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Rio de Janeiro",
+          "visual_caption": "Mathematical & Structural Physics Simulation \u00b7 Taj Mahal, Agra",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_callout_title": "Taj Mahal, Agra",
           "fact_metrics": [
             {
               "label": "Central Finial Height",
@@ -740,7 +772,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_dbe3f51e19e39e.wav",
           "duration_sec": 20.348,
           "start_sec": 247.0863,
-          "end_sec": 267.4343
+          "end_sec": 267.4343,
+          "visual_subject": "Taj Mahal, Agra",
+          "visual_scene_id": 7
         },
         {
           "turn_id": 18,
@@ -752,7 +786,7 @@
           "visual_asset_path": "/tmp/voxforge_7-wonders-of-the-world-5m_ob2d3fj9/media_plates/ch05_code3d_monument.jpg",
           "visual_caption": "3D Architectural Reconstruction \u00b7 Rio de Janeiro",
           "visual_credit": "VoxForge Pure-Code 3D & Physics Engine",
-          "fact_callout_title": "Mughal Marble & Modern Horizon",
+          "fact_callout_title": "Rio de Janeiro",
           "fact_metrics": [
             {
               "label": "Central Finial Height",
@@ -779,7 +813,9 @@
           "audio_path": "/home/user/.cache/voxforge/utterances/utt_9e00fb49a0ba72.wav",
           "duration_sec": 14.953,
           "start_sec": 267.6993,
-          "end_sec": 282.6523
+          "end_sec": 282.6523,
+          "visual_subject": "Rio de Janeiro",
+          "visual_scene_id": 8
         }
       ],
       "start_sec": 219.8123,

@@ -71,16 +71,17 @@ and `*_scene_plan.json` / `*_audit_report.json`.
 
 ## 5. Limitations (honest)
 
-- Arbitrary-niche films use a **neutral classical stage set** for establishing/attribution wide
+- Arbitrary-niche films use a **neutral 3D data sculpture** for establishing/attribution wide
   shots because the pure-code 3D engine models monuments, not kitchens or whales; topic semantics
   for those niches are carried by topic-labeled telemetry/simulation cards, clause captions and
   the explanatory blackboard. Mapped monuments (Wonders, Nile-Egypt, Silk-Road cities…) get
-  subject-specific 3D cinematography.
+  subject-specific 3D cinematography selected per utterance and per clause.
 - The classifier is heuristic (pixel evidence); quote-vs-telemetry separation relies on white-text
   mass thresholds calibrated on current engine output. A future restyle would need recalibration.
-- Stage E validates *family-level* semantics (subject class + scene resolution), not pixel-level
-  object identity; clause-level subject correctness is guaranteed by clause-keyword scene
-  resolution recorded in the plan.
+- Stage E now validates both the **explicit clause→scene→subject binding** in `scene_plan.json`
+  and the decoded **family-level** pixel evidence. It still does not prove pixel-level object
+  identity; that is guaranteed structurally by the explicit `visual_scene_id` propagated from the
+  showrunner through the renderer, compositor and animator, and by the plan-gate cross-check.
 - Offline sandbox runs use the fallback research dossier; with internet (e.g. the Colab notebook)
   live Wikipedia dossiers provide richer, more specific narration and visuals.
 

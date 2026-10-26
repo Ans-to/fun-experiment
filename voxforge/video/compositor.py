@@ -29,6 +29,7 @@ from voxforge.config import HOST_A, HOST_B, HOSTS, VIDEO_SPEC
 from voxforge.models import ChapterScript, DialogueTurn, EpisodeScript
 from voxforge.video.infographics import apply_cinema_grade, load_font
 from voxforge.video.procedural_world import (
+    SCENE_CAPTIONS,
     SCENE_GIZA,
     Monument3DEngine,
     ProceduralCadCache,
@@ -90,6 +91,22 @@ _HISTORICAL_PRIMARY_QUOTES: list[tuple[tuple[str, ...], str, str, str]] = [
 ]
 
 
+def _short_scene_title(scene_id: int, fallback: str = "") -> str:
+    raw = SCENE_CAPTIONS.get(scene_id, fallback or SCENE_CAPTIONS[max(SCENE_CAPTIONS)])
+    return raw.split("·", 1)[1].strip() if "·" in raw else raw
+
+
+def _scene_binding(turn: DialogueTurn, hint: str, fallback_idx: int) -> tuple[int, str]:
+    """Honor the explicit per-clause scene binding, falling back to hint resolution."""
+    explicit = getattr(turn, "visual_scene_id", None)
+    if explicit is not None:
+        sid = int(explicit)
+        subject = str(getattr(turn, "visual_subject", "") or "").strip()
+        return sid, subject or _short_scene_title(sid)
+    sid, title = resolve_procedural_scene_id(hint, fallback_idx)
+    return sid, title
+
+
 def resolve_historical_quote(chapter_hint: str, fallback_text: str) -> tuple[str, str, str]:
     """Return `(complete_quote, source_author, archival_citation)` prioritizing spoken turn text first."""
     clauses = [c.strip().lower() for c in chapter_hint.split("||") if c.strip()]
@@ -140,6 +157,7 @@ class PlateLayout:
     quote_citation: str = ""
     hud_overlay_path: Path | None = None
     scene_hint: str = ""
+    scene_id: int | None = None
 
 
 def _hex_to_rgba(hex_str: str, alpha: int = 255) -> tuple[int, int, int, int]:
@@ -350,8 +368,16 @@ class MulticamCompositor:
         ov.save(lt_path)
         return lt_path
 
-    def _code_plate_for_hint(self, hint: str, fallback_idx: int = 1) -> Image.Image:
-        sid, _ = resolve_procedural_scene_id(hint, fallback_idx=fallback_idx)
+    def _code_plate_for_hint(
+        self,
+        hint: str,
+        fallback_idx: int = 1,
+        scene_id: int | None = None,
+    ) -> Image.Image:
+        if scene_id is None:
+            sid, _ = resolve_procedural_scene_id(hint, fallback_idx=fallback_idx)
+        else:
+            sid = int(scene_id)
         rgb = self._monument_3d.render_frame(sid, 0.50, 2.0, self.w, self.h, lens_variant=0)
         lifted = np.clip(18.0 + rgb.astype(np.float32) * 0.90, 0.0, 255.0).astype(np.uint8)
         return apply_rec709_studio_grade(Image.fromarray(lifted, mode="RGB"), self.w, self.h)
@@ -548,8 +574,8 @@ class MulticamCompositor:
         """Live 24fps Pure-Code 3D Architectural Monument Reconstruction."""
         del asset_override
         s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        _, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
-        bg = self._code_plate_for_hint(s_hint, chapter.chapter_index)
+        sid, scene_title = _scene_binding(turn, s_hint, chapter.chapter_index)
+        bg = self._code_plate_for_hint(s_hint, chapter.chapter_index, scene_id=sid)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         bg.save(out_path, quality=93)
 
@@ -584,6 +610,7 @@ class MulticamCompositor:
             anim_is_speaking=True,
             transient_lt_path=lt_path,
             scene_hint=s_hint,
+            scene_id=sid,
         )
         return layout, (hud_path, 0, 0, "#" + HOSTS[turn.speaker].accent_hex.lstrip("#"))
 
@@ -602,10 +629,10 @@ class MulticamCompositor:
         """Live 24fps Volumetric 3D LiDAR Point-Cloud & Physics Simulation."""
         del primary_asset, secondary_asset
         s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        _, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
+        sid, scene_title = _scene_binding(turn, s_hint, chapter.chapter_index)
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        self._code_plate_for_hint(s_hint, chapter.chapter_index).save(out_path, quality=92)
+        self._code_plate_for_hint(s_hint, chapter.chapter_index, scene_id=sid).save(out_path, quality=92)
 
         hud = _apply_bottom_legibility_gradient(Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0)), strength=104)
         draw = ImageDraw.Draw(hud)
@@ -629,6 +656,7 @@ class MulticamCompositor:
             primary_caption=primary_caption or scene_title,
             secondary_caption=secondary_caption or chapter.location,
             scene_hint=s_hint,
+            scene_id=sid,
         )
         return layout, (hud_path, 0, 0, "#" + HOSTS[turn.speaker].accent_hex.lstrip("#"))
 
@@ -648,10 +676,10 @@ class MulticamCompositor:
         """Live 24fps Mathematical & Engineering Physics Simulation / 3D LiDAR Cutaway."""
         del primary_asset, secondary_asset
         s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        _, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
+        sid, scene_title = _scene_binding(turn, s_hint, chapter.chapter_index)
 
         bg_out_path.parent.mkdir(parents=True, exist_ok=True)
-        self._code_plate_for_hint(s_hint, chapter.chapter_index).save(bg_out_path, quality=93)
+        self._code_plate_for_hint(s_hint, chapter.chapter_index, scene_id=sid).save(bg_out_path, quality=93)
 
         hud = _apply_bottom_legibility_gradient(Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0)), strength=106)
         draw = ImageDraw.Draw(hud)
@@ -675,6 +703,7 @@ class MulticamCompositor:
             primary_caption=primary_caption or scene_title,
             secondary_caption=secondary_caption or chapter.location,
             scene_hint=s_hint,
+            scene_id=sid,
         )
         return layout, (hud_out_path, 0, 0, "#" + HOSTS[turn.speaker].accent_hex.lstrip("#"))
 
@@ -690,7 +719,8 @@ class MulticamCompositor:
         """Render Verbatim Eyewitness Primary-Source Inscription Plate over live 3D monument."""
         del asset_override
         s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        bg_src = self._code_plate_for_hint(s_hint, chapter.chapter_index)
+        sid, _ = _scene_binding(turn, s_hint, chapter.chapter_index)
+        bg_src = self._code_plate_for_hint(s_hint, chapter.chapter_index, scene_id=sid)
         bg = ImageEnhance.Brightness(bg_src.filter(ImageFilter.GaussianBlur(radius=9.0))).enhance(0.56).convert("RGBA")
 
         overlay = Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0))
@@ -751,6 +781,7 @@ class MulticamCompositor:
             quote_citation=citation_line,
             hud_overlay_path=hud_path,
             scene_hint=s_hint,
+            scene_id=sid,
         )
 
     def render_broll_cinema(
@@ -764,7 +795,8 @@ class MulticamCompositor:
         """Render clean full-bleed Rec.709 1920x1080 Pure-Code 3D Monument plate."""
         del asset_override
         s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        bg = self._code_plate_for_hint(s_hint, chapter.chapter_index)
+        sid, _ = _scene_binding(turn, s_hint, chapter.chapter_index)
+        bg = self._code_plate_for_hint(s_hint, chapter.chapter_index, scene_id=sid)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         bg.save(out_path, quality=93)
         z_in = (turn.turn_id % 2 == 1) if zoom_in_override is None else zoom_in_override
@@ -774,6 +806,7 @@ class MulticamCompositor:
             ken_burns_zoom_in=z_in,
             anim_mode="none",
             scene_hint=s_hint,
+            scene_id=sid,
         )
 
     def render_broll_hud_overlay(
@@ -812,7 +845,7 @@ class MulticamCompositor:
         """Render 2-Column Archaeological & Engineering Telemetry View (`anim_mode == 'none'`)."""
         del asset_override
         s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        sid, _ = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
+        sid, _ = _scene_binding(turn, s_hint, chapter.chapter_index)
         canvas = self._studio_bg.copy()
         overlay = Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
@@ -888,6 +921,7 @@ class MulticamCompositor:
             location_text=chapter.location,
             telemetry_metrics=tuple(metric_pairs),
             scene_hint=s_hint,
+            scene_id=sid,
         )
 
     def render_outro_card(self, script: EpisodeScript, out_path: Path) -> PlateLayout:

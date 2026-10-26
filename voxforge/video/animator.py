@@ -428,7 +428,15 @@ class StudioCharacterAnimator:
         self._f_q_auth = load_font("SpaceGrotesk-Bold.ttf", 21)
         self._f_q_cite = load_font("Inter-Medium.ttf", 16)
 
-    def _resolve_scene(self, scene_hint: str, plate_path: Path | None, fallback_idx: int) -> int:
+    def _resolve_scene(
+        self,
+        scene_hint: str,
+        plate_path: Path | None,
+        fallback_idx: int,
+        scene_id: int | None = None,
+    ) -> int:
+        if scene_id is not None:
+            return int(scene_id)
         hint = f"{scene_hint} {plate_path.stem if plate_path is not None else ''}".replace("_", " ").strip()
         sid, _ = resolve_procedural_scene_id(hint, fallback_idx=fallback_idx)
         return sid
@@ -482,10 +490,11 @@ class StudioCharacterAnimator:
         fast_push: bool = False,
         lens_variant: int = 0,
         scene_hint: str = "",
+        scene_id: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream live 24fps True 3D Z-Buffered Architectural Monument Cinema (`Monument3DEngine`)."""
         del fast_push
-        sid = self._resolve_scene(scene_hint, plate_path, fallback_idx=seg_seed + 1)
+        sid = self._resolve_scene(scene_hint, plate_path, fallback_idx=seg_seed + 1, scene_id=scene_id)
         lv = (lens_variant + (seg_seed % 2)) % 3
         n_tot = max(1, n_frames)
 
@@ -666,6 +675,7 @@ class StudioCharacterAnimator:
         n_frames: int,
         seg_seed: int = 0,
         scene_hint: str = "",
+        scene_id: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream 24fps Live 3D Monument Cinema + Staggered Kinetic Primary-Source Quote & Highlighter!"""
         lines = textwrap.wrap(verbatim_quote, width=42)[:4]
@@ -697,7 +707,8 @@ class StudioCharacterAnimator:
 
         for i, bg_frame in enumerate(
             self.iter_broll_depth_frames(
-                plate_path, n_tot, seg_seed=seg_seed + 11, zoom_in=True, lens_variant=1, scene_hint=scene_hint
+                plate_path, n_tot, seg_seed=seg_seed + 11, zoom_in=True, lens_variant=1,
+                scene_hint=scene_hint, scene_id=scene_id,
             )
         ):
             p = i / float(max(1, n_tot - 1))
@@ -751,11 +762,12 @@ class StudioCharacterAnimator:
         n_frames: int,
         seg_seed: int = 0,
         scene_hint: str = "",
+        scene_id: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream live 24fps Physics/Engineering Simulations & Rotating 3D Volumetric LiDAR Scans!"""
         del secondary_plate
         full_hint = f"{scene_hint} {primary_caption} {secondary_caption} {chapter_tag}"
-        sid = self._resolve_scene(full_hint, primary_plate, fallback_idx=seg_seed + 1)
+        sid = self._resolve_scene(full_hint, primary_plate, fallback_idx=seg_seed + 1, scene_id=scene_id)
         use_physics_sim = (seg_seed % 2) == 0
 
         n_tot = max(1, n_frames)
@@ -781,11 +793,15 @@ class StudioCharacterAnimator:
         curves: SpeechMotionCurves | None = None,
         seg_seed: int = 0,
         scene_hint: str = "",
+        scene_id: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream 24fps Live Rotating 3D LiDAR Viewport + Fast-Cascading 4-Card Counting Telemetry!"""
         hx = accent_hex.lstrip("#")
         acc_rgb = (int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16))
-        sid = self._resolve_scene(f"{scene_hint} {chapter_title} {location_text}", photo_path, fallback_idx=seg_seed + 1)
+        sid = self._resolve_scene(
+            f"{scene_hint} {chapter_title} {location_text}", photo_path,
+            fallback_idx=seg_seed + 1, scene_id=scene_id,
+        )
 
         clean_loc = re.sub(r"\s*\([^)]*\)", "", location_text).strip()
         clean_era = era_text.split("·")[0].split("&")[0].strip()

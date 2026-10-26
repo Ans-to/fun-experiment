@@ -54,38 +54,108 @@ SCENE_CAPTIONS: dict[int, str] = {
     SCENE_CHICHEN_ITZA: "3D Archaeo-Acoustic Pyramid Model · El Castillo, Chichén Itzá",
     SCENE_TAJ_MAHAL: "3D Mughal Marble & Charbagh Reflection Model · Taj Mahal, Agra",
     SCENE_CHRIST_REDEEMER: "3D Art Deco Cantilever & Corcovado Summit Model · Rio de Janeiro",
-    SCENE_CLASSICAL_GENERIC: "3D Parametric Classical Sanctuary & Rotunda Reconstruction",
+    SCENE_CLASSICAL_GENERIC: "Neutral 3D Data Sculpture & Explanatory Model",
 }
 
-_SCENE_KEYWORD_RULES: list[tuple[tuple[str, ...], int]] = [
-    (("redeemer", "corcovado", "soapstone", "guanabara", "sugarloaf", "rio de janeiro"), SCENE_CHRIST_REDEEMER),
-    (("taj mahal", "mumtaz", "shah jahan", "makrana", "pietra dura", "yamuna", "agra"), SCENE_TAJ_MAHAL),
-    (("chichen", "chichén", "kukulkan", "kukulcán", "castillo", "cenote", "chicxulub", "maya", "yucatán", "yucatan"), SCENE_CHICHEN_ITZA),
-    (("machu picchu", "pachacuti", "intihuatana", "huayna", "urubamba", "inca", "ashlar"), SCENE_MACHU_PICCHU),
-    (("colosseum", "flavian", "vespasian", "titus", "hypogeum", "amphitheatre", "travertine"), SCENE_COLOSSEUM),
-    (("petra", "khazneh", "nabataean", "nabataeans", "siq"), SCENE_PETRA),
-    (("great wall", "jinshanling", "jiayuguan", "meng tian", "amylopectin", "ming"), SCENE_GREAT_WALL),
-    (("pharos", "alexandria", "rhodes", "colossus", "artemis", "ephesus", "babylon", "olympia", "halicarnassus", "theamata"), SCENE_PHAROS),
-    (("giza", "khufu", "mokattam", "grand gallery", "hemunu", "pyramid", "egypt", "nile", "pharaoh", "sphinx", "cairo"), SCENE_GIZA),
+# (keywords, scene id, confidence weight).  Strong, unambiguous proper nouns outrank
+# incidental geographic words; callers put the spoken clause first and chapter context
+# after `||`, so clause priority also disambiguates mixed-subject acts.
+_SCENE_KEYWORD_RULES: list[tuple[tuple[str, ...], int, float]] = [
+    (("christ the redeemer", "corcovado", "soapstone", "guanabara", "sugarloaf", "rio de janeiro"), SCENE_CHRIST_REDEEMER, 12.0),
+    (("taj mahal", "mumtaz mahal", "mumtaz", "shah jahan", "makrana", "pietra dura", "yamuna", "agra"), SCENE_TAJ_MAHAL, 12.0),
+    (("chichen itza", "chichén itzá", "chichen", "chichén", "kukulkan", "kukulcán", "castillo", "cenote", "cenotes", "chicxulub", "itza", "yucatán", "yucatan"), SCENE_CHICHEN_ITZA, 12.0),
+    (("machu picchu", "pachacuti", "intihuatana", "huayna", "urubamba", "inca", "ashlar"), SCENE_MACHU_PICCHU, 12.0),
+    (("colosseum", "flavian", "vespasian", "titus", "hypogeum", "amphitheatre", "amphitheater", "travertine", "nero", "domus aurea"), SCENE_COLOSSEUM, 12.0),
+    (("petra", "khazneh", "al-khazneh", "nabataean", "nabataeans", "nabataean kingdom", "siq"), SCENE_PETRA, 12.0),
+    (("great wall", "jinshanling", "jiayuguan", "meng tian", "amylopectin", "ming"), SCENE_GREAT_WALL, 12.0),
+    (("pharos", "alexandria", "rhodes", "colossus", "artemis", "ephesus", "babylon", "olympia", "halicarnassus", "theamata"), SCENE_PHAROS, 12.0),
+    (("giza", "khufu", "mokattam", "grand gallery", "hemunu", "pyramid", "sphinx", "cairo"), SCENE_GIZA, 12.0),
+    # Context-only aliases: useful when the clause itself has no proper noun, but never
+    # strong enough to override an explicit subject elsewhere in the hint.
+    (("egypt", "nile", "pharaoh"), SCENE_GIZA, 2.0),
+    (("7 wonders", "seven wonders", "wonders of the world", "wonder"), SCENE_GIZA, 2.0),
 ]
+
+_STRONG_SCENE_MIN_WEIGHT = 8.0
+
+
+def _scene_keyword_matches(low: str, keywords: tuple[str, ...]) -> list[re.Match[str]]:
+    return [
+        m
+        for k in keywords
+        for m in [re.search(rf"\b{re.escape(k)}\b", low)]
+        if m is not None
+    ]
+
+
+def _rank_scene_candidates(
+    text_hint: str,
+    *,
+    strong_only: bool = False,
+) -> tuple[dict[int, float], dict[int, float]]:
+    """Score scene IDs across `spoken clause || chapter context || location` hints."""
+    clauses = [c.strip().lower() for c in text_hint.split("||") if c.strip()]
+    scores: dict[int, float] = {}
+    positions: dict[int, float] = {}
+    for ci, low in enumerate(clauses):
+        clause_priority = 1.0 / (ci + 1)
+        for kws, sid, weight in _SCENE_KEYWORD_RULES:
+            if strong_only and weight < _STRONG_SCENE_MIN_WEIGHT:
+                continue
+            matches = _scene_keyword_matches(low, kws)
+            if not matches:
+                continue
+            first = min(m.start() for m in matches)
+            pos = first / max(1, len(low))
+            score = weight * (1.0 + 0.15 * (len(matches) - 1)) * clause_priority
+            score += 0.25 * (1.0 - pos) * clause_priority
+            scores[sid] = scores.get(sid, 0.0) + score
+            # Encode clause priority into the tie-break position: earlier clauses win.
+            positions[sid] = min(positions.get(sid, 1e9), pos + ci * 2.0)
+    return scores, positions
 
 
 def resolve_monument_scene_id(text_hint: str, fallback_seed: int = 0) -> int:
-    """Resolve exact 3D procedural monument ID prioritizing spoken turn text over chapter title."""
-    clauses = [c.strip().lower() for c in text_hint.split("||") if c.strip()]
-    for low in clauses:
-        for kws, sid in _SCENE_KEYWORD_RULES:
-            if any(re.search(rf"\b{re.escape(k)}\b", low) for k in kws):
-                return sid
-    if any("wonder" in c for c in clauses):
-        return fallback_seed % 9
+    """Resolve the best 3D scene from weighted spoken-clause and chapter-context evidence.
+
+    Unlike a first-match keyword scan, this cannot let an incidental word such as
+    "Egypt" in a Petra trade sentence outrank the explicit Petra/Colosseum context,
+    and it never falls back to `fallback_seed % 9` (which produced random monuments).
+    """
+    del fallback_seed
+    scores, positions = _rank_scene_candidates(text_hint)
+    if scores:
+        return max(scores, key=lambda sid: (scores[sid], -positions[sid], -sid))
     return SCENE_CLASSICAL_GENERIC
+
+
+def detect_explicit_scene_id(text_hint: str) -> int | None:
+    """Return a scene ID only when the text contains an unambiguous proper-noun match."""
+    scores, positions = _rank_scene_candidates(text_hint, strong_only=True)
+    if not scores:
+        return None
+    return max(scores, key=lambda sid: (scores[sid], -positions[sid], -sid))
+
+
+def resolve_visual_subject(
+    text_hint: str,
+    fallback_idx: int = 0,
+    topic: str = "",
+) -> tuple[int, str]:
+    """Return `(scene_id, human-readable subject)` with a topic-aware generic label."""
+    sid = resolve_monument_scene_id(text_hint, fallback_seed=fallback_idx)
+    raw_cap = SCENE_CAPTIONS.get(sid, SCENE_CAPTIONS[SCENE_CLASSICAL_GENERIC])
+    short_title = raw_cap.split("·", 1)[1].strip() if "·" in raw_cap else raw_cap
+    if sid == SCENE_CLASSICAL_GENERIC:
+        clean_topic = " ".join((topic or "").split())[:72]
+        short_title = f"{clean_topic} — explanatory model" if clean_topic else short_title
+    return sid, short_title
 
 
 def resolve_procedural_scene_id(text_hint: str, fallback_idx: int = 0) -> tuple[int, str]:
     """Return `(scene_id, short_monument_title)` for `media.py`, `compositor.py`, and `renderer.py`."""
     sid = resolve_monument_scene_id(text_hint, fallback_seed=fallback_idx)
-    raw_cap = SCENE_CAPTIONS.get(sid, "Classical Architectural Sanctuary")
+    raw_cap = SCENE_CAPTIONS.get(sid, SCENE_CAPTIONS[SCENE_CLASSICAL_GENERIC])
     short_title = raw_cap.split("·", 1)[1].strip() if "·" in raw_cap else raw_cap
     return sid, short_title
 
@@ -662,12 +732,22 @@ def _build_monument_3d_scene(scene_id: int) -> tuple[np.ndarray, np.ndarray, np.
         mb.add_box(0.0, 3.78, 0.35, 0.10, 0.12, 0.03, (1.0, 0.80, 0.34), emissive=0.55, wire=2)
 
     else:
-        mb.add_box(0.0, -0.1, 0.0, 12.0, 0.1, 12.0, (0.32, 0.34, 0.38), wire=1)
-        mb.add_cylinder(0.0, 0.0, 0.45, 0.0, 4.2, 3.9, 24, (0.84, 0.80, 0.72), wire=1)
-        for k in range(16):
-            a = 2.0 * math.pi * k / 16
-            mb.add_cylinder(3.2 * math.cos(a), 0.45, 2.95, 3.2 * math.sin(a), 0.18, 0.16, 10, (0.90, 0.87, 0.80), wire=1)
-        mb.add_lathe_dome(0.0, 2.95, 0.0, [(0.0, 3.4), (0.6, 2.8), (1.3, 1.6), (1.8, 0.1)], 24, (0.92, 0.88, 0.82), wire=2)
+        # Neutral explanatory data sculpture for arbitrary topics.  A classical rotunda
+        # here was a narration/visual mismatch for volcanoes, AI, health, cooking, etc.;
+        # these bars + wireframe orb carry topic telemetry without depicting a wrong subject.
+        mb.add_box(0.0, -0.12, 0.0, 12.0, 0.12, 12.0, (0.20, 0.25, 0.33), wire=1)
+        bar_heights = (1.25, 2.15, 1.70, 3.05, 2.35, 3.55, 2.75, 3.95, 2.45, 3.25, 1.90, 2.70)
+        for k, h in enumerate(bar_heights):
+            a = 2.0 * math.pi * k / len(bar_heights)
+            x, z = 3.35 * math.cos(a), 3.35 * math.sin(a)
+            col = (0.24 + 0.05 * (k % 3), 0.42 + 0.06 * (k % 2), 0.58 + 0.05 * (k % 3))
+            mb.add_box(x, h * 0.5, z, 0.34, h, 0.34, col, wire=2)
+            mb.add_box(x, h + 0.16, z, 0.46, 0.16, 0.46, (0.52, 0.38, 0.12), emissive=0.06, wire=2)
+        mb.add_lathe_dome(
+            0.0, 0.45, 0.0,
+            [(0.0, 2.15), (0.45, 2.08), (0.95, 1.72), (1.42, 1.02), (1.72, 0.06)],
+            28, (0.36, 0.58, 0.74), wire=2,
+        )
 
     tris, cols, emit, edges = mb.finalize()
     return tris, cols, emit, edges, water_y
@@ -971,6 +1051,12 @@ class Monument3DEngine:
                     styled[:, 0] = np.where(is_foliage, 0.12, 0.34 + 0.56 * lum)
                     styled[:, 1] = np.where(is_foliage, 0.16, 0.22 + 0.38 * lum)
                     styled[:, 2] = np.where(is_foliage, 0.24, 0.19 + 0.30 * lum)
+                elif scene_id == SCENE_CLASSICAL_GENERIC:
+                    # Keep the neutral data sculpture cyan/amber and deliberately dim so
+                    # the broadcast lighting chain cannot wash it into a white quote plate.
+                    styled[:, 0] = 0.045 + 0.20 * cols[:, 0] ** 1.45
+                    styled[:, 1] = 0.065 + 0.23 * cols[:, 1] ** 1.40
+                    styled[:, 2] = 0.090 + 0.27 * cols[:, 2] ** 1.35
                 else:
                     styled[:, 0] = np.where(is_foliage, 0.11, 0.23 + 0.54 * lum)
                     styled[:, 1] = np.where(is_foliage, 0.17, 0.24 + 0.51 * lum)
@@ -1227,7 +1313,10 @@ class Monument3DEngine:
                 my = (p_scr[0][1] + p_scr[1][1]) // 2
                 zm = 0.5 * (z_vals[0] + z_vals[1])
                 if 0 <= mx < w and 0 <= my < h and (wt == 2 or zm <= zbuf[my, mx] + 0.30):
-                    col = (248, 194, 78) if wt == 2 else (62, 154, 220)
+                    if scene_id == SCENE_CLASSICAL_GENERIC:
+                        col = (168, 126, 42) if wt == 2 else (40, 106, 156)
+                    else:
+                        col = (248, 194, 78) if wt == 2 else (62, 154, 220)
                     cv2.line(wire_ov, p_scr[0], p_scr[1], col, 2 if wt == 2 else 1, lineType=cv2.LINE_AA)
 
         # Pharos rotating volumetric searchlight beam!

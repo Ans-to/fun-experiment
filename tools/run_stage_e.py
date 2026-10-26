@@ -27,4 +27,5 @@ for c in st.checks: print("  ", c.check_id, c.measured_value, "/", c.target_spec
 p = json.load(open(d/"scene_plan.json"))
 bad = [e for e in p["scenes"] if not str(e["validation_status"]).startswith(("validated","skipped"))]
 print("mismatched:", len(bad))
+print("subject mismatched:", p.get("stage_e", {}).get("subject_mismatches", 0))
 for e in bad[:8]: print("  ", e["seg_index"], e["visual_family"], e["validation_status"], e["validation_note"][:90], "|", e["narration_clause"][:50])

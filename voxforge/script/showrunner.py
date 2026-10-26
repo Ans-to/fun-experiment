@@ -17,12 +17,14 @@ from voxforge.models import (
     ChapterScript,
     DialogueTurn,
     EpisodeScript,
+    KeyMetric,
     MusicCue,
     ResearchDossier,
     ShowSpec,
     SubTopicDossier,
 )
 from voxforge.script.llm_provider import ZeroKeyLLMClient
+from voxforge.video.procedural_world import SCENE_CLASSICAL_GENERIC, resolve_visual_subject
 
 _ROMAN_RULERS = {
     "II": "the Second",
@@ -684,7 +686,57 @@ def _generate_next_episode_tease(topic: str) -> str:
 _STUDIO_INSERT_VARIANTS = ("mic_detail", "hands_notes", "laptop_workspace")
 
 
-def assign_multicam_choreography(chapters: list[ChapterScript], subtopics: list[SubTopicDossier]) -> None:
+def _bind_turn_visual_subject(
+    turn: DialogueTurn,
+    chapter: ChapterScript,
+    subtopic: SubTopicDossier,
+    episode_topic: str,
+) -> tuple[int, str]:
+    """Resolve and store the visual subject from THIS utterance, not the whole chapter."""
+    hint_parts = [
+        turn.text,
+        f"{chapter.title} {chapter.subtitle}",
+        chapter.location,
+        " ".join(subtopic.visual_queries),
+    ]
+    hint = " || ".join(p.strip() for p in hint_parts if p and p.strip())
+    sid, subject = resolve_visual_subject(
+        hint, fallback_idx=chapter.chapter_index, topic=episode_topic
+    )
+    turn.visual_scene_id = sid
+    turn.visual_subject = subject
+    return sid, subject
+
+
+def _metrics_for_turn(
+    turn: DialogueTurn,
+    subtopic: SubTopicDossier,
+    subject: str,
+) -> list[KeyMetric]:
+    """Keep on-screen figures tied to this utterance, not the other half of a paired act."""
+    text = turn.text.lower()
+    subject_low = subject.lower()
+    selected: list[KeyMetric] = []
+    for metric in subtopic.metrics:
+        haystack = f"{metric.label} {metric.value}".lower()
+        tokens = [w for w in re.findall(r"[a-z]{4,}|\d+(?:\.\d+)?", haystack) if len(w) >= 3]
+        if any(tok in text or tok in subject_low for tok in tokens):
+            selected.append(metric)
+    if not selected:
+        figures = re.findall(r"\b\d+(?:[.,]\d+)?\b", turn.text)
+        selected = [
+            KeyMetric(label="Spoken Figure", value=figure[:26])
+            for figure in figures[:2]
+        ]
+        selected.append(KeyMetric(label="Subject", value=subject.split(" — ", 1)[0][:26]))
+    return selected[:4]
+
+
+def assign_multicam_choreography(
+    chapters: list[ChapterScript],
+    subtopics: list[SubTopicDossier],
+    episode_topic: str = "",
+) -> None:
     """Apply full broadcast multicam switching: wide master, close-ups, reaction shots, studio inserts, quotes & data callouts."""
     insert_cursor = 0
     global_idx = 0
@@ -747,6 +799,7 @@ def assign_multicam_choreography(chapters: list[ChapterScript], subtopics: list[
                 turn.insert_variant = _STUDIO_INSERT_VARIANTS[insert_cursor % len(_STUDIO_INSERT_VARIANTS)]
                 insert_cursor += 1
 
+            sid, subject = _bind_turn_visual_subject(turn, ch, st, episode_topic)
             if all_assets:
                 chosen = (
                     broll_assets[asset_cursor % len(broll_assets)]
@@ -765,13 +818,22 @@ def assign_multicam_choreography(chapters: list[ChapterScript], subtopics: list[
                     else all_assets[asset_cursor % len(all_assets)]
                 )
                 turn.visual_asset_path = chosen.file_path
-                turn.visual_caption = chosen.caption
                 turn.visual_credit = chosen.credit
+                # Preserve the plate *type* prefix, but replace the chapter-level subject
+                # with the subject actually spoken in this turn.
+                prefix = chosen.caption.split("·", 1)[0].strip() or "Pure-Code Visual Model"
+                if sid == SCENE_CLASSICAL_GENERIC:
+                    prefix = "Topic Explanatory Model"
+                turn.visual_caption = f"{prefix} · {subject}"
                 if cam in ("broll_cinema", "split_fact_card", "studio_insert", "quote_card"):
                     asset_cursor += 1
 
-            turn.fact_callout_title = st.title.split(":")[0]
-            turn.fact_metrics = st.metrics[:4]
+            turn.fact_callout_title = (
+                subject.split(" — ", 1)[0][:64]
+                if sid != SCENE_CLASSICAL_GENERIC
+                else st.title.split(":")[0]
+            )
+            turn.fact_metrics = _metrics_for_turn(turn, st, subject)
             global_idx += 1
 
             if idx == total_in_ch - 1:
@@ -889,7 +951,7 @@ def generate_episode_script(
             )
         )
 
-    assign_multicam_choreography(chapters, dossier.subtopics)
+    assign_multicam_choreography(chapters, dossier.subtopics, episode_topic=spec.topic)
 
     return EpisodeScript(
         spec=spec,

@@ -21,7 +21,7 @@ from voxforge.video.procedural_world import (
     Monument3DEngine,
     PhysicsSimulationEngine,
     ProceduralCadCache,
-    resolve_procedural_scene_id,
+    resolve_visual_subject,
 )
 
 _MONUMENT_ENGINE: Monument3DEngine | None = None
@@ -86,7 +86,10 @@ def curate_visuals_for_subtopic(subtopic: SubTopicDossier, work_media_dir: Path)
     mon_eng, phys_eng, cad_eng = _get_engines()
 
     hint = f"{subtopic.title} {subtopic.subtitle} {subtopic.location} {' '.join(subtopic.visual_queries)}"
-    scene_id, scene_title = resolve_procedural_scene_id(hint, fallback_idx=subtopic.index)
+    topic_label = subtopic.title.split(":", 1)[0].strip() or subtopic.title
+    scene_id, scene_title = resolve_visual_subject(
+        hint, fallback_idx=subtopic.index, topic=topic_label
+    )
 
     specs = [
         (

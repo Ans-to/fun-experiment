@@ -134,6 +134,10 @@ class DialogueTurn:
     visual_asset_path: str = ""
     visual_caption: str = ""
     visual_credit: str = ""
+    # Explicit narration→visual binding, resolved from this turn's spoken text rather
+    # than inherited from a (possibly mixed-subject) chapter-level asset.
+    visual_subject: str = ""
+    visual_scene_id: int | None = None
     fact_callout_title: str = ""
     fact_metrics: list[KeyMetric] = field(default_factory=list)
     pull_quote: str = ""

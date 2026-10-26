@@ -30,6 +30,7 @@ import av
 import numpy as np
 
 from voxforge.models import AudioMasterMeta, EpisodeScript, StageAudit, AuditCheck
+from voxforge.video.procedural_world import SCENE_CAPTIONS, detect_explicit_scene_id
 
 # Plan visual family -> expected pixel-evidence group produced by the pure-code engine.
 _FAMILY_GROUPS: dict[str, set[str]] = {
@@ -131,6 +132,52 @@ def _caption_band_active(frame_bgr: np.ndarray) -> bool:
     return bool(bright > 0.0015)
 
 
+def _short_scene_title(scene_id: int) -> str:
+    raw = SCENE_CAPTIONS.get(scene_id, "")
+    return raw.split("·", 1)[1].strip() if "·" in raw else raw
+
+
+def audit_scene_plan_semantics(plan: dict) -> list[tuple[int, str]]:
+    """Validate the authoritative narration→subject binding before decoding frames.
+
+    The frame classifier can only prove a broad visual family (globe/HUD/monument/
+    quote).  This plan-level gate catches the more damaging error: a Petra clause
+    recorded against a Colosseum scene ID, or a beat with no exact narration text.
+    It only fires on unambiguous proper nouns, so generic-topic explanatory scenes
+    remain valid.
+    """
+    failures: list[tuple[int, str]] = []
+    for idx, entry in enumerate(plan.get("scenes", [])):
+        clause = str(entry.get("narration_clause", "") or "").strip()
+        if not clause or clause.startswith("(voice attribution") or clause.startswith("(establishing"):
+            failures.append((idx, "missing_exact_narration_clause"))
+            continue
+        explicit_sid = detect_explicit_scene_id(clause)
+        if explicit_sid is None:
+            continue
+        recorded_raw = entry.get("scene_id")
+        try:
+            recorded_sid = int(recorded_raw) if recorded_raw is not None else None
+        except (TypeError, ValueError):
+            recorded_sid = None
+        if recorded_sid != explicit_sid:
+            failures.append((
+                idx,
+                f"subject_mismatch: clause resolves to scene {explicit_sid} "
+                f"({_short_scene_title(explicit_sid)}), plan records {recorded_sid}",
+            ))
+            continue
+        expected_subject = _short_scene_title(explicit_sid).lower()
+        actual_subject = str(entry.get("subject", "") or "").lower()
+        if expected_subject and expected_subject not in actual_subject:
+            failures.append((
+                idx,
+                f"subject_label_mismatch: expected {_short_scene_title(explicit_sid)!r}, "
+                f"plan records {entry.get('subject', '')!r}",
+            ))
+    return failures
+
+
 def audit_av_sync(
     video_mp4: Path,
     scene_plan_json: Path,
@@ -158,6 +205,18 @@ def audit_av_sync(
     plan = json.loads(scene_plan_json.read_text(encoding="utf-8"))
     entries = plan.get("scenes", [])
 
+    # Subject-level plan gate: catch wrong-monument bindings and placeholder clauses
+    # before the pixel classifier, which can only validate broad visual families.
+    plan_failures = audit_scene_plan_semantics(plan)
+    subject_mismatches = len(plan_failures)
+    failed_plan_indices: set[int] = set()
+    for idx, reason in plan_failures:
+        if 0 <= idx < len(entries):
+            entries[idx]["validation_status"] = "failed:subject_mismatch"
+            entries[idx]["validation_note"] = reason
+            failed_plan_indices.add(idx)
+        mismatches += 1
+
     prober = _VideoProber(video_mp4)
     try:
         # --- Global drift + streams ---
@@ -180,7 +239,9 @@ def audit_av_sync(
         validated = 0
         frozen_hits = 0
         black_hits = 0
-        for e in entries:
+        for entry_idx, e in enumerate(entries):
+            if entry_idx in failed_plan_indices:
+                continue
             fam = e.get("visual_family", "")
             expected = _FAMILY_GROUPS.get(fam, {"monument", "darkhud", "geo", "quote"})
             t0 = float(e.get("scene_start_sec", 0.0))
@@ -232,6 +293,12 @@ def audit_av_sync(
             100.0 * validated / total_scored, f"{validated}/{total_scored}", f"{total_scored}/{total_scored}",
             "Decoded frames of every planned scene match the family promised for its narration clause.",
         ))
+        checks.append(_chk(
+            "narration_subject_match", "Narration subject match", subject_mismatches == 0,
+            100.0 if subject_mismatches == 0 else 0.0,
+            f"{subject_mismatches} subject/plan mismatches", "0 subject/plan mismatches",
+            "Every exact spoken clause is bound to the correct procedural scene ID and subject label.",
+        ))
         checks.append(_chk("black_scenes", "No black scenes", black_hits == 0, 100.0 if black_hits == 0 else 0.0, str(black_hits), "0"))
         checks.append(_chk("frozen_scenes", "No frozen scenes", frozen_hits == 0, 100.0 if frozen_hits == 0 else 0.0, str(frozen_hits), "0"))
         penalties += 4.0 * black_hits + 4.0 * frozen_hits
@@ -269,6 +336,10 @@ def audit_av_sync(
     final_score = round(max(0.0, 100.0 - penalties - (6.0 * mismatches)), 1)
     passed = mismatches == 0 and final_score >= 90.0
     improvements.append(f"Validated {len(entries)} scene-plan entries against decoded final-render frames.")
+    if subject_mismatches:
+        improvements.append(
+            f"FLAGGED {subject_mismatches} clause→subject plan mismatches before frame decoding."
+        )
     if mismatches:
         improvements.append(f"FLAGGED {mismatches} narration↔visual semantic mismatches (certification blocked).")
 
@@ -278,6 +349,7 @@ def audit_av_sync(
         "score": final_score,
         "passed": passed,
         "mismatches": mismatches,
+        "subject_mismatches": subject_mismatches,
         "black_scenes": black_hits,
         "frozen_scenes": frozen_hits,
         "av_drift_sec": round(drift, 3),
