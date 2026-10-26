@@ -1,0 +1,212 @@
+[
+  {
+    "niche": "01_science_education",
+    "topic": "how volcanoes erupt and reshape the planet",
+    "certified": true,
+    "overall_final": 98.7,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 94.9,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 98.4,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 18,
+    "scenes_validated": 18,
+    "output_dir": "/home/user/qa_niches/how-volcanoes-erupt-and-reshape-the-planet-90s",
+    "secs": 506
+  },
+  {
+    "niche": "02_tech_ai",
+    "topic": "the rise of artificial intelligence",
+    "certified": true,
+    "overall_final": 97.7,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 89.2,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 99.2,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 19,
+    "scenes_validated": 19,
+    "output_dir": "/home/user/qa_niches/the-rise-of-artificial-intelligence-90s",
+    "secs": 442
+  },
+  {
+    "niche": "03_history",
+    "topic": "the silk road trade networks of antiquity",
+    "certified": true,
+    "overall_final": 97.8,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 92.2,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 100.0,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 96.7,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 21,
+    "scenes_validated": 21,
+    "output_dir": "/home/user/qa_niches/the-silk-road-trade-networks-of-antiquity-90s",
+    "secs": 517
+  },
+  {
+    "niche": "04_business_finance",
+    "topic": "the history of money and banking",
+    "certified": true,
+    "overall_final": 98.1,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 93.8,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 99.8,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 96.7,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 21,
+    "scenes_validated": 21,
+    "output_dir": "/home/user/qa_niches/the-history-of-money-and-banking-90s",
+    "secs": 491
+  },
+  {
+    "niche": "05_health",
+    "topic": "how the human heart works",
+    "certified": true,
+    "overall_final": 97.5,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 89.5,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 98.2,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 18,
+    "scenes_validated": 18,
+    "output_dir": "/home/user/qa_niches/how-the-human-heart-works-90s",
+    "secs": 448
+  },
+  {
+    "niche": "06_travel_geography",
+    "topic": "the nile river and ancient egypt",
+    "certified": true,
+    "overall_final": 98.1,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 93.8,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 100.0,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 96.7,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 21,
+    "scenes_validated": 21,
+    "output_dir": "/home/user/qa_niches/the-nile-river-and-ancient-egypt-90s",
+    "secs": 502
+  },
+  {
+    "niche": "07_cooking",
+    "topic": "the science of baking bread",
+    "certified": true,
+    "overall_final": 97.5,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 89.2,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 98.3,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 19,
+    "scenes_validated": 19,
+    "output_dir": "/home/user/qa_niches/the-science-of-baking-bread-90s",
+    "secs": 434
+  },
+  {
+    "niche": "08_wildlife_nature",
+    "topic": "the great whale migrations",
+    "certified": true,
+    "overall_final": 97.5,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 89.0,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 98.3,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 18,
+    "scenes_validated": 18,
+    "output_dir": "/home/user/qa_niches/the-great-whale-migrations-90s",
+    "secs": 430
+  },
+  {
+    "niche": "09_documentary_storytelling",
+    "topic": "the lost libraries of the ancient world",
+    "certified": true,
+    "overall_final": 97.8,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 92.2,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 100.0,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 96.7,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 21,
+    "scenes_validated": 21,
+    "output_dir": "/home/user/qa_niches/the-lost-libraries-of-the-ancient-world-90s",
+    "secs": 503
+  },
+  {
+    "niche": "10_motivational",
+    "topic": "stoic philosophy for modern life",
+    "certified": true,
+    "overall_final": 97.7,
+    "stage_scores": {
+      "Stage A \u00b7 Editorial & Dramaturgical QA": 89.5,
+      "Stage B \u00b7 Broadcast Audio & Loudness QA": 99.2,
+      "Stage C \u00b7 Cinematography & Visual Asset QA": 100.0,
+      "Stage D \u00b7 Final Muxed MP4 Cinema Documentary QC": 100.0,
+      "AUDIT_E_AV_SYNC_SEMANTIC": 100.0
+    },
+    "stage_e_score": 100.0,
+    "stage_e_passed": true,
+    "semantic_mismatches": 0,
+    "av_drift_sec": 0.0,
+    "scenes_planned": 19,
+    "scenes_validated": 19,
+    "output_dir": "/home/user/qa_niches/stoic-philosophy-for-modern-life-90s",
+    "secs": 453
+  }
+]

@@ -66,7 +66,7 @@ _SCENE_KEYWORD_RULES: list[tuple[tuple[str, ...], int]] = [
     (("petra", "khazneh", "nabataean", "nabataeans", "siq"), SCENE_PETRA),
     (("great wall", "jinshanling", "jiayuguan", "meng tian", "amylopectin", "ming"), SCENE_GREAT_WALL),
     (("pharos", "alexandria", "rhodes", "colossus", "artemis", "ephesus", "babylon", "olympia", "halicarnassus", "theamata"), SCENE_PHAROS),
-    (("giza", "khufu", "mokattam", "grand gallery", "hemunu", "pyramid"), SCENE_GIZA),
+    (("giza", "khufu", "mokattam", "grand gallery", "hemunu", "pyramid", "egypt", "nile", "pharaoh", "sphinx", "cairo"), SCENE_GIZA),
 ]
 
 
