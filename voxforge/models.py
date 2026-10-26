@@ -293,3 +293,46 @@ class BuildResult:
     total_words: int
     chapter_count: int
     audit_report: EpisodeAuditReport
+
+
+@dataclass
+class ScenePlanEntry:
+    """Authoritative narration→visual mapping record for one rendered scene/beat.
+
+    Maintained per the narration-aligned scene-plan specification: exact spoken clause,
+    audio-derived timestamps, semantic subject/action, required + selected visual family,
+    asset provenance, on-screen text, relevance criteria and validation status.
+    """
+
+    scene_id: int
+    seg_index: int
+    chapter_index: int
+    turn_id: int
+    narration_clause: str
+    narration_start_sec: float
+    narration_end_sec: float
+    subject: str
+    action_or_event: str
+    required_visual: str
+    visual_family: str
+    visual_asset_source: str
+    scene_start_sec: float
+    scene_end_sec: float
+    on_screen_text: str
+    relevance_criteria: str
+    validation_status: str = "pending"
+    validation_note: str = ""
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class ScenePlan:
+    """Ordered scene plan binding script ⇄ voice-over ⇄ visuals ⇄ final timeline."""
+
+    topic: str
+    entries: list[ScenePlanEntry] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {"topic": self.topic, "scenes": [e.to_dict() for e in self.entries]}

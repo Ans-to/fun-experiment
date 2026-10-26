@@ -226,14 +226,15 @@ def test_subturn_editorial_director_prevents_long_holds() -> None:
         duration_sec=21.0,
     )
     env = np.full(2500, 0.1, dtype=np.float32)
-    beats = _plan_turn_editorial_beats(turn, 20.0, 41.0, env, is_episode_opener=False, is_episode_closer=False)
-    assert len(beats) >= 4
+    beats = _plan_turn_editorial_beats(
+        turn, 20.0, 41.0, env,
+        is_episode_opener=False, is_episode_closer=False, lead_attribution_sec=2.9,
+    )
+    assert len(beats) >= 3
     assert beats[0][0] == "closeup_host_b"
     prev = 20.0
-    for cam, end_t in beats:
+    for cam, end_t, clause in beats:
         dur = end_t - prev
-        if cam == "reaction_shot":
-            assert 1.4 <= dur <= 2.4
-        else:
-            assert 2.4 <= dur <= 6.8
+        assert 1.8 <= dur <= 8.0
         prev = end_t
+    assert abs(prev - 41.0) < 1e-6

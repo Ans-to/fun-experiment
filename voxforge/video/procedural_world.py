@@ -1291,6 +1291,7 @@ class PhysicsSimulationEngine:
         time_s: float,
         w: int = 1920,
         h: int = 1080,
+        hint: str = "",
     ) -> np.ndarray:
         # Deep obsidian mathematical blackboard with blueprint coordinate grid
         canvas = np.zeros((h, w, 3), dtype=np.uint8)
@@ -1500,8 +1501,95 @@ class PhysicsSimulationEngine:
             title_txt = "Taj Mahal: Voided Onion Dome, Ebony Well Caissons & 2° Outward Lean"
             eq_txt = "Minaret Plumb Offset: +2.0° Outward (Protects Central Tomb Under Seismic Collapse)"
 
+        elif scene_id == SCENE_CLASSICAL_GENERIC:
+            # Universal explanatory blackboard for any niche: spoken numbers become live animated
+            # charts and spoken verbs become curve morphology (rise/fall/cycle/flow/network).
+            nums = re.findall(
+                r"(\d+(?:[.,]\d+)?)\s*(%|percent|million|billion|thousand|km|miles|meters|metres|"
+                r"years?|days?|hours?|tons?|kg|liters?|litres?|times?|×)?",
+                hint or "",
+                flags=re.I,
+            )
+            nums = [(a, b or "") for a, b in nums][:3]
+            low = (hint or "").lower()
+            if any(k in low for k in ("fell", "dropped", "decline", "decrease", "collapse", "shrank", "lost", "died")):
+                shape = "fall"
+            elif any(k in low for k in ("cycle", "season", "orbit", "rotat", "daily", "annual", "loop", "pulse")):
+                shape = "cycle"
+            elif any(k in low for k in ("flow", "travel", "migrat", "route", "trade", "spread", "moves", "journey")):
+                shape = "flow"
+            elif any(k in low for k in ("network", "connect", "exchange", "communicat", "system", "web")):
+                shape = "network"
+            else:
+                shape = "rise"
+
+            gx0, gy0, gw, gh = 120, 300, 1020, 460
+            cv2.rectangle(canvas, (gx0, gy0), (gx0 + gw, gy0 + gh), (14, 22, 36), -1)
+            cv2.rectangle(canvas, (gx0, gy0), (gx0 + gw, gy0 + gh), (64, 92, 128), 1)
+            cv2.line(canvas, (gx0 + 40, gy0 + gh - 40), (gx0 + gw - 30, gy0 + gh - 40), (72, 92, 118), 1)
+            cv2.line(canvas, (gx0 + 40, gy0 + 30), (gx0 + 40, gy0 + gh - 40), (72, 92, 118), 1)
+            n_pts = int(max(2, round(160 * min(1.0, u * 1.15))))
+            pts_g = []
+            for k in range(n_pts):
+                tk = k / 160.0
+                if shape == "rise":
+                    vv = 1.0 - math.exp(-3.2 * tk)
+                elif shape == "fall":
+                    vv = math.exp(-3.0 * tk)
+                elif shape == "cycle":
+                    vv = 0.5 + 0.42 * math.sin(2.0 * math.pi * 1.6 * tk)
+                elif shape == "flow":
+                    vv = 0.30 + 0.55 * tk + 0.10 * math.sin(2.0 * math.pi * 3.0 * tk)
+                else:
+                    vv = 0.35 + 0.45 * tk
+                pts_g.append([int(gx0 + 40 + tk * (gw - 80)), int(gy0 + gh - 40 - vv * (gh - 100))])
+            cv2.polylines(glow_layer, [np.array(pts_g, dtype=np.int32)], False, (242, 184, 68), 3, lineType=cv2.LINE_AA)
+            if shape == "flow":
+                for p_i in range(26):
+                    prog = ((p_i / 26.0) + u * 0.9) % 1.0
+                    px_f = int(gx0 + 40 + prog * (gw - 80))
+                    py_f = int(gy0 + gh - 40 - (0.30 + 0.55 * prog) * (gh - 100))
+                    cv2.circle(glow_layer, (px_f, py_f), 3, (56, 189, 248), -1, lineType=cv2.LINE_AA)
+            elif shape == "network":
+                nodes_n = []
+                for k in range(8):
+                    ang_n = 2.0 * math.pi * k / 8.0
+                    nodes_n.append((int(gx0 + gw // 2 + 300 * math.cos(ang_n)), int(gy0 + gh // 2 + 150 * math.sin(ang_n))))
+                for k in range(8):
+                    a0, a1 = nodes_n[k], nodes_n[(k + 3) % 8]
+                    lit = ((k / 8.0) <= min(1.0, u * 1.2))
+                    cv2.line(glow_layer if lit else canvas, a0, a1, (242, 184, 68) if lit else (56, 84, 118), 2, lineType=cv2.LINE_AA)
+                for nx_n, ny_n in nodes_n:
+                    cv2.circle(glow_layer, (nx_n, ny_n), 7, (56, 189, 248), -1, lineType=cv2.LINE_AA)
+            # Right panel: live counting readout of the first spoken quantity
+            rx0, ry0, rw2, rh2 = 1220, 300, 580, 460
+            cv2.rectangle(canvas, (rx0, ry0), (rx0 + rw2, ry0 + rh2), (14, 22, 36), -1)
+            cv2.rectangle(canvas, (rx0, ry0), (rx0 + rw2, ry0 + rh2), (64, 92, 128), 1)
+            if nums:
+                try:
+                    target_v = float(nums[0][0].replace(",", ""))
+                except ValueError:
+                    target_v = 100.0
+                mult = {"thousand": 1e3, "million": 1e6, "billion": 1e9}.get(nums[0][1].lower(), 1.0)
+                cur_v = target_v * mult * min(1.0, u * 1.15)
+                val_txt = f"{cur_v:,.0f}" if cur_v >= 1000 else f"{cur_v:,.1f}"
+                unit_txt = (nums[0][1] or "units").upper()
+            else:
+                val_txt = f"{int(round(100 * min(1.0, u * 1.15)))}"
+                unit_txt = "PER CENT OF MODEL"
+            pil_tmp = Image.fromarray(canvas)
+            d_tmp = ImageDraw.Draw(pil_tmp)
+            d_tmp.text((rx0 + 40, ry0 + 60), "SPOKEN QUANTITY", font=self._f_kicker, fill=(56, 189, 248))
+            d_tmp.text((rx0 + 40, ry0 + 96), val_txt, font=load_font("SpaceGrotesk-Bold.ttf", 74), fill=(248, 250, 252))
+            d_tmp.text((rx0 + 40, ry0 + 190), unit_txt[:24], font=self._f_eq, fill=(229, 169, 60))
+            bar_f = min(1.0, u * 1.15)
+            d_tmp.rectangle([rx0 + 40, ry0 + 260, rx0 + 40 + int((rw2 - 80) * bar_f), ry0 + 292], fill=(242, 184, 68))
+            canvas = np.asarray(pil_tmp, dtype=np.uint8)
+            kicker_txt = "EXPLANATORY DYNAMICS MODEL   ·   DERIVED FROM NARRATION"
+            title_txt = (hint or "Universal explanatory model")[:86]
+            eq_txt = " | ".join(f"{a}{b}" for a, b in nums) if nums else "Qualitative dynamics (no figures spoken)"
+
         else:
-            # Christ the Redeemer Internal Reinforced-Concrete Cantilever Truss + Lightning Faraday Path!
             cx_r, cy_r = 680, 740
             cv2.rectangle(glow_layer, (cx_r - 48, cy_r - 360), (cx_r + 48, cy_r), (56, 189, 248), 2)
             cv2.line(glow_layer, (cx_r - 295, cy_r - 310), (cx_r + 295, cy_r - 310), (242, 184, 68), 4, lineType=cv2.LINE_AA)

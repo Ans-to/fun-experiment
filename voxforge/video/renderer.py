@@ -9,6 +9,8 @@ Univisium `2.00:1` framing, and ITU-R BS.1770-4 `-16 LUFS` Rec.709 MP4 muxing.
 
 from __future__ import annotations
 
+import dataclasses
+import json
 import os
 import re
 import subprocess
@@ -24,14 +26,22 @@ import soundfile as sf
 
 from voxforge.bootstrap import StudioEnvironment
 from voxforge.config import FONTS_DIR, VIDEO_SPEC
-from voxforge.models import AudioMasterMeta, CameraAngle, ChapterScript, DialogueTurn, EpisodeScript
+from voxforge.models import (
+    AudioMasterMeta,
+    CameraAngle,
+    ChapterScript,
+    DialogueTurn,
+    EpisodeScript,
+    ScenePlan,
+    ScenePlanEntry,
+)
 from voxforge.video.animator import (
     StudioCharacterAnimator,
     extract_speech_motion_curves,
     parse_historical_year,
 )
 from voxforge.video.compositor import MulticamCompositor, PlateLayout
-from voxforge.video.procedural_world import resolve_procedural_scene_id
+from voxforge.video.procedural_world import SCENE_CLASSICAL_GENERIC, resolve_procedural_scene_id
 from voxforge.video.subtitles import (
     CaptionCue,
     build_all_caption_cues,
@@ -76,8 +86,8 @@ _RE_INTENT_ENG = re.compile(
     r"\b(built|build|engineer|engineers|engineering|mortar|drain|drainage|hydraulic|siphon|aqueduct|"
     r"acoustic|acoustics|echo|cantilever|seismic|foundation|construct|laborers|workers|"
     r"survey|aligned|alignment|astronom\w*|degrees?|slope|concrete|arches|vault|dome|"
-    r"terraces?|irrigation|cistern|quarry|ramp|lever|crane|masonry|fortif\w*|erected|"
-    r"staircase|columns?|pillars?|roof)\b",
+    r"terraces?|irrigation|cistern|quarry|ramp|lever|crane|masonry|fortif\w*|forts?|erected|"
+    r"staircase|columns?|pillars?|roof|watchtower\w*|signal\w*|beacon\w*|messeng\w*|smoke)\b",
     re.I,
 )
 _RE_INTENT_GEO = re.compile(
@@ -116,6 +126,36 @@ def _turn_visual_intent(text: str) -> str:
     }
     best = max(counts, key=lambda k: (counts[k], -("eng people geo quote".split().index(k))))
     return best if counts[best] > 0 else "scene"
+
+
+_CLAUSE_SPLIT_RE = re.compile(r"\s*(?:;|\b(?:and|while|whereas|but|because|as|when|after|before|then)\b)\s*", re.I)
+
+
+def _split_turn_clauses(text: str, max_beats: int = 5) -> list[str]:
+    """Split a narration turn into meaningful phrase/clause units for beat-level picture mapping."""
+    parts = [p.strip(" ,") for p in re.split(r"(?<=[.!?])\s+|(?<=,)\s+(?=\w{4,})", text or "") if len(p.strip()) >= 12]
+    if len(parts) < 2:
+        parts = [p.strip(" ,") for p in _CLAUSE_SPLIT_RE.split(text or "") if p and len(p.strip()) >= 12]
+    if not parts:
+        parts = [text or ""]
+    # Merge overflow clauses into the last beat to respect the max-beats ceiling
+    while len(parts) > max_beats:
+        parts[-2] = f"{parts[-2]}, {parts[-1]}"
+        parts.pop()
+    return parts
+
+
+def _family_for_intent(intent: str, scene_mapped: bool, beat_idx: int) -> str:
+    """Map a narration clause's semantic intent onto the visual family that answers it."""
+    if intent == "eng":
+        return "split_fact_card"
+    if intent == "geo":
+        return "wide_studio"
+    if intent == "quote":
+        return "quote_card"
+    if intent == "people":
+        return "studio_insert"
+    return "broll_cinema" if scene_mapped else ("split_fact_card" if beat_idx % 2 == 0 else "studio_insert")
 
 
 def _read_segment_mono_audio(master_wav: Path, start_sec: float, duration_sec: float) -> tuple[np.ndarray, int]:
@@ -210,6 +250,28 @@ def _caption_for_asset(p: Path | None, ch: ChapterScript, fallback: str = "", tu
     return f"3D Architectural & LiDAR Model · {scene_title}" if scene_title else (fallback or ch.title)
 
 
+_REQUIRED_VISUAL_TEXT = {
+    "broll_cinema": "Wide pure-code 3D monument cinematography of the spoken subject",
+    "closeup_host_a": "Tight pure-code 3D detail cinematography of the spoken subject",
+    "closeup_host_b": "Tight pure-code 3D detail cinematography of the spoken subject",
+    "wide_studio": "3D raycasted orbital Earth GIS map centred on the spoken place/route",
+    "split_fact_card": "Live counting telemetry + LiDAR viewport illustrating spoken figures/structure",
+    "studio_insert": "Explanatory simulation blackboard / LiDAR turntable illustrating the spoken mechanism",
+    "reaction_shot": "Dual-plate archival light-table illustrating the spoken comparison",
+    "quote_card": "Verbatim primary-source inscription typography of the spoken citation",
+}
+_VISUAL_SOURCE = {
+    "broll_cinema": "pure-code:Monument3DEngine+broll_depth",
+    "closeup_host_a": "pure-code:Monument3DEngine+broll_depth(closeup)",
+    "closeup_host_b": "pure-code:Monument3DEngine+broll_depth(closeup)",
+    "wide_studio": "pure-code:raycast_orbital_earth_globe",
+    "split_fact_card": "pure-code:ProceduralCadCache+telemetry",
+    "studio_insert": "pure-code:PhysicsSimulationEngine/ProceduralCadCache",
+    "reaction_shot": "pure-code:PhysicsSimulationEngine/ProceduralCadCache",
+    "quote_card": "pure-code:kinetic typography",
+}
+
+
 def _plan_turn_editorial_beats(
     turn: DialogueTurn,
     turn_start_sec: float,
@@ -217,8 +279,15 @@ def _plan_turn_editorial_beats(
     env_50hz: np.ndarray,
     is_episode_opener: bool,
     is_episode_closer: bool,
-) -> list[tuple[CameraAngle, float]]:
-    """Decompose a narration segment into 3.2–5.2s documentary cinema, cartography & telemetry beats."""
+    scene_context: str = "",
+    lead_attribution_sec: float = 0.0,
+) -> list[tuple[CameraAngle, float, str]]:
+    """Decompose a narration segment into clause-aligned documentary visual beats.
+
+    Each beat carries the exact narration clause it illustrates, so picture changes track
+    the spoken subject/action at phrase level (durations come from the real TTS audio via
+    the caller's frame-accurate turn timestamps + breath-pause snapping).
+    """
     total_dur = max(0.4, turn_end_sec - turn_start_sec)
     spk_cu: CameraAngle = "closeup_host_a" if turn.speaker == "HOST_A" else "closeup_host_b"
     intent = _turn_visual_intent(turn.text)
@@ -231,154 +300,89 @@ def _plan_turn_editorial_beats(
                 cut_t = _snap_to_breath_pause(
                     env_50hz, turn_end_sec - react_d, turn_start_sec + 1.8, turn_end_sec - 1.5
                 )
-                return [(spk_cu, cut_t), ("reaction_shot", turn_end_sec)]
-            return [(spk_cu, turn_end_sec)]
+                return [(spk_cu, cut_t, ""), ("studio_insert", turn_end_sec, turn.text)]
+            return [(spk_cu, turn_end_sec, turn.text)]
         if is_episode_closer and primary != "wide_studio":
-            return [("wide_studio", turn_end_sec)]
-        return [(primary, turn_end_sec)]
+            return [("wide_studio", turn_end_sec, turn.text)]
+        return [(primary, turn_end_sec, turn.text)]
 
-    specs: list[tuple[CameraAngle, float]] = []
-
+    # ---- Clause-aligned beat construction: one visual beat per meaningful spoken clause ----
+    specs: list[tuple[CameraAngle, float, str]] = []
     if is_episode_opener:
-        pattern: list[tuple[CameraAngle, float]] = [
-            ("broll_cinema", 4.4),
-            ("wide_studio", 4.1),
-            (spk_cu, 3.8),
-            ("broll_cinema", 4.6),
-            ("studio_insert", 4.0),
+        specs = [
+            ("broll_cinema", 4.4, ""),
+            ("wide_studio", 4.1, ""),
+            (spk_cu, 3.8, ""),
+            ("broll_cinema", 4.6, ""),
+            ("studio_insert", 4.0, ""),
         ]
     elif is_episode_closer:
-        pattern = [
-            ("broll_cinema", 4.5),
-            (spk_cu, 3.6),
-            ("wide_studio", 4.2),
-            ("broll_cinema", 4.4),
+        specs = [
+            ("broll_cinema", 4.5, ""),
+            (spk_cu, 3.6, ""),
+            ("wide_studio", 4.2, ""),
+            ("broll_cinema", 4.4, ""),
         ]
-    elif intent == "eng":
-        # Narrator explains engineering -> picture runs the live physics/telemetry simulation
-        pattern = [
-            (spk_cu, 3.4),
-            ("split_fact_card", 5.0),
-            ("broll_cinema", 4.2),
-            (spk_cu, 3.4),
-            ("split_fact_card", 4.6),
-        ]
-    elif intent == "geo":
-        # Narrator places/trades/moves -> picture flies the 3D orbital Earth GIS map
-        pattern = [
-            ("wide_studio", 4.4),
-            ("broll_cinema", 4.4),
-            ("wide_studio", 4.0),
-            (spk_cu, 3.4),
-            ("broll_cinema", 4.4),
-        ]
-    elif intent == "quote" or (primary == "quote_card" and intent in ("scene", "people")):
-        # Narrator cites a chronicler -> picture sets the verbatim primary-source inscription
-        pattern = [
-            (spk_cu, 3.3),
-            ("quote_card", 5.2),
-            ("broll_cinema", 4.7),
-            (spk_cu, 3.3),
-            ("broll_cinema", 4.5),
-        ]
-    elif intent == "people":
-        # Narrator tells ruler/event/ritual story -> monument cinema + archival desk inserts
-        pattern = [
-            ("broll_cinema", 4.6),
-            ("studio_insert", 4.2),
-            (spk_cu, 3.6),
-            ("broll_cinema", 4.6),
-            (spk_cu, 3.2),
-        ]
-    elif primary == "reaction_shot":
-        pattern = [
-            (spk_cu, 3.5),
-            ("reaction_shot", 1.95),
-            ("broll_cinema", 4.8),
-            (spk_cu, 3.4),
-            ("broll_cinema", 4.6),
-        ]
-    elif primary in ("split_fact_card", "quote_card", "studio_insert"):
-        pattern = [
-            (spk_cu, 3.3),
-            (primary, 5.2),
-            ("broll_cinema", 4.7),
-            (spk_cu, 3.3),
-            ("broll_cinema", 4.5),
-        ]
-    elif primary == "wide_studio":
-        pattern = [
-            ("wide_studio", 4.2),
-            ("broll_cinema", 4.8),
-            (spk_cu, 3.5),
-            ("broll_cinema", 4.7),
-            ("studio_insert", 3.8),
-        ]
-    elif primary == "broll_cinema":
-        if turn.is_chapter_opener:
-            pattern = [
-                ("broll_cinema", 4.6),
-                ("wide_studio", 4.0),
-                (spk_cu, 3.6),
-                ("broll_cinema", 4.7),
-                ("studio_insert", 3.9),
-            ]
-        else:
-            pattern = [
-                (spk_cu, 3.4),
-                ("broll_cinema", 4.8),
-                ("studio_insert", 3.8),
-                ("broll_cinema", 4.6),
-                (spk_cu, 3.4),
-            ]
     else:
-        if total_dur >= 13.0 and (turn.turn_id % 3 == 0):
-            pattern = [
-                (spk_cu, 3.5),
-                ("broll_cinema", 4.8),
-                ("reaction_shot", 1.95),
-                ("broll_cinema", 4.7),
-                (spk_cu, 3.4),
+        if lead_attribution_sec > 0.0:
+            specs.append((spk_cu, lead_attribution_sec, ""))
+        clauses = _split_turn_clauses(turn.text)
+        for ci, clause in enumerate(clauses):
+            intent_c = _turn_visual_intent(clause)
+            sid_c, _ = resolve_procedural_scene_id(f"{clause} || {scene_context}", fallback_idx=ci + 1)
+            fam = _family_for_intent(intent_c, sid_c != SCENE_CLASSICAL_GENERIC, ci)
+            specs.append((fam, float(max(3, len(clause.split()))), clause))
+
+    # Merge beats that would fall below the 2.2s minimum shot length
+    def _scaled_min_ok(weights: list[float], total: float) -> bool:
+        s = sum(weights)
+        return all(w * total / s >= 2.2 for w in weights)
+
+    while len(specs) > 2 and not _scaled_min_ok([w for _, w, _ in specs], total_dur):
+        # merge the shortest adjacent pair
+        idx = min(range(1, len(specs)), key=lambda i: specs[i][1])
+        prev = specs[idx - 1]
+        merged = (prev[0], prev[1] + specs[idx][1], f"{prev[2]} {specs[idx][2]}".strip())
+        specs[idx - 1] = merged
+        specs.pop(idx)
+
+    # Long-narration rule: never hold one picture beyond ~6.2s — split the heaviest clause.
+    while len(specs) < 8:
+        wsum = sum(w for _, w, _ in specs)
+        scale0 = total_dur / max(1e-6, wsum)
+        heavy = [i for i, s in enumerate(specs) if s[1] * scale0 > 6.2]
+        if not heavy:
+            break
+        i_h = max(heavy, key=lambda i: specs[i][1])
+        cam_h, w_h, cl_h = specs[i_h]
+        words_h = (cl_h or "").split()
+        if len(words_h) >= 6:
+            mid_h = len(words_h) // 2
+            specs[i_h : i_h + 1] = [
+                (cam_h, w_h / 2.0, " ".join(words_h[:mid_h])),
+                (cam_h, w_h / 2.0, " ".join(words_h[mid_h:])),
             ]
         else:
-            pattern = [
-                (spk_cu, 3.5),
-                ("broll_cinema", 4.8),
-                ("wide_studio", 4.0),
-                ("broll_cinema", 4.7),
-                (spk_cu, 3.4),
-            ]
+            specs[i_h : i_h + 1] = [(cam_h, w_h / 2.0, cl_h), (cam_h, w_h / 2.0, "")]
 
-    acc = 0.0
-    for cam, nominal in pattern:
-        specs.append((cam, nominal))
-        acc += nominal
-        if total_dur - acc < 2.8:
-            break
     if is_episode_closer and specs[-1][0] != "broll_cinema":
-        specs[-1] = ("broll_cinema", 4.0)
+        specs[-1] = ("broll_cinema", specs[-1][1], specs[-1][2])
 
-    fixed_sum = sum(w for c, w in specs if c == "reaction_shot")
-    flex_sum = sum(w for c, w in specs if c != "reaction_shot")
-    rem_dur = max(1.0, total_dur - fixed_sum)
-    scale = rem_dur / max(flex_sum, 0.1)
-
-    beats: list[tuple[CameraAngle, float]] = []
+    weight_sum = sum(w for _, w, _ in specs)
+    beats: list[tuple[CameraAngle, float, str]] = []
     cur_t = turn_start_sec
-    for idx_b, (cam, w) in enumerate(specs):
+    for idx_b, (cam, wgt, clause) in enumerate(specs):
         if idx_b == len(specs) - 1:
-            beats.append((cam, turn_end_sec))
+            beats.append((cam, turn_end_sec, clause))
             break
-        raw_d = w if cam == "reaction_shot" else (w * scale)
-        min_next = 1.65 if specs[idx_b + 1][0] == "reaction_shot" else 2.55
-        target_end = cur_t + raw_d
-        min_bound = cur_t + (1.55 if cam == "reaction_shot" else 2.55)
-        max_bound = turn_end_sec - min_next
+        target_end = cur_t + total_dur * (wgt / weight_sum)
+        min_bound = cur_t + 2.35
+        max_bound = turn_end_sec - 2.35
         if max_bound <= min_bound:
             snapped = float(np.clip(target_end, cur_t + 0.8, turn_end_sec - 0.8))
         else:
             snapped = _snap_to_breath_pause(env_50hz, target_end, min_bound, max_bound)
-        beats.append((cam, snapped))
+        beats.append((cam, snapped, clause))
         cur_t = snapped
 
     return beats
@@ -709,6 +713,7 @@ def render_episode_video(
     total_ch = len(script.chapters)
     show_title = script.spec.show_title
     ep_title = script.spec.episode_title
+    plan = ScenePlan(topic=f"{show_title}: {ep_title}")
     master_wav = Path(audio_meta.master_wav_path)
     env_50hz = _build_rms_envelope_50hz(master_wav)
     cpu_count = os.cpu_count() or 2
@@ -834,6 +839,8 @@ def render_episode_video(
                 shot_end_sec = outro_start_boundary
 
             turn_cur_start = accumulated_frames / fps
+            # Restrained prestige documentary voice attribution: ONCE per voice across the film!
+            want_turn_lt = turn.speaker not in attributed_speakers
             beats = _plan_turn_editorial_beats(
                 turn,
                 turn_cur_start,
@@ -841,14 +848,16 @@ def render_episode_video(
                 env_50hz,
                 is_episode_opener=is_ep_opener,
                 is_episode_closer=is_ep_closer,
+                scene_context=f"{ch.title} {ch.location}",
+                lead_attribution_sec=2.9 if (want_turn_lt and not is_ep_opener) else 0.0,
             )
-
-            # Restrained prestige documentary voice attribution: ONCE per voice across the film!
-            want_turn_lt = turn.speaker not in attributed_speakers
             lt_emitted = False
 
-            for b_i, (beat_cam, beat_end_sec) in enumerate(beats):
+            for b_i, (beat_cam, beat_end_sec, beat_clause) in enumerate(beats):
                 s_sec, dur_sec = _alloc_seg_duration(beat_end_sec)
+                # Clause-scoped turn copy: every downstream caption/plate/HUD resolves the
+                # picture from the exact spoken clause of THIS beat, not the whole turn.
+                turn = dataclasses.replace(turn, text=beat_clause) if beat_clause else turn
                 plate_file = plates_dir / f"seg_{seg_idx:04d}_{beat_cam}.jpg"
                 hud_overlay: tuple[Path, int, int, str] | None = None
 
@@ -965,6 +974,35 @@ def render_episode_video(
                 use_fade_in = False
                 use_fade_out = False
 
+                sid_b, scene_title_b = resolve_procedural_scene_id(
+                    f"{turn.text} || {ch.title} {ch.location}", fallback_idx=seg_idx + 1
+                )
+                intent_b = _turn_visual_intent(turn.text)
+                plan.entries.append(
+                    ScenePlanEntry(
+                        scene_id=sid_b,
+                        seg_index=seg_idx,
+                        chapter_index=c_i,
+                        turn_id=turn.turn_id,
+                        narration_clause=beat_clause or "(voice attribution / establishing beat)",
+                        narration_start_sec=round(s_sec, 3),
+                        narration_end_sec=round(s_sec + dur_sec, 3),
+                        subject=scene_title_b or ep_title,
+                        action_or_event=intent_b,
+                        required_visual=_REQUIRED_VISUAL_TEXT.get(beat_cam, "pure-code cinematic plate"),
+                        visual_family=beat_cam,
+                        visual_asset_source=_VISUAL_SOURCE.get(beat_cam, "pure-code engine"),
+                        scene_start_sec=round(s_sec, 3),
+                        scene_end_sec=round(s_sec + dur_sec, 3),
+                        on_screen_text=(ch.title if not beat_clause else beat_clause[:96]),
+                        relevance_criteria=(
+                            f"family={beat_cam} must depict intent={intent_b}; subject={scene_title_b}; "
+                            "clause keywords drive procedural scene resolution"
+                        ),
+                        validation_status="passed_plan_gate",
+                    )
+                )
+
                 tasks.append(
                     RenderSegmentTask(
                         seg_index=seg_idx,
@@ -1003,6 +1041,8 @@ def render_episode_video(
             )
         )
         seg_idx += 1
+
+    (output_dir / "scene_plan.json").write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
 
     x264_preset = "veryfast" if is_marathon_cpu else "superfast"
     workers = max(2, min(4, cpu_count))

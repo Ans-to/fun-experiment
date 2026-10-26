@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from voxforge.audit.audio_qa import audit_and_improve_audio
+from voxforge.audit.av_sync_qa import audit_av_sync
 from voxforge.audit.deliverable_qa import inspect_final_deliverable, write_audit_reports
 from voxforge.audit.editorial import audit_and_improve_script
 from voxforge.audit.visual_qa import audit_and_improve_visuals
@@ -127,7 +128,16 @@ def run_podcast_pipeline(
         notify("AUDIT_D", "Inspecting muxed MP4 streams, A/V sync, decoded frames & chapter markers...")
         stage_d = inspect_final_deliverable(video_mp4, srt_path, vtt_path, script, audio_meta)
 
-        stages = [stage_a, stage_b, stage_c, stage_d]
+        # 6. Stage E Narration↔Visual Semantic Sync Gate (final rendered-video frame audit)
+        notify("AUDIT_E", "Semantic sync gate: inspecting decoded frames vs the narration scene plan...")
+        stage_e = audit_av_sync(video_mp4, episode_dir / "scene_plan.json", srt_path, script, audio_meta)
+        notify(
+            "AUDIT_E",
+            f"Narration↔Visual Sync Gate: {stage_e.final_score:.1f}/100 | Passed={stage_e.passed} "
+            f"({len(stage_e.checks)} checks — semantic scene match, drift, black/frozen, captions).",
+        )
+
+        stages = [stage_a, stage_b, stage_c, stage_d, stage_e]
         overall_init = round(sum(s.initial_score for s in stages) / len(stages), 1)
         overall_final = round(sum(s.final_score for s in stages) / len(stages), 1)
         certified = all(s.passed for s in stages) and overall_final >= 90.0

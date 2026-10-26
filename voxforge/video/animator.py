@@ -764,7 +764,7 @@ class StudioCharacterAnimator:
             u = 0.72 * p + 0.28 * (0.5 - 0.5 * math.cos(math.pi * p))
             time_s = seg_seed * 1.9 + i / 24.0
             if use_physics_sim:
-                rgb = self._physics_sim.render_simulation_frame(sid, u, time_s, self.w, self.h)
+                rgb = self._physics_sim.render_simulation_frame(sid, u, time_s, self.w, self.h, hint=full_hint)
             else:
                 rgb = self._cad_lidar.render_cad_frame(sid, u, time_s, self.w, self.h)
             yield self._finish_cinema_frame(rgb, i, letterbox=True)
