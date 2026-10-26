@@ -174,7 +174,7 @@
           "name": "Optical Sharpness & Detail (Laplacian Variance)",
           "passed": true,
           "score": 100.0,
-          "measured_value": "6/6 sharp (min var=396.6)",
+          "measured_value": "6/6 sharp (min var=402.6)",
           "target_spec": "Laplacian variance >= 32.0",
           "notes": ""
         },
@@ -240,7 +240,7 @@
           "name": "Decoded Frame Integrity & Live Motion Telemetry",
           "passed": true,
           "score": 100.0,
-          "measured_value": "4 checkpoints decoded, min Y=29.2, motion delta=7.604",
+          "measured_value": "4 checkpoints decoded, min Y=60.2, motion delta=7.544",
           "target_spec": "Zero black frames (Y > 8.0) & active motion (> 0.02)",
           "notes": ""
         },
@@ -267,7 +267,7 @@
           "name": "24fps Documentary Parallax, Cartography & Telemetry Liveness",
           "passed": true,
           "score": 100.0,
-          "measured_value": "p75 frame step min=1.65, mean=3.31 across 4 acts",
+          "measured_value": "p75 frame step min=3.21, mean=4.81 across 4 acts",
           "target_spec": "Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames)",
           "notes": ""
         }

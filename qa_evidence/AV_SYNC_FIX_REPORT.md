@@ -58,16 +58,31 @@ claim below is backed by a workspace artifact.
 |---|---|---|
 | Narration→visual binding | implicit, turn-level only | explicit per clause in `scene_plan.json` |
 | Final-video semantic audit | none (unmeasurable) | Stage E, 5 decoded frames/scene |
-| Semantic mismatches, 10-niche × 90 s | unmeasured (gate absent) | **0 across 191 planned scenes (191/191 validated)** |
+| Semantic mismatches, 10-niche × 90 s | unmeasured (gate absent) | **0 across 195 planned scenes (195/195 validated)** |
 | A/V duration drift | unmeasured at gate level | 0.000 s in all 10 films |
 | Black/frozen scenes | unmeasured | 0 / 0 in all 10 films |
 | Caption-presence spot-check | unmeasured | 6/6 per film |
 | Gate demonstration | — | first calibration run on the 90 s e2e film flagged 11/19 scenes (classifier calibration), then 19/19 after measured recalibration; gate has blocked certification on every genuinely failing input since |
 
-## 4. 10-niche certification matrix (results table appended at run completion)
+## 4. 10-niche certification matrix (final, all re-runs applied)
 
-See `qa_evidence/niche_matrix_results.json` + per-niche `*_sheet.jpg` frame-inspection evidence
-and `*_scene_plan.json` / `*_audit_report.json`.
+| Niche | Command topic | Certified | Overall | Stage A | Stage E | Scenes validated | Mismatches | Drift (s) |
+|---|---|---|---|---|---|---|---|---|
+| science education | how volcanoes erupt and reshape the planet | PASS | 98.7 | 94.9 | 100.0 | 18/18 | 0 | 0.0 |
+| tech ai | the rise of artificial intelligence | PASS | 97.7 | 89.2 | 100.0 | 19/19 | 0 | 0.0 |
+| history | the silk road trade networks of antiquity | PASS | 97.8 | 92.2 | 100.0 | 21/21 | 0 | 0.0 |
+| business finance | the history of money and banking | PASS | 98.1 | 93.8 | 100.0 | 21/21 | 0 | 0.0 |
+| health | how the human heart works | PASS | 97.5 | 89.5 | 100.0 | 18/18 | 0 | 0.0 |
+| travel geography | the nile river and ancient egypt | PASS | 98.1 | 93.8 | 100.0 | 21/21 | 0 | 0.0 |
+| cooking | the science of baking bread | PASS | 97.5 | 89.2 | 100.0 | 19/19 | 0 | 0.0 |
+| wildlife nature | the great whale migrations | PASS | 97.5 | 89.0 | 100.0 | 18/18 | 0 | 0.0 |
+| documentary storytelling | the lost libraries of the ancient world | PASS | 97.8 | 92.2 | 100.0 | 21/21 | 0 | 0.0 |
+| motivational | stoic philosophy for modern life | PASS | 97.7 | 89.5 | 100.0 | 19/19 | 0 | 0.0 |
+
+Totals: **10/10 certified**, Stage E 100.0 everywhere, **195/195 planned scenes validated**
+against decoded frames, **0 semantic mismatches**, **0.000 s A/V drift**, 0 black, 0 frozen.
+Per-niche artifacts: `qa_evidence/<niche>_sheet.jpg` (decoded-frame inspection),
+`<niche>_scene_plan.json` (per-scene verdicts), `<niche>_audit_report.json`.
 
 ## 5. Limitations (honest)
 
