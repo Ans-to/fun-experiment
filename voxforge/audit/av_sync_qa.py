@@ -27,6 +27,7 @@ import json
 from pathlib import Path
 
 import av
+import cv2
 import numpy as np
 
 from voxforge.models import AudioMasterMeta, EpisodeScript, StageAudit, AuditCheck
@@ -156,6 +157,7 @@ def audit_av_sync(
     checks: list[AuditCheck] = []
     improvements: list[str] = []
     mismatches = 0
+    uncertain = 0
     penalties = 0.0
 
     if not scene_plan_json.exists():
@@ -230,9 +232,29 @@ def audit_av_sync(
                 e["validation_note"] = f"frames={','.join(groups)} expected={sorted(expected)}"
                 validated += 1
             else:
-                mismatches += 1
-                e["validation_status"] = "failed:semantic_mismatch"
                 e["validation_note"] = f"frames={','.join(groups)} expected={sorted(expected)}"
+                if hit == 0:
+                    mismatches += 1
+                    e["validation_status"] = "failed:semantic_mismatch"
+                else:
+                    # Uncertain (partial agreement, no majority): never silently accept or
+                    # silently fail — queue the decoded probe frames for human review and
+                    # block auto-certification until a human clears the queue.
+                    uncertain += 1
+                    e["validation_status"] = "needs_human_review"
+                    review_dir = scene_plan_json.parent / "human_review"
+                    review_dir.mkdir(parents=True, exist_ok=True)
+                    for k_r, pt_r in enumerate(probes):
+                        fr_r = prober.frame_at(min(max(pt_r, 0.05), max(0.1, prober.duration_sec - 0.05)))
+                        if fr_r is not None:
+                            cv2.imwrite(
+                                str(review_dir / f"seg{int(e.get('seg_index', 0)):04d}_p{k_r}.jpg"),
+                                fr_r,
+                                [cv2.IMWRITE_JPEG_QUALITY, 85],
+                            )
+                    e["validation_note"] += (
+                        f" | probe frames dumped to human_review/seg{int(e.get('seg_index', 0)):04d}_p*.jpg"
+                    )
             if lums and max(lums) < 8.0:
                 black_hits += 1
                 e["validation_status"] = "failed:black_scene"
@@ -248,6 +270,11 @@ def audit_av_sync(
         ))
         checks.append(_chk("black_scenes", "No black scenes", black_hits == 0, 100.0 if black_hits == 0 else 0.0, str(black_hits), "0"))
         checks.append(_chk("frozen_scenes", "No frozen scenes", frozen_hits == 0, 100.0 if frozen_hits == 0 else 0.0, str(frozen_hits), "0"))
+        checks.append(_chk(
+            "human_review_queue", "No scenes awaiting human review", uncertain == 0,
+            100.0 if uncertain == 0 else 0.0, str(uncertain), "0",
+            "Uncertain scenes dump decoded probe frames into human_review/ for manual clearance.",
+        ))
         penalties += 4.0 * black_hits + 4.0 * frozen_hits
 
         # --- Caption accuracy spot-check against real decoded frames ---
@@ -280,11 +307,16 @@ def audit_av_sync(
     finally:
         prober.close()
 
-    final_score = round(max(0.0, 100.0 - penalties - (6.0 * mismatches)), 1)
-    passed = mismatches == 0 and final_score >= 90.0
+    final_score = round(max(0.0, 100.0 - penalties - (6.0 * mismatches) - (3.0 * uncertain)), 1)
+    passed = mismatches == 0 and uncertain == 0 and final_score >= 90.0
     improvements.append(f"Validated {len(entries)} scene-plan entries against decoded final-render frames.")
     if mismatches:
         improvements.append(f"FLAGGED {mismatches} narration↔visual semantic mismatches (certification blocked).")
+    if uncertain:
+        improvements.append(
+            f"Queued {uncertain} uncertain scene(s) for HUMAN review (probe frames in human_review/); "
+            "auto-certification blocked until cleared."
+        )
 
     # Write per-scene validation verdicts back into the authoritative plan file.
     plan["scenes"] = entries
@@ -292,6 +324,7 @@ def audit_av_sync(
         "score": final_score,
         "passed": passed,
         "mismatches": mismatches,
+        "human_review_queue": uncertain,
         "black_scenes": black_hits,
         "frozen_scenes": frozen_hits,
         "av_drift_sec": round(drift, 3),

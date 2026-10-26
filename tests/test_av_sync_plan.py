@@ -140,3 +140,48 @@ def test_generic_explanatory_simulation_renders() -> None:
     )
     assert frame.shape == (360, 640, 3)
     assert float(frame.mean()) > 5.0  # not a black frame; glyphs/panels drawn
+
+
+def test_stage_e_human_review_queue_on_uncertain_scene(tmp_path) -> None:
+    import json
+    from types import SimpleNamespace
+
+    import cv2
+
+    from voxforge.audit.av_sync_qa import audit_av_sync
+
+    mp4 = tmp_path / "film.mp4"
+    vw = cv2.VideoWriter(str(mp4), cv2.VideoWriter_fourcc(*"mp4v"), 24, (320, 176))
+    globe = np.zeros((176, 320, 3), np.uint8)
+    globe[38:138, 110:210] = (180, 90, 30)
+    hud = np.full((176, 320, 3), 18, np.uint8)
+    hud[30:150:7, 20:300] = (240, 180, 60)
+    for i in range(240):  # 4s globe then 6s HUD: partial agreement with a geo plan entry
+        vw.write(globe if i < 96 else hud)
+    vw.release()
+
+    plan = {
+        "topic": "synthetic",
+        "scenes": [
+            {
+                "scene_id": 0, "seg_index": 0, "chapter_index": 0, "turn_id": 1,
+                "narration_clause": "synthetic uncertain scene",
+                "narration_start_sec": 0.0, "narration_end_sec": 10.0,
+                "subject": "synthetic", "action_or_event": "geo",
+                "required_visual": "globe", "visual_family": "wide_studio",
+                "visual_asset_source": "test", "scene_start_sec": 0.0, "scene_end_sec": 10.0,
+                "on_screen_text": "", "relevance_criteria": "", "validation_status": "pending",
+            }
+        ],
+    }
+    plan_path = tmp_path / "scene_plan.json"
+    plan_path.write_text(json.dumps(plan), encoding="utf-8")
+    script = SimpleNamespace(all_turns=[])
+    audio = SimpleNamespace(duration_sec=10.0)
+    stage = audit_av_sync(mp4, plan_path, tmp_path / "c.srt", script, audio)
+    out_plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    assert out_plan["scenes"][0]["validation_status"] == "needs_human_review"
+    assert out_plan["stage_e"]["human_review_queue"] == 1
+    assert stage.passed is False
+    frames = sorted((tmp_path / "human_review").glob("seg0000_p*.jpg"))
+    assert len(frames) >= 3

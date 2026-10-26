@@ -147,3 +147,19 @@ verdict identical (blue LiDAR turntables remain `darkhud`, rotunda/monument ston
 `monument`, globes still satisfy the landmass/coherence gate). As a stability spot-check, niche
 `07_cooking` was fully re-rendered and re-audited under the FINAL classifier: see
 `qa_evidence/niche_matrix_results.json` (entry refreshed) and `qa_evidence/07_cooking_sheet.jpg`.
+
+## 9. Human-review queue for uncertain final-render evidence
+
+Stage E now distinguishes a clear mismatch (zero expected-family hits across core probes;
+`failed:semantic_mismatch`) from partial evidence (some expected-family hits, but less than a
+majority; `needs_human_review`). Uncertain scenes block certification, incur a conservative score
+penalty, and dump the decoded probe frames under `<episode>/human_review/segNNNN_p*.jpg` with a
+`human_review_queue` count/check in `audit_report.json` and `scene_plan.json`. The audit does not
+turn uncertainty into a pass. Clear semantic mismatches continue to fail directly rather than
+being softened into a review state. Regression coverage synthesizes a mixed globe/HUD scene and
+asserts the queue, failed certification, and probe-frame output. Reviewers inspect the provided
+frames together with the clause and required-visual fields in `scene_plan.json`; automated
+certification remains blocked pending an engineering correction and re-audit (there is not yet an
+in-band approval override, intentionally avoiding a human checkbox that could bypass the gate).
+
+Repro: `.venv/bin/python -m pytest -q tests/test_av_sync_plan.py`.

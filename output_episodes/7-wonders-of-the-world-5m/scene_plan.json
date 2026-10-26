@@ -1346,6 +1346,7 @@
     "score": 100.0,
     "passed": true,
     "mismatches": 0,
+    "human_review_queue": 0,
     "black_scenes": 0,
     "frozen_scenes": 0,
     "av_drift_sec": 0.0
