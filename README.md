@@ -48,6 +48,43 @@ Every frame across the film is generated algorithmically in code via `@numba.nji
 
 ---
 
+## Stage A Editorial Certification Matrix (offline-runnable, 10/10)
+
+The film-level matrix above needs network access for the neural TTS voices. The **editorial**
+half of the pipeline is dependency-free, so it has its own reproducible certification matrix
+that runs anywhere (`qa_evidence/stage_a_matrix.md` + `.json` are the evidence sheets):
+
+```bash
+.venv/bin/python tools/run_stage_a_matrix.py                  # all 10 niches (~22 s)
+.venv/bin/python tools/run_stage_a_matrix.py --only 03_history,07_cooking
+```
+
+Current verdict: **10/10 niches certified**, healing **88.0–90.7 → 94.9–100.0**, with every
+one of the six editorial checks (E1 word budget, E2 lexical freshness, E3 cliché purity,
+E4 host balance, E5 cutaway rhythm, E6 spoken-ear orality) passing.
+
+### Word-weighted host balancing (E4)
+
+E4 measures each host's share of **spoken words** (36%–64%), not their share of turns.
+Balancing by turn count alone left Host A holding ~67% of the word budget on 9 of 10 niches,
+because the longest analytical turns all landed on the opening speaker. Stage A now keeps the
+conversational A/B alternation and then swaps speaker labels on the minimum set of turn pairs
+whose word-count difference cancels the remaining imbalance (never creating a same-speaker run
+of three, never touching a scripted self-introduction), healing every niche to 44%–56%.
+`tests/test_editorial_audit.py::test_host_speaker_balance_is_word_weighted_not_turn_weighted`
+locks this in — it fails at 68.1% against the previous implementation.
+
+### Bounded offline corpus (known limit)
+
+With no LLM attached the showrunner writes from a **finite** corpus, and E2 forbids repeating
+6-grams, so an arbitrary topic cannot be stretched to an arbitrary runtime — a 1-hour request
+for an unpacked topic heals to ~1.4k of 7.2k words. The pipeline now emits an explicit warning
+(`[WARNING] Offline corpus exhausted: …`) instead of quietly shipping a film 20–80% short.
+Attach a local LLM (Ollama or a GGUF model) for unlimited rewriting, or stay within the
+duration the corpus supports. Curated packs (7 Wonders) legitimately fill an hour.
+
+---
+
 ## Quick Start
 
 ```bash

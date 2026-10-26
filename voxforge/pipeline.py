@@ -80,6 +80,21 @@ def run_podcast_pipeline(
             f"({script.total_words} words, {len(script.all_turns)} narration segments).",
         )
 
+        # Bounded-corpus guard: the offline fallback showrunner can only say so much about any
+        # one topic before it must repeat itself (which Stage A / E2 forbids). Rather than
+        # silently deliver a film 20-80% shorter than requested, report the shortfall up front.
+        if env.llm_backend == "corpus_showrunner" and script.total_words < spec.target_word_count * 0.85:
+            supported_min = script.total_words / max(1.0, spec.words_per_minute)
+            requested_min = spec.target_duration_sec / 60.0
+            notify(
+                "WARNING",
+                f"Offline corpus exhausted: healed script holds {script.total_words} of "
+                f"{spec.target_word_count} target words, so this film will run ~{supported_min:.0f} min "
+                f"instead of {requested_min:.0f} min (Stage A E1 will record the shortfall). Fix: connect a "
+                f"local LLM (Ollama / GGUF) for unlimited rewriting, or request <= {int(supported_min)} min "
+                f"for '{spec.topic}'.",
+            )
+
         # 3. Neural Voice Synthesis, Score & Stage B Broadcast Audio Audit + Mastering Loop
         notify(
             "AUDIO",

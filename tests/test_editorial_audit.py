@@ -1,5 +1,6 @@
 """Editorial QA, 1-hour script scaling, and TTS pronunciation normalization tests."""
 
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -107,3 +108,65 @@ def test_one_hour_script_creation_and_editorial_audit(tmp_path: Path) -> None:
     assert "without further ado" not in joined
     # Zero turns exceeding 64 words
     assert all(t.word_count <= 64 for t in improved.all_turns)
+
+
+def _offline_env() -> StudioEnvironment:
+    return StudioEnvironment(
+        ffmpeg_bin="ffmpeg",
+        tts_backend="piper",
+        kokoro_model_path=None,
+        kokoro_voices_path=None,
+        piper_male_onnx=None,
+        piper_female_onnx=None,
+        llm_backend="corpus_showrunner",
+        llm_model_id_or_path="voxforge-v1",
+    )
+
+
+def test_host_speaker_balance_is_word_weighted_not_turn_weighted(tmp_path: Path) -> None:
+    """Regression: alternating turns left Host A with ~67% of spoken words on 9/10 niches.
+
+    Turn-by-turn alternation balances *turn count*, but E4 measures *word* share, so scripts
+    whose long analytical turns all landed on Host A failed the 36%-64% band even after healing.
+    """
+    for topic in (
+        "the silk road trade networks of antiquity",
+        "the rise of artificial intelligence",
+        "the science of baking bread",
+    ):
+        spec = parse_command_to_spec(f"build a 90 second documentary on {topic}")
+        dossier = build_research_dossier(spec, tmp_path / topic.replace(" ", "_"))
+        script, audit = audit_and_improve_script(generate_episode_script(spec, dossier, _offline_env()), dossier)
+
+        e4 = next(c for c in audit.checks if c.check_id == "E4")
+        ratio_a = sum(t.word_count for t in script.all_turns if t.speaker == "HOST_A") / script.total_words
+        assert 0.36 <= ratio_a <= 0.64, f"{topic}: Host A holds {ratio_a * 100:.1f}% of words"
+        assert e4.passed, f"{topic}: E4 failed -> {e4.measured_value}"
+        assert audit.passed, f"{topic}: Stage A failed at {audit.final_score}"
+
+
+def test_offline_corpus_shortfall_is_measured_not_guessed() -> None:
+    """Long arbitrary topics exceed the offline corpus; the shortfall must be detectable.
+
+    The pipeline warns off the *healed* script rather than an a-priori estimate, because the
+    estimated capacity is not knowable up front (the 7 Wonders pack legitimately fills an hour).
+    """
+    short_spec = parse_command_to_spec("build a 90 second documentary on the history of money and banking")
+    hour_spec = parse_command_to_spec("build a 1 hour documentary on the history of money and banking")
+    with tempfile.TemporaryDirectory() as td:
+        short_dossier = build_research_dossier(short_spec, Path(td) / "short")
+        short_script, _ = audit_and_improve_script(
+            generate_episode_script(short_spec, short_dossier, _offline_env()), short_dossier
+        )
+        hour_dossier = build_research_dossier(hour_spec, Path(td) / "hour")
+        hour_script, hour_audit = audit_and_improve_script(
+            generate_episode_script(hour_spec, hour_dossier, _offline_env()), hour_dossier
+        )
+
+    # A 90-second brief fits the offline corpus comfortably (no warning fires).
+    assert short_script.total_words >= short_spec.target_word_count * 0.85
+    # A one-hour arbitrary topic does not: the healed script is far under budget, so the
+    # pipeline emits its offline-corpus warning instead of shipping a silently short film.
+    assert hour_script.total_words < hour_spec.target_word_count * 0.85
+    e1 = next(c for c in hour_audit.checks if c.check_id == "E1")
+    assert not e1.passed

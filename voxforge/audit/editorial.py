@@ -178,6 +178,122 @@ def _build_non_overlapping_expansion_pool(st: SubTopicDossier, act_idx: int) -> 
     return lines
 
 
+_INTRO_ANCHORS: tuple[tuple[str, str], ...] = (
+    ("I am Alex Vance", "HOST_A"),
+    ("I'm Alex Vance", "HOST_A"),
+    ("I am Dr. Maya Lin", "HOST_B"),
+    ("I'm Dr. Maya Lin", "HOST_B"),
+    ("I'm Maya Lin", "HOST_B"),
+)
+
+# E4 spec is a 36%-64% word split; healing targets a tighter band so later rewrites cannot
+# drift the healed script back outside the certified window.
+_HOST_RATIO_TARGET = (0.44, 0.56)
+
+
+def _intro_anchor(text: str) -> str | None:
+    """Return the speaker a self-introduction sentence pins, if any."""
+    for phrase, speaker in _INTRO_ANCHORS:
+        if phrase in text:
+            return speaker
+    return None
+
+
+def _host_word_split(turns: list[DialogueTurn]) -> tuple[int, int]:
+    a = sum(t.word_count for t in turns if t.speaker == "HOST_A")
+    b = sum(t.word_count for t in turns if t.speaker == "HOST_B")
+    return a, b
+
+
+def _alternate_speakers(turns: list[DialogueTurn]) -> None:
+    """Strict A/B turn-by-turn alternation, honouring explicit host self-introductions."""
+    desired = "HOST_A"
+    for t in turns:
+        anchor = _intro_anchor(t.text)
+        if anchor is not None:
+            t.speaker = anchor  # type: ignore[assignment]
+            desired = "HOST_B" if anchor == "HOST_A" else "HOST_A"
+        else:
+            t.speaker = desired  # type: ignore[assignment]
+            desired = "HOST_B" if desired == "HOST_A" else "HOST_A"
+
+
+def _swap_breaks_runs(spk: list[str], i: int, j: int) -> bool:
+    """True if swapping positions i and j would create a same-speaker run of 3+."""
+    spk = list(spk)
+    spk[i], spk[j] = spk[j], spk[i]
+    n = len(spk)
+    for centre in (i, j):
+        for start in range(max(0, centre - 2), min(centre, n - 3) + 1):
+            if spk[start] == spk[start + 1] == spk[start + 2]:
+                return True
+    return False
+
+
+def rebalance_host_weight(turns: list[DialogueTurn]) -> int:
+    """Word-weighted host balance healing (Stage A / E4).
+
+    Alternating turns alone does not balance *spoken* load: long analytical turns are the ones
+    the corpus showrunner assigns to the opening speaker, which drifts Host A to ~67% of the
+    word budget and fails the 36%-64% E4 band. Here we keep the conversational A/B alternation
+    and then swap speaker labels on the minimal set of turn pairs whose word-count difference
+    cancels the remaining imbalance, without introducing same-speaker runs of three.
+    """
+    if len(turns) < 3:
+        return 0
+
+    _alternate_speakers(turns)
+    spk = [t.speaker for t in turns]
+    words = [t.word_count for t in turns]
+    protected = {idx for idx, t in enumerate(turns) if _intro_anchor(t.text) is not None}
+
+    a_i = [i for i, s in enumerate(spk) if s == "HOST_A"]
+    b_i = [i for i, s in enumerate(spk) if s == "HOST_B" and i not in protected]
+    a_i_free = [i for i in a_i if i not in protected]
+    if not a_i_free or not b_i:
+        return 0
+
+    a_w, b_w = _host_word_split(turns)
+    total = max(1, a_w + b_w)
+    swaps = 0
+
+    while swaps < len(turns):
+        ratio = a_w / total
+        if _HOST_RATIO_TARGET[0] <= ratio <= _HOST_RATIO_TARGET[1]:
+            break
+
+        diff = a_w - b_w
+        best: tuple[int, int, int] | None = None  # (|new diff|, i, j)
+        for i in a_i_free:
+            for j in b_i:
+                delta = 2 * (words[j] - words[i])
+                new_diff = abs(diff + delta)
+                if new_diff >= abs(diff):
+                    continue
+                if best is not None and new_diff >= best[0]:
+                    continue
+                if _swap_breaks_runs(spk, i, j):
+                    continue
+                best = (new_diff, i, j)
+
+        if best is None:
+            break
+
+        _, i, j = best
+        spk[i], spk[j] = spk[j], spk[i]
+        turns[i].speaker = spk[i]  # type: ignore[assignment]
+        turns[j].speaker = spk[j]  # type: ignore[assignment]
+        a_w, b_w = _host_word_split(turns)
+        # Keep candidate pools consistent with the new label assignment.
+        a_i_free = [k for k, s in enumerate(spk) if s == "HOST_A" and k not in protected]
+        b_i = [k for k, s in enumerate(spk) if s == "HOST_B" and k not in protected]
+        if not a_i_free or not b_i:
+            break
+        swaps += 1
+
+    return swaps
+
+
 def _renumber_turns(script: EpisodeScript) -> None:
     tid = 1
     for ch in script.chapters:
@@ -410,24 +526,20 @@ def audit_and_improve_script(
             if trimmed_w > 0:
                 improvements.append(f"Tightened pacing by trimming -{trimmed_w} surplus words to lock runtime.")
 
-        # 5. Enforce balanced Host A / Host B dialogue split (target ~50/50)
+        # 5. Enforce balanced Host A / Host B spoken-word split (E4: 36%-64%, healed to ~50/50)
         turns = script.all_turns
-        total_now = max(1, script.total_words)
-        ratio_a = sum(t.word_count for t in turns if t.speaker == "HOST_A") / total_now
-        if ratio_a > 0.62 or ratio_a < 0.38:
-            # Re-alternate speakers cleanly while protecting explicit self-introductions
-            desired: str = "HOST_A"
-            for t in turns:
-                if "I am Alex Vance" in t.text or "I'm Alex Vance" in t.text:
-                    t.speaker = "HOST_A"
-                    desired = "HOST_B"
-                elif "I am Dr. Maya Lin" in t.text or "I'm Dr. Maya Lin" in t.text or "I'm Maya Lin" in t.text:
-                    t.speaker = "HOST_B"
-                    desired = "HOST_A"
-                else:
-                    t.speaker = desired  # type: ignore[assignment]
-                    desired = "HOST_B" if desired == "HOST_A" else "HOST_A"
-            improvements.append("Harmonized conversational alternation between Alex Vance and Dr. Maya Lin.")
+        a_words, b_words = _host_word_split(turns)
+        ratio_a = a_words / max(1, a_words + b_words)
+        # Heal toward the tighter target band (not merely the 36%-64% spec) so a later
+        # rewrite iteration cannot drift the split back across the certification boundary.
+        if not (_HOST_RATIO_TARGET[0] <= ratio_a <= _HOST_RATIO_TARGET[1]):
+            swaps = rebalance_host_weight(turns)
+            a_words, b_words = _host_word_split(turns)
+            ratio_after = a_words / max(1, a_words + b_words)
+            improvements.append(
+                f"Harmonized conversational alternation between Alex Vance and Dr. Maya Lin "
+                f"(spoken split {ratio_a * 100:.1f}% -> {ratio_after * 100:.1f}% across {swaps} turn re-assignments)."
+            )
 
         # 6. Re-choreograph multicam switching & renumber
         assign_multicam_choreography(script.chapters, dossier.subtopics)
