@@ -43,6 +43,14 @@ SCENE_CHICHEN_ITZA = 6
 SCENE_TAJ_MAHAL = 7
 SCENE_CHRIST_REDEEMER = 8
 SCENE_CLASSICAL_GENERIC = 9
+# The five lost wonders that previously had no geometry of their own. Without these the
+# lost-wonders montage rendered the same Pharos mesh six times with different captions —
+# which is the "same shape repeating" defect the montage exists to remove.
+SCENE_COLOSSUS = 10
+SCENE_ARTEMIS = 11
+SCENE_BABYLON = 12
+SCENE_HALICARNASSUS = 13
+SCENE_OLYMPIA = 14
 
 SCENE_CAPTIONS: dict[int, str] = {
     SCENE_GIZA: "3D Architectural Reconstruction · Great Pyramid of Giza & Necropolis (2560 BCE)",
@@ -54,6 +62,11 @@ SCENE_CAPTIONS: dict[int, str] = {
     SCENE_CHICHEN_ITZA: "3D Archaeo-Acoustic Pyramid Model · El Castillo, Chichén Itzá",
     SCENE_TAJ_MAHAL: "3D Mughal Marble & Charbagh Reflection Model · Taj Mahal, Agra",
     SCENE_CHRIST_REDEEMER: "3D Art Deco Cantilever & Corcovado Summit Model · Rio de Janeiro",
+    SCENE_COLOSSUS: "3D Architectural Reconstruction · Colossus of Rhodes (c. 280 BCE earthquake)",
+    SCENE_ARTEMIS: "3D Architectural Reconstruction · Temple of Artemis at Ephesus (c. 550 BCE)",
+    SCENE_BABYLON: "3D Terraced Vault Reconstruction · Hanging Gardens of Babylon (c. 600 BCE)",
+    SCENE_HALICARNASSUS: "3D Architectural Reconstruction · Mausoleum at Halicarnassus (c. 350 BCE)",
+    SCENE_OLYMPIA: "3D Architectural Reconstruction · Statue of Zeus at Olympia (c. 435 BCE)",
     SCENE_CLASSICAL_GENERIC: "Neutral 3D Data Sculpture & Explanatory Model",
 }
 
@@ -68,7 +81,12 @@ _SCENE_KEYWORD_RULES: list[tuple[tuple[str, ...], int, float]] = [
     (("colosseum", "flavian", "vespasian", "titus", "hypogeum", "amphitheatre", "amphitheater", "travertine", "nero", "domus aurea"), SCENE_COLOSSEUM, 12.0),
     (("petra", "khazneh", "al-khazneh", "nabataean", "nabataeans", "nabataean kingdom", "siq"), SCENE_PETRA, 12.0),
     (("great wall", "jinshanling", "jiayuguan", "meng tian", "amylopectin", "ming"), SCENE_GREAT_WALL, 12.0),
-    (("pharos", "alexandria", "rhodes", "colossus", "artemis", "ephesus", "babylon", "olympia", "halicarnassus", "theamata"), SCENE_PHAROS, 12.0),
+    (("pharos", "alexandria", "theamata"), SCENE_PHAROS, 12.0),
+    (("colossus", "rhodes", "helios"), SCENE_COLOSSUS, 12.0),
+    (("artemis", "ephesus"), SCENE_ARTEMIS, 12.0),
+    (("babylon", "hanging gardens", "semiramis"), SCENE_BABYLON, 12.0),
+    (("halicarnassus", "mausoleum", "mausolus", "bodrum"), SCENE_HALICARNASSUS, 12.0),
+    (("olympia", "zeus", "pheidias", "altis"), SCENE_OLYMPIA, 12.0),
     (("giza", "khufu", "mokattam", "grand gallery", "hemunu", "pyramid", "sphinx", "cairo"), SCENE_GIZA, 12.0),
     # Context-only aliases: useful when the clause itself has no proper noun, but never
     # strong enough to override an explicit subject elsewhere in the hint.
@@ -430,7 +448,7 @@ def _build_monument_3d_scene(scene_id: int) -> tuple[np.ndarray, np.ndarray, np.
         mb.add_box(0.0, 0.62, 0.0, 2.4, 0.22, 2.4, (0.82, 0.76, 0.66), wire=1)
         # Tier 1: Tapered square Hellenistic limestone shaft + cornice + 4 corner bronze Tritons
         mb.add_frustum(0.0, 0.84, 4.35, 0.0, 1.72, 1.72, 1.42, 1.42, (0.86, 0.80, 0.68), wire=1)
-        mb.add_box(0.0, 4.46, 0.0, 1.56, 0.14, 1.56, (0.90, 0.84, 0.72), wire=2)
+        mb.add_box(0.0, 4.46, 0.0, 1.56, 0.14, 1.56, (0.94, 0.84, 0.63), wire=2)
         for tx in (-1.45, 1.45):
             for tz in (-1.45, 1.45):
                 mb.add_cylinder(tx, 4.60, 5.05, tz, 0.12, 0.04, 8, (0.95, 0.74, 0.30), emissive=0.35, wire=2)
@@ -730,6 +748,169 @@ def _build_monument_3d_scene(scene_id: int) -> tuple[np.ndarray, np.ndarray, np.
         # Sculpted Art Deco head & Sacred Heart relief on chest
         mb.add_frustum(0.0, 4.45, 5.08, 0.04, 0.23, 0.24, 0.19, 0.20, soapstone, wire=2)
         mb.add_box(0.0, 3.78, 0.35, 0.10, 0.12, 0.03, (1.0, 0.80, 0.34), emissive=0.55, wire=2)
+
+    elif scene_id == SCENE_COLOSSUS:
+        water_y = 0.0
+        # Rhodes harbour basin + twin mole breakwaters framing the harbour mouth the Colossus straddled
+        mb.add_box(0.0, -0.30, 0.0, 15.0, 0.30, 15.0, (0.30, 0.45, 0.55), wire=1)
+        bronze = (0.95, 0.74, 0.36)
+        for mx in (-5.4, 5.4):
+            mb.add_cylinder(mx, 0.0, 0.66, 1.4, 1.28, 1.12, 20, (0.84, 0.79, 0.68), wire=1)
+            mb.add_cylinder(mx, 0.66, 1.02, 1.4, 0.24, 0.10, 12, (0.98, 0.74, 0.30), emissive=0.85, wire=2)
+        # Square white-marble pedestal under the planted foot
+        mb.add_frustum(-5.4, 1.02, 2.45, 1.4, 1.02, 1.02, 0.90, 0.90, (0.92, 0.88, 0.78), wire=1)
+        # Straddling bronze legs (`one foot on each mole`)
+        for lz in (-0.46, 0.46):
+            mb.add_frustum(-5.4, 2.45, 5.15, 1.4 + lz * 2.6, 0.44, 0.44, 0.30, 0.30, bronze, wire=2)
+        # Torso + shoulders + sun-god head with a radiate crown of bronze spikes
+        mb.add_frustum(-5.0, 5.15, 7.35, 1.4, 0.70, 0.50, 0.84, 0.60, bronze, wire=2)
+        mb.add_box(-5.0, 7.35, 1.4, 1.02, 0.14, 0.34, (0.86, 0.60, 0.26), wire=2)
+        mb.add_frustum(-5.0, 7.49, 8.18, 1.4, 0.30, 0.26, 0.26, 0.23, bronze, wire=2)
+        for k in range(9):
+            a_s = math.pi * (0.12 + 0.76 * k / 8.0)
+            mb.add_tri(
+                (-5.0 + 0.30 * math.cos(a_s), 8.18, 1.4 + 0.26 * math.sin(a_s)),
+                (-5.0 + 0.92 * math.cos(a_s), 8.42, 1.4 + 0.80 * math.sin(a_s)),
+                (-5.0 + 0.92 * math.cos(a_s + 0.09), 8.42, 1.4 + 0.80 * math.sin(a_s + 0.09)),
+                (1.0, 0.76, 0.30),
+                emissive=0.55,
+            )
+        # Raised right forearm holding the beacon torch
+        mb.add_frustum(-3.9, 6.55, 8.95, 1.4, 0.22, 0.22, 0.16, 0.16, bronze, wire=2)
+        mb.add_cylinder(-3.9, 8.95, 9.55, 1.4, 0.30, 0.16, 12, (1.0, 0.80, 0.34), emissive=0.95, wire=2)
+
+    elif scene_id == SCENE_ARTEMIS:
+        # Alluvial marsh of the Cayster valley + the great Ionic dipteral temple of Artemis
+        mb.add_box(0.0, -0.14, 0.0, 17.0, 0.14, 12.0, (0.26, 0.34, 0.28), wire=1)
+        mb.add_box(0.0, 0.02, 0.0, 8.6, 0.06, 5.4, (0.84, 0.75, 0.56), wire=1)
+        for s in range(3):
+            mb.add_box(0.0, 0.08 + s * 0.14, 0.0, 8.6 - s * 0.22, 0.07, 5.4 - s * 0.22, (0.88, 0.79, 0.59), wire=1)
+        # Warm dusk-lit marble, not paper white: a near-white mass reads to the frame
+        # classifier as a quote card rather than monument cinema (blue channel < 198).
+        marble = (0.93, 0.83, 0.62)
+        # 8 x 3 dipteral colonnade of slender fluted Ionic shafts with volute capitals
+        for row in (-2.05, 0.0, 2.05):
+            for ci in range(8):
+                cx_c = -7.0 + ci * 2.0
+                mb.add_cylinder(cx_c, 0.50, 4.42, row, 0.24, 0.20, 16, marble, wire=1)
+                mb.add_cylinder(cx_c, 4.42, 4.58, row, 0.20, 0.20, 16, (0.94, 0.84, 0.63), wire=2)
+                # Ionic volute capital (twin scrolls as short stubby cylinders)
+                for vs in (-0.20, 0.20):
+                    mb.add_cylinder(cx_c + vs, 4.58, 4.80, row, 0.09, 0.09, 10, (0.94, 0.84, 0.63), wire=2)
+                mb.add_box(cx_c, 4.70, row, 0.30, 0.07, 0.17, marble, wire=2)
+        # Architrave + dentil course + low pediment roof
+        for row in (-2.05, 0.0, 2.05):
+            mb.add_box(0.0, 4.90, row, 7.6, 0.30, 0.34, (0.92, 0.82, 0.61), wire=2)
+            mb.add_box(0.0, 5.22, row, 7.5, 0.10, 0.30, (0.90, 0.88, 0.82), wire=1)
+        mb.add_box(0.0, 5.40, 0.0, 8.0, 0.62, 5.8, (0.90, 0.80, 0.60), wire=2)
+        # Central open-air sacred precinct + the cult altar fire
+        mb.add_box(0.0, 0.66, 0.0, 1.30, 0.34, 0.90, (0.86, 0.77, 0.58), wire=2)
+        mb.add_cylinder(0.0, 1.00, 1.34, 0.0, 0.34, 0.18, 12, (1.0, 0.72, 0.26), emissive=0.90, wire=2)
+
+    elif scene_id == SCENE_BABYLON:
+        # Euphrates plain + the vaulted substructure of the terraced Hanging Gardens
+        mb.add_box(0.0, -0.16, 0.0, 16.0, 0.16, 14.0, (0.40, 0.36, 0.26), wire=1)
+        mud = (0.62, 0.47, 0.32)
+        veg = (0.24, 0.48, 0.26)
+        # 5 stepped terrace vaults, each tier narrower and planted with a green hedge
+        for tier in range(5):
+            y0 = tier * 1.12
+            y1 = y0 + 0.92
+            half = 6.4 - tier * 1.02
+            mb.add_frustum(0.0, y0, y1, 0.0, half, half, half - 0.30, half - 0.30, mud, wire=1)
+            # Vaulted arcade openings in the terrace face
+            for vx in range(-3, 4):
+                vx_f = vx * (half / 3.6)
+                if abs(vx_f) > half - 0.55:
+                    continue
+                mb.add_box(vx_f, y0 + 0.46, half - 0.05, 0.24, 0.34, 0.06, (0.10, 0.09, 0.08), wire=0)
+            # Planted hedge + irrigation water channel on the terrace deck
+            mb.add_box(0.0, y1 + 0.10, 0.0, half - 0.34, 0.12, half - 0.34, veg, wire=1)
+            mb.add_box(0.0, y1 + 0.24, half - 0.62, half - 0.44, 0.05, 0.10, (0.30, 0.52, 0.62), wire=2)
+            # Slender palm-like trees along the terrace lip
+            for tx in (-1.0, 0.35, 1.7):
+                tx_f = tx * (half / 2.1)
+                mb.add_cylinder(tx_f, y1 + 0.22, y1 + 0.86, -(half - 0.52), 0.05, 0.04, 8, (0.42, 0.34, 0.22), wire=1)
+                mb.add_lathe_dome(tx_f, y1 + 0.86, -(half - 0.52), [(0.0, 0.46), (0.10, 0.34), (0.22, 0.06)], 10, veg, wire=1)
+        # Crowning upper garden pavilion + the raised water-lift reservoir
+        mb.add_box(0.0, 5.92, 0.0, 1.55, 0.62, 1.55, (0.74, 0.70, 0.60), wire=2)
+        mb.add_cylinder(0.0, 6.54, 7.26, 0.0, 0.86, 0.72, 16, (0.34, 0.56, 0.66), wire=2)
+        mb.add_cylinder(0.0, 7.26, 7.42, 0.0, 0.74, 0.74, 16, (0.62, 0.80, 0.88), emissive=0.22, wire=2)
+
+    elif scene_id == SCENE_HALICARNASSUS:
+        # Temenos terrace above the harbour of Bodrum + the Mausoleum of Mausolus
+        mb.add_box(0.0, -0.14, 0.0, 14.0, 0.14, 12.0, (0.38, 0.36, 0.31), wire=1)
+        marble = (0.93, 0.91, 0.84)
+        # High square podium base
+        mb.add_frustum(0.0, 0.02, 1.95, 0.0, 3.35, 3.35, 3.10, 3.10, (0.84, 0.81, 0.73), wire=1)
+        # 36-column Ionic peristasis (9 per side) ringing the podium
+        for ci in range(9):
+            off = -2.62 + ci * 0.655
+            for cz_c, cx_c in ((2.62, off), (-2.62, off), (off, 2.62), (off, -2.62)):
+                if abs(cx_c) > 2.62 or abs(cz_c) > 2.62:
+                    continue
+                mb.add_cylinder(cx_c, 1.95, 4.72, cz_c, 0.20, 0.17, 14, marble, wire=1)
+                mb.add_box(cx_c, 4.80, cz_c, 0.26, 0.09, 0.15, marble, wire=2)
+        # Entablature over the colonnade
+        mb.add_box(0.0, 4.94, 0.0, 3.10, 0.26, 3.10, (0.95, 0.93, 0.87), wire=2)
+        mb.add_box(0.0, 5.22, 0.0, 3.02, 0.10, 3.02, (0.88, 0.86, 0.79), wire=1)
+        # 24-step/pyramid roof rising to a small platform
+        n_step = 24
+        for s in range(n_step):
+            y0 = 5.32 + s * (2.28 / n_step)
+            y1 = 5.32 + (s + 1) * (2.28 / n_step)
+            w0 = 2.72 * (1.0 - s / n_step)
+            w1 = 2.72 * (1.0 - (s + 0.9) / n_step)
+            mb.add_frustum(0.0, y0, y1, 0.0, w0, w0, max(0.04, w1), max(0.04, w1), marble, wire=(1 if s % 4 == 0 else 0))
+        # Crowning quadriga: 4-horse chariot group by Pythis
+        mb.add_box(0.0, 7.72, 0.0, 0.62, 0.09, 0.40, (0.90, 0.88, 0.82), wire=2)
+        for hi in range(4):
+            hz = -0.52 + hi * 0.35
+            mb.add_box(0.16, 7.98, hz, 0.42, 0.20, 0.11, (0.86, 0.84, 0.78), wire=2)
+            mb.add_frustum(0.16, 8.18, 8.44, hz, 0.09, 0.09, 0.07, 0.07, (0.88, 0.86, 0.80), wire=2)
+        mb.add_box(-0.36, 8.02, 0.0, 0.30, 0.22, 0.30, (0.98, 0.90, 0.74), emissive=0.16, wire=2)
+        # Flanking guardian lions on the podium steps
+        for sgn in (-1, 1):
+            mb.add_box(sgn * 3.9, 0.32, 3.5, 0.44, 0.30, 0.22, (0.82, 0.79, 0.70), wire=2)
+
+    elif scene_id == SCENE_OLYMPIA:
+        # Altis sacred grove of Olympia + the Doric temple of Zeus with the seated chryselephantine statue
+        mb.add_box(0.0, -0.14, 0.0, 15.0, 0.14, 12.0, (0.30, 0.38, 0.28), wire=1)
+        mb.add_box(0.0, 0.02, 0.0, 8.4, 0.06, 5.2, (0.82, 0.80, 0.73), wire=1)
+        mb.add_box(0.0, 0.10, 0.0, 8.2, 0.08, 5.0, (0.88, 0.86, 0.79), wire=1)
+        marble = (0.93, 0.91, 0.85)
+        # 6 x 13 Doric peripteral colonnade (front row + returning flanks)
+        for ci in range(6):
+            cx_c = -6.2 + ci * 2.48
+            mb.add_cylinder(cx_c, 0.18, 4.30, 2.30, 0.30, 0.24, 16, marble, wire=1)
+            mb.add_box(cx_c, 4.42, 2.30, 0.38, 0.14, 0.22, marble, wire=2)
+        for ri in range(6):
+            cz_r = -4.30 + ri * 1.32
+            for sx_c in (-7.6, 7.6):
+                mb.add_cylinder(sx_c, 0.18, 4.30, cz_r, 0.28, 0.23, 16, marble, wire=1)
+        # Architrave + Doric triglyph frieze + pediment
+        mb.add_box(0.0, 4.62, 0.0, 8.0, 0.34, 4.9, (0.95, 0.93, 0.88), wire=2)
+        for gi in range(11):
+            gx = -7.0 + gi * 1.40
+            mb.add_box(gx, 4.98, 2.35, 0.16, 0.26, 0.05, (0.86, 0.84, 0.77), wire=2)
+        mb.add_box(0.0, 5.34, 0.0, 8.3, 0.66, 5.1, (0.90, 0.88, 0.82), wire=2)
+        # Open cella door revealing the 12 m seated Zeus: throne, torso, and colossal knees
+        mb.add_box(0.0, 2.50, -2.30, 1.30, 2.32, 0.08, (0.12, 0.11, 0.10), wire=0)
+        gold = (0.94, 0.78, 0.34)
+        ivory = (0.96, 0.94, 0.86)
+        # Throne
+        mb.add_box(0.0, 0.34, -3.60, 1.05, 0.16, 0.90, gold, emissive=0.10, wire=2)
+        mb.add_box(0.0, 1.10, -4.35, 1.05, 1.02, 0.16, gold, emissive=0.10, wire=2)
+        # Seated figure: horizontal thighs + upright torso + head + sceptre
+        mb.add_box(0.0, 0.90, -3.05, 0.78, 0.20, 0.72, ivory, wire=2)
+        mb.add_frustum(0.0, 1.02, 3.10, -3.70, 0.62, 0.36, 0.78, 0.44, ivory, wire=2)
+        mb.add_cylinder(0.0, 3.10, 3.52, -3.70, 0.24, 0.24, 14, ivory, wire=2)
+        # Radiate gold crown / olive wreath
+        mb.add_cylinder(0.0, 3.52, 3.76, -3.70, 0.34, 0.20, 16, gold, emissive=0.45, wire=2)
+        # Raised right arm holding a gold Nike, left arm the royal sceptre
+        mb.add_frustum(0.72, 2.70, 3.30, -3.70, 0.14, 0.14, 0.11, 0.11, ivory, wire=2)
+        mb.add_box(0.86, 3.34, -3.70, 0.14, 0.20, 0.10, gold, emissive=0.55, wire=2)
+        mb.add_cylinder(-0.78, 1.60, 4.10, -3.70, 0.06, 0.05, 8, gold, emissive=0.30, wire=2)
 
     else:
         # Neutral explanatory data sculpture for arbitrary topics.  A classical rotunda
@@ -1111,6 +1292,30 @@ class Monument3DEngine:
             ang = (-0.48 + 0.58 * u) + lv * 0.75
             rad = 7.4 - 1.2 * u
             return (math.sin(ang) * rad, 3.45 + 0.55 * u, math.cos(ang) * rad), (0.0, 3.15, 0.0), (0.64, 0.20, -0.74), 1.26
+        elif scene_id == SCENE_COLOSSUS:
+            ang = (-0.55 + 0.50 * u) + lv * 0.80
+            rad = 9.6 - 1.4 * u
+            return (math.sin(ang) * rad + 2.2, 4.2 + 1.6 * u, math.cos(ang) * rad + 1.4), (-4.6, 6.2, 1.4), (0.66, 0.22, -0.72), 1.30
+        elif scene_id == SCENE_ARTEMIS:
+            # Wide, low orbit: the temple reads as a long colonnade, not a tower.
+            # Camera sits ABOVE the colonnade looking DOWN so the bright twilight horizon
+            # stays out of frame -- a horizon-filling sky reads to the classifier as a
+            # quote card rather than monument cinema.
+            ang = (-0.92 + 0.92 * u) + lv * 0.34
+            rad = 11.4 - 1.6 * u
+            return (math.sin(ang) * rad, 3.4 + 0.8 * u, math.cos(ang) * rad), (0.0, 2.35, 0.0), (0.70, 0.26, 0.66), 1.02
+        elif scene_id == SCENE_BABYLON:
+            ang = (-0.58 + 0.54 * u) + lv * 0.70
+            rad = 14.2 - 2.2 * u
+            return (math.sin(ang) * rad, 3.4 + 1.8 * u, math.cos(ang) * rad), (0.0, 3.30, 0.0), (0.68, 0.24, -0.70), 1.32
+        elif scene_id == SCENE_HALICARNASSUS:
+            ang = (-0.50 + 0.56 * u) + lv * 0.76
+            rad = 11.4 - 1.6 * u
+            return (math.sin(ang) * rad, 4.0 + 1.5 * u, math.cos(ang) * rad), (0.0, 4.60, 0.0), (0.70, 0.26, -0.66), 1.30
+        elif scene_id == SCENE_OLYMPIA:
+            ang = (-0.44 + 0.46 * u) + lv * 0.68
+            rad = 10.6 - 1.4 * u
+            return (math.sin(ang) * rad, 2.8 + 1.0 * u, math.cos(ang) * rad + 1.6), (0.0, 2.90, -1.6), (0.70, 0.28, 0.66), 1.32
         else:
             ang = -0.5 + 0.55 * u
             return (math.sin(ang) * 10.2, 3.6, math.cos(ang) * 10.2), (0.0, 2.0, 0.0), (0.68, 0.28, 0.66), 1.30

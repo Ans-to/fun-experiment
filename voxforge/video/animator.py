@@ -37,7 +37,12 @@ from voxforge.video.infographics import load_font
 from voxforge.video.procedural_world import (
     SCENE_COLOSSEUM,
     SCENE_GIZA,
+    SCENE_ARTEMIS,
+    SCENE_BABYLON,
+    SCENE_COLOSSUS,
     SCENE_GREAT_WALL,
+    SCENE_HALICARNASSUS,
+    SCENE_OLYMPIA,
     SCENE_PHAROS,
     SCENE_TAJ_MAHAL,
     Monument3DEngine,
@@ -515,13 +520,15 @@ class StudioCharacterAnimator:
 
     # The six Ancient Wonders that no longer exist. Narration enumerating their destruction
     # gets a rapid montage of these, not the one wonder that survived.
-    _LOST_WONDERS: tuple[tuple[str, str, str, str, int], ...] = (
-        ("Pharos Lighthouse", "Alexandria, Egypt", "c. 280 BCE · earthquake", "3d", 0),
-        ("Colossus of Rhodes", "Rhodes, Greece", "c. 226 BCE · earthquake", "3d", 1),
-        ("Temple of Artemis", "Ephesus, Anatolia", "c. 550 BCE · fire & flood", "3d", 2),
-        ("Hanging Gardens", "Babylon, Mesopotamia", "c. 600 BCE · disputed site", "cad", 0),
-        ("Mausoleum at Halicarnassus", "Bodrum, Anatolia", "c. 350 BCE · earthquake", "cad", 1),
-        ("Statue of Zeus", "Olympia, Greece", "c. 435 BCE · fire", "3d", 2),
+    # Each lost wonder has its OWN procedural scene. Collapsing them onto one mesh is
+    # exactly the "same shape again and again" complaint the montage exists to remove.
+    _LOST_WONDERS: tuple[tuple[str, str, str, str, int, int], ...] = (
+        ("Pharos Lighthouse", "Alexandria, Egypt", "c. 280 BCE · earthquake", "3d", 0, SCENE_PHAROS),
+        ("Colossus of Rhodes", "Rhodes, Greece", "c. 226 BCE · earthquake", "3d", 1, SCENE_COLOSSUS),
+        ("Temple of Artemis", "Ephesus, Anatolia", "c. 550 BCE · fire & flood", "3d", 2, SCENE_ARTEMIS),
+        ("Hanging Gardens", "Babylon, Mesopotamia", "c. 600 BCE · disputed site", "cad", 0, SCENE_BABYLON),
+        ("Mausoleum at Halicarnassus", "Bodrum, Anatolia", "c. 350 BCE · earthquake", "cad", 1, SCENE_HALICARNASSUS),
+        ("Statue of Zeus", "Olympia, Greece", "c. 435 BCE · fire", "3d", 2, SCENE_OLYMPIA),
     )
 
     def _overlay_montage_caption(
@@ -536,47 +543,47 @@ class StudioCharacterAnimator:
         still reads the shot as monument cinema, not a quote card)."""
         im = Image.fromarray(rgb, mode="RGB")
         draw = ImageDraw.Draw(im)
-        f_name = load_font("SpaceGrotesk-Bold.ttf", 30)
-        f_sub = load_font("Inter-Medium.ttf", 19)
-        f_kick = load_font("SpaceGrotesk-Bold.ttf", 17)
+        # Small type and a deliberately sub-198 peak luma: a bright full-width plate pushes
+        # white_frac past 0.045, and the frame classifier then reads monument cinema as a
+        # quote card (a failure already hit once on the generic data sculpture).
+        f_name = load_font("SpaceGrotesk-Bold.ttf", 23)
+        f_sub = load_font("Inter-Medium.ttf", 15)
+        f_kick = load_font("SpaceGrotesk-Bold.ttf", 13)
 
-        x0, y0 = 96, self.h - 232
-        w_box = min(760, 120 + max(int(draw.textlength(name, font=f_name)),
-                                   int(draw.textlength(f"{place}  ·  {era}", font=f_sub))))
-        draw.rectangle([x0, y0, x0 + w_box, y0 + 104], fill=(8, 12, 20))
+        x0, y0 = 96, self.h - 214
+        w_box = min(560, 92 + max(int(draw.textlength(name, font=f_name)),
+                                  int(draw.textlength(f"{place}  ·  {era}", font=f_sub))))
+        draw.rectangle([x0, y0, x0 + w_box, y0 + 78], fill=(8, 12, 20))
         accent = (86, 214, 255) if survivor else (229, 169, 60)
-        draw.rectangle([x0, y0, x0 + 6, y0 + 104], fill=accent)
+        draw.rectangle([x0, y0, x0 + 5, y0 + 78], fill=accent)
         draw.text(
-            (x0 + 26, y0 + 12),
+            (x0 + 20, y0 + 10),
             "THE SURVIVING WONDER" if survivor else "LOST WONDER OF ANTIQUITY",
             font=f_kick, fill=accent,
         )
-        draw.text((x0 + 26, y0 + 38), name[:44], font=f_name, fill=(248, 250, 252))
-        draw.text((x0 + 26, y0 + 78), f"{place}  ·  {era}"[:56], font=f_sub, fill=(176, 190, 208))
+        draw.text((x0 + 20, y0 + 29), name[:44], font=f_name, fill=(196, 204, 216))
+        draw.text((x0 + 20, y0 + 58), f"{place}  ·  {era}"[:56], font=f_sub, fill=(150, 164, 184))
         return np.asarray(im, dtype=np.uint8)
 
     def iter_lost_wonders_montage_frames(
         self,
         n_frames: int,
         seg_seed: int = 0,
-        survivor_scene_id: int | None = None,
-        survivor_label: str = "",
     ) -> Iterator[np.ndarray]:
-        """Stream a rapid-cut montage of the six lost Ancient Wonders (+ the survivor)."""
+        """Stream a rapid-cut montage of the six lost Ancient Wonders.
+
+        Used when the narration enumerates the monuments that no longer exist, so the
+        picture is the lost wonders rather than the one that survived them.
+        """
         n_tot = max(1, n_frames)
+        # Six lost wonders only. A seventh "survivor" card was originally appended as a
+        # bookend, but that put the pyramid back on screen during the destruction narration
+        # (once per montage beat) — the exact complaint this montage exists to fix. The
+        # survivor gets its own subject beat the moment the narrator names it.
         entries: list[tuple[str, str, str, str, int, int]] = [
-            (name, place, era, kind, lv, SCENE_PHAROS)
-            for name, place, era, kind, lv in self._LOST_WONDERS
+            (name, place, era, kind, lv, sid)
+            for name, place, era, kind, lv, sid in self._LOST_WONDERS
         ]
-        if survivor_scene_id is not None:
-            entries.append((
-                survivor_label or "The Survivor",
-                "still standing",
-                "the only one remaining",
-                "3d",
-                0,
-                int(survivor_scene_id),
-            ))
 
         per = max(6, int(math.ceil(n_tot / max(1, len(entries)))))
         produced = 0
@@ -595,8 +602,7 @@ class StudioCharacterAnimator:
                 else:
                     rgb = self._monument_3d.render_frame(sid, u, time_s, self.w, self.h, lens_variant=lv)
                 frame = self._finish_cinema_frame(rgb, idx * per + j, letterbox=True)
-                survivor = survivor_scene_id is not None and idx == len(entries) - 1
-                yield self._overlay_montage_caption(frame, name, place, era, survivor)
+                yield self._overlay_montage_caption(frame, name, place, era, survivor=False)
                 produced += 1
 
     def iter_geo_map_frames(

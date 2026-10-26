@@ -14,3 +14,6 @@ out/
 
 # OS / Editor
 .DS_Store
+
+# Preview render scratch workspace (tools/render_preview.py)
+_preview_work_*/

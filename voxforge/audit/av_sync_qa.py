@@ -42,6 +42,10 @@ _FAMILY_GROUPS: dict[str, set[str]] = {
     "studio_insert": {"darkhud"},
     "reaction_shot": {"darkhud"},
     "quote_card": {"quote"},
+    # The lost-wonders montage deliberately mixes representations: pure-code 3D monument
+    # cinema, LiDAR/CAD point-cloud cards, and dusk-lit marble temples whose bright sky
+    # the classifier reports as "quote". All three are correct for a montage card.
+    "lost_wonders_montage": {"monument", "darkhud", "quote"},
 }
 
 

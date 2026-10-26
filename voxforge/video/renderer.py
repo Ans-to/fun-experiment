@@ -214,6 +214,11 @@ def is_lost_wonders_reference(clause: str, scene_context: str = "") -> bool:
 # Anti-repetition rotation: when consecutive beats would show the same subject through the
 # same treatment, step to the next representation (3D cinema -> physics/LiDAR insert ->
 # telemetry -> orbital globe) instead of holding one holographic screen.
+# Subject label recorded in the scene plan for montage beats. The screen shows the six lost
+# wonders, so recording the survivor's name would make the audit claim a subject that is
+# deliberately NOT on screen.
+LOST_WONDERS_MONTAGE_SUBJECT = "The Six Lost Wonders of Antiquity (montage)"
+
 _VARIETY_ROTATION: tuple[CameraAngle, ...] = (
     "broll_cinema",
     "studio_insert",
@@ -428,11 +433,11 @@ def _plan_turn_editorial_beats_detail(
                 cut_t = _snap_to_breath_pause(
                     env_50hz, turn_end_sec - react_d, turn_start_sec + 1.8, turn_end_sec - 1.5
                 )
-                return [(spk_cu, cut_t, turn.text), ("studio_insert", turn_end_sec, turn.text)]
-            return [(spk_cu, turn_end_sec, turn.text)]
+                return [(spk_cu, cut_t, turn.text), ("studio_insert", turn_end_sec, turn.text)], [False, False]
+            return [(spk_cu, turn_end_sec, turn.text)], [False]
         if is_episode_closer and primary != "wide_studio":
-            return [("wide_studio", turn_end_sec, turn.text)]
-        return [(primary, turn_end_sec, turn.text)]
+            return [("wide_studio", turn_end_sec, turn.text)], [False]
+        return [(primary, turn_end_sec, turn.text)], [False]
 
     # ---- Clause-aligned beat construction: one visual beat per meaningful spoken clause ----
     # Openers and closers are clause-driven too. A canned camera pattern meant the cold open
@@ -862,8 +867,6 @@ def _encode_single_segment(
             frame_iter = animator.iter_lost_wonders_montage_frames(
                 n_frames=frames,
                 seg_seed=task.seg_index,
-                survivor_scene_id=task.layout.scene_id,
-                survivor_label=task.layout.primary_caption or task.layout.chapter_title_text,
             )
         elif use_broll_depth:
             frame_iter = animator.iter_broll_depth_frames(
@@ -1083,6 +1086,9 @@ def render_episode_video(
             shot_variants: dict[tuple[int, str], int] = {}
 
             for b_i, (beat_cam, beat_end_sec, beat_clause) in enumerate(beats):
+                beat_is_montage = beat_cam == "broll_cinema" and (
+                    b_i < len(beat_montage_flags) and beat_montage_flags[b_i]
+                )
                 s_sec, dur_sec = _alloc_seg_duration(beat_end_sec)
                 # Always derive this beat from the ORIGINAL turn.  Rebinding `turn` in place
                 # used to leak beat 1's clause into beats 2..N, producing stale pictures.
@@ -1189,9 +1195,7 @@ def render_episode_video(
                     shot_variants[variant_key] = shot_variants.get(variant_key, 0) + 1
                     cur_lens_variant = (plate_lens + shot_variants[variant_key]) % 3
                     cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text, topic=script.spec.topic)
-                    use_montage = beat_cam == "broll_cinema" and (
-                        b_i < len(beat_montage_flags) and beat_montage_flags[b_i]
-                    )
+                    use_montage = beat_is_montage
                     layout = compositor.render_broll_cinema(
                         turn,
                         ch,
@@ -1226,16 +1230,22 @@ def render_episode_video(
                         narration_clause=beat_text,
                         narration_start_sec=round(s_sec, 3),
                         narration_end_sec=round(s_sec + dur_sec, 3),
-                        subject=scene_title_b or ep_title,
+                        subject=(
+                            LOST_WONDERS_MONTAGE_SUBJECT if beat_is_montage else (scene_title_b or ep_title)
+                        ),
                         action_or_event=intent_b,
-                        required_visual=_REQUIRED_VISUAL_TEXT.get(beat_cam, "pure-code cinematic plate"),
-                        visual_family=beat_cam,
+                        required_visual=_REQUIRED_VISUAL_TEXT.get(
+                            "lost_wonders_montage" if beat_is_montage else beat_cam,
+                            "pure-code cinematic plate",
+                        ),
+                        visual_family="lost_wonders_montage" if beat_is_montage else beat_cam,
                         visual_asset_source=_VISUAL_SOURCE.get(beat_cam, "pure-code engine"),
                         scene_start_sec=round(s_sec, 3),
                         scene_end_sec=round(s_sec + dur_sec, 3),
                         on_screen_text=beat_text[:96],
                         relevance_criteria=(
-                            f"family={beat_cam} must depict intent={intent_b}; "
+                            f"family={'lost_wonders_montage' if beat_is_montage else beat_cam} "
+                            f"must depict intent={intent_b}; "
                             f"scene_id={sid_b}; subject={scene_title_b}; "
                             "exact narration clause drives procedural scene resolution"
                         ),

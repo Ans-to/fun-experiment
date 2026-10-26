@@ -14,6 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from voxforge.models import DialogueTurn
+from voxforge.video.procedural_world import SCENE_CAPTIONS
 from voxforge.video.renderer import (
     _plan_turn_editorial_beats,
     _plan_turn_editorial_beats_detail,
@@ -174,7 +175,24 @@ def test_long_single_subject_never_repeats_a_family_back_to_back() -> None:
     assert len(set(families)) >= 3, f"not enough variety: {families}"
 
 
+def test_montage_uses_a_distinct_scene_per_lost_wonder() -> None:
+    """Regression: all six cards once rendered the SAME Pharos mesh with different captions,
+    which is the 'same shape again and again' defect the montage exists to remove."""
+    from voxforge.video.animator import StudioCharacterAnimator
+
+    animator = StudioCharacterAnimator()
+    entries = animator._LOST_WONDERS
+    assert len(entries) == 6
+    names = [e[0] for e in entries]
+    assert len(set(names)) == 6, f"duplicate wonder names: {names}"
+    scene_ids = [e[5] for e in entries]
+    assert len(set(scene_ids)) == 6, f"wonders share geometry: {dict(zip(names, scene_ids))}"
+    for name, sid in zip(names, scene_ids):
+        assert sid in SCENE_CAPTIONS, f"{name} has no registered scene {sid}"
+
+
 def test_beat_contract_unchanged() -> None:
+
     """The planner still returns the (camera, end_sec, clause) triples the encoder relies on."""
     beats = _plan_turn_editorial_beats(
         _turn("Short clause about the pyramid.", dur=12.0),
