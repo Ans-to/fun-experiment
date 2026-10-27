@@ -54,27 +54,46 @@ beats no longer exist**.
 Template variety is tracked **per subject key**, not globally: one topic must exhaust its
 category ladder before reusing a template, while a different topic (e.g. space science) always
 gets its most fitting template (orbital `particle_cluster`) even if another topic recently used
-that template. The immediately preceding template is still avoided when the ladder offers an
-alternative, so adjacent shots never look identical across subject boundaries.
+that template. On top of that, a **whole-film per-template usage budget** (survives the rolling
+history trim) always picks the least-used ladder member first, so an eleven-diagram film
+spreads across all six engines instead of replaying one look four times; the immediately
+preceding template is still avoided. `stat_dashboard` is additionally **banned for clauses
+without real numbers**, and the abstract ladder spans all six engines.
+
+**No-repeat at the camera level.** Each directive carries a `variation_index` counting how many
+times its `(scene, treatment)` or globe subject has already been emitted. Monument repeats map
+the index to a distinct 3D lens variant (`_camera_for(..., lens_variant)`), so the same pyramid
+never returns through the same camera path; globe repeats start from a different orbital
+longitude. Generic (`scene_id == -1`) globes render a neutral rotating Earth with no nation
+highlight, site pin or place callout — a clause that names no place can no longer inherit the
+chapter's "Giza Plateau · Egypt" card.
 
 ### 3. Six semantic diagram engines — `video/semantic_diagrams.py`
 
 All pure code, animated at 24fps, obsidian HUD palette that classifies as the Stage E
-`darkhud` pixel group, seeded per subject so different topics render different geometry:
+`darkhud` pixel group. Seeds are **`subject_seed(subject_key) XOR subject_seed("clause::" + clause)`**,
+so the same subject on a different clause always produces different geometry — a subject-only
+seed previously made four abstract shots pixel-identical across the film. Every engine
+consumes the RNG (including `process_flow`'s shuffled glyph order/row jitter and
+`timeline_arc`'s marker count, spacing and arc heights), which is what makes the clause salt
+take effect:
 
 1. `terrain_tectonic` — layered strata, travelling seismic scanline, shock rings, ejecta
 2. `node_network` — 4×6 relationship graph with lit edges and travelling packets
 3. `particle_cluster` — orbiting particle system with emergent binding lines
-4. `process_flow` — five staged glyph panels with dual packet flow and marching dashes
-5. `stat_dashboard` — clause-number count-up (real units preserved), bars, verb-shaped curve
-   (rise / fall / cycle morphology from the clause verbs)
-6. `timeline_arc` — phase arc with progress beam, pulse ring and drifting ticks
+4. `process_flow` — five staged glyph panels (per-clause shuffled order) with packet flow
+5. `stat_dashboard` — **honest data only**: numeric clauses count up the clause's own value
+   preserving its decimal precision (146.6 never rounds to 147); numberless clauses get
+   clause-derived key-signal chips instead of an invented percentage. Bars/verb curve decorate
+6. `timeline_arc` — RNG-driven phase arc with progress beam, pulse ring and drifting ticks
 
-Each frame carries the spoken clause and resolved subject as on-screen chrome, so the picture
-is literally labelled with what the narrator is saying. The obsidian base luma (`INK`,
-vignette floor and data-dust range) is tuned so every template clears Stage D's decoded
-`Y > 8.0` black-frame gate after H.264 losses (raw frame mean ≥ 11) while remaining well inside
-the Stage E `darkhud` group (mean ≪ 70); a unit test locks this floor for all six templates.
+Every plate also carries up to three clause-derived **key-term chips** (content words from the
+spoken clause), and the long episode title is measured-and-fitted (font ladder + wrap) instead
+of running off-canvas; the duplicated clause footer was removed because the burned caption
+already carries the verbatim line. The obsidian base luma (`INK`, vignette floor and data-dust
+range) is tuned so every template clears Stage D's decoded `Y > 8.0` black-frame gate after
+H.264 losses (raw frame mean ≥ 11) while remaining well inside the Stage E `darkhud` group
+(mean ≪ 70); a unit test locks this floor for all six templates.
 
 ### 4. Stage E subject hard gate — `audit/av_sync_qa.py::_subject_hard_gate`
 
@@ -92,6 +111,14 @@ Every scene-plan entry must satisfy all of the following or certification fails:
 - neutral diagram shots stay on `scene_id = -1` with a known template; generic globe/quote
   shots also keep `-1`;
 - no consecutive identical `(subject_key, treatment)` pair (the anti-loop invariant).
+
+**Whole-film repeated-shot gate (`no_repeated_shots`).** The per-entry hard gate only sees
+adjacent pairs, so a picture could return minutes later and still certify. Stage E now
+fingerprints the mid-shot frame of every scene (160×90 grayscale) and correlates every pair
+across the full timeline: any near-identical pair (Pearson r ≥ 0.90 — the pre-fix duplicates
+scored 0.908–0.95 while genuinely distinct same-family shots stay far lower) marks both
+segments `failed:repeated_shot`, adds a blocking check with 8-point penalties, and forces
+`passed = False`. This gate alone rejects the old film with its seven duplicate pairs.
 
 ## Narration continuity (no silent scenes)
 

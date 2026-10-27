@@ -464,3 +464,23 @@ def test_subject_hard_gate_accepts_keyword_matched_monument_shots() -> None:
     entry["semantic_directive"]["context"] = "Great Pyramid of Giza Necropolis"
     entry["visual_family"] = "broll_cinema"
     assert _subject_hard_gate([entry]) == []
+
+
+def test_duplicate_frame_pairs_catches_repeated_shots_across_film() -> None:
+    from voxforge.audit.av_sync_qa import _frame_fingerprint, duplicate_frame_pairs
+    import cv2
+
+    rng = np.random.default_rng(4)
+    distinct = [rng.integers(0, 255, (1080, 1920, 3), dtype=np.uint8) for _ in range(4)]
+    fingers = {i + 1: _frame_fingerprint(f) for i, f in enumerate(distinct)}
+    assert duplicate_frame_pairs(fingers) == []
+
+    # A fifth shot that reuses the exact picture of shot 2 (pre-fix subject-seed loop).
+    fingers[5] = _frame_fingerprint(distinct[1])
+    pairs = duplicate_frame_pairs(fingers)
+    assert pairs and pairs[0][:2] == (2, 5)
+
+    # Mildly edited but still near-identical re-encodes trip the gate too.
+    soft = cv2.addWeighted(distinct[0], 0.98, np.full_like(distinct[0], 4), 0.02, 0)
+    fingers[6] = _frame_fingerprint(soft)
+    assert any(a == 1 and b == 6 for a, b, _c in duplicate_frame_pairs(fingers))

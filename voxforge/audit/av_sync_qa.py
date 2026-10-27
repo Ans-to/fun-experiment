@@ -165,6 +165,34 @@ def _motion_energy(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.mean(np.abs(da - db)))
 
 
+def _frame_fingerprint(frame_bgr: np.ndarray) -> np.ndarray:
+    """Small grayscale thumbnail used for whole-film near-duplicate detection."""
+    small = cv2.resize(frame_bgr, (160, 90))
+    return cv2.cvtColor(small, cv2.COLOR_BGR2GRAY).astype(np.float32).ravel()
+
+
+# Measured duplicates on the pre-fix film scored 0.908-0.95; distinct same-family shots stay
+# well under this (different camera geometry or clause-salted diagram layout).
+_DUPLICATE_CORR_THRESHOLD = 0.90
+
+
+def duplicate_frame_pairs(
+    fingers: dict[int, np.ndarray], threshold: float = _DUPLICATE_CORR_THRESHOLD
+) -> list[tuple[int, int, float]]:
+    """Return every (seg_a, seg_b, correlation) pair whose mid-shots are near-identical."""
+    pairs: list[tuple[int, int, float]] = []
+    keys = sorted(fingers)
+    for ai in range(len(keys)):
+        for bi in range(ai + 1, len(keys)):
+            x, y = fingers[keys[ai]], fingers[keys[bi]]
+            if x.shape != y.shape:
+                continue
+            corr = float(np.corrcoef(x, y)[0, 1])
+            if np.isfinite(corr) and corr >= threshold:
+                pairs.append((keys[ai], keys[bi], round(corr, 3)))
+    return pairs
+
+
 def _caption_band_active(frame_bgr: np.ndarray) -> bool:
     band = frame_bgr[int(frame_bgr.shape[0] * 0.84) :, ...]
     r = band[..., 2].astype(np.float32)
@@ -305,6 +333,7 @@ def audit_av_sync(
         validated = 0
         frozen_hits = 0
         black_hits = 0
+        fingers: dict[int, np.ndarray] = {}
         for e in entries:
             fam = e.get("visual_family", "")
             expected = _FAMILY_GROUPS.get(fam, {"monument", "darkhud", "geo", "quote"})
@@ -320,12 +349,14 @@ def audit_av_sync(
             prev_frame: np.ndarray | None = None
             motion_vals: list[float] = []
             lums: list[float] = []
-            for pt in probes:
+            for pi, pt in enumerate(probes):
                 fr = prober.frame_at(min(max(pt, 0.05), max(0.1, prober.duration_sec - 0.05)))
                 if fr is None:
                     continue
                 groups.append(classify_frame_group(fr))
                 lums.append(float(fr.astype(np.float32).mean()))
+                if pi == 1:  # mid-shot frame feeds the whole-film duplicate detector
+                    fingers[int(e.get("seg_index", 0))] = _frame_fingerprint(fr)
                 if prev_frame is not None and prev_frame.shape == fr.shape:
                     motion_vals.append(_motion_energy(prev_frame, fr))
                 prev_frame = fr
@@ -386,6 +417,30 @@ def audit_av_sync(
         ))
         penalties += 4.0 * black_hits + 4.0 * frozen_hits
 
+        # --- Whole-film near-duplicate gate: the same picture must never return, even far apart ---
+        duplicate_pairs = duplicate_frame_pairs(fingers)
+        dup_segs = {s for pair in duplicate_pairs for s in pair[:2]}
+        for e in entries:
+            if int(e.get("seg_index", -1)) in dup_segs and str(e.get("validation_status", "")).startswith("validated"):
+                e["validation_status"] = "failed:repeated_shot"
+        checks.append(_chk(
+            "no_repeated_shots",
+            "No repeated shots across the whole film",
+            len(duplicate_pairs) == 0,
+            100.0 if not duplicate_pairs else 0.0,
+            ", ".join(f"seg{a}~seg{b}:{c}" for a, b, c in duplicate_pairs[:6]) or "0",
+            "0 pairs",
+            "Mid-shot fingerprints of every scene are correlated across the full timeline; "
+            "any near-identical pair (same template+seed, same camera path or same globe framing) "
+            "blocks certification regardless of distance between the shots.",
+        ))
+        if duplicate_pairs:
+            penalties += 8.0 * len(duplicate_pairs)
+            improvements.append(
+                "Repeated-shot gate blocked "
+                + ", ".join(f"seg{a}~seg{b} ({c})" for a, b, c in duplicate_pairs[:6])
+            )
+
         # --- Subject-level hard gate: clause binding, subject match, no-repetition invariant ---
         subject_gate_failures = _subject_hard_gate(entries)
         subject_gate_hits = len(subject_gate_failures)
@@ -436,7 +491,13 @@ def audit_av_sync(
     final_score = round(
         max(0.0, 100.0 - penalties - (6.0 * mismatches) - (3.0 * uncertain) - (6.0 * subject_gate_hits)), 1
     )
-    passed = mismatches == 0 and uncertain == 0 and subject_gate_hits == 0 and final_score >= 90.0
+    passed = (
+        mismatches == 0
+        and uncertain == 0
+        and subject_gate_hits == 0
+        and not duplicate_pairs
+        and final_score >= 90.0
+    )
     improvements.append(f"Validated {len(entries)} scene-plan entries against decoded final-render frames.")
     if mismatches:
         improvements.append(f"FLAGGED {mismatches} narration↔visual semantic mismatches (certification blocked).")
@@ -454,6 +515,7 @@ def audit_av_sync(
         "mismatches": mismatches,
         "human_review_queue": uncertain,
         "subject_gate_failures": subject_gate_hits,
+        "repeated_shot_pairs": [f"{a}-{b}:{c}" for a, b, c in duplicate_pairs],
         "black_scenes": black_hits,
         "frozen_scenes": frozen_hits,
         "av_drift_sec": round(drift, 3),

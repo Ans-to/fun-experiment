@@ -62,10 +62,10 @@
 |---|---|---|---|---|---|
 | `D1` | Container & Cinema Broadcast Stream Spec | **PASS** | `100.0` | 1920x1080 h264 (yuv420p) + aac 48000Hz 2ch | 1920x1080 h264 (yuv420p) + aac 48000Hz stereo |
 | `D2` | Audio/Video Stream Synchronization Lock | **PASS** | `100.0` | Video 83.71s / Audio 83.69s (drift 18 ms) | A/V duration drift <= 350 ms |
-| `D3` | Decoded Frame Integrity & Live Motion Telemetry | **PASS** | `100.0` | 4 checkpoints decoded, min Y=11.6, motion delta=7.333 | Zero black frames (Y > 8.0) & active motion (> 0.02) |
+| `D3` | Decoded Frame Integrity & Live Motion Telemetry | **PASS** | `100.0` | 4 checkpoints decoded, min Y=11.8, motion delta=13.273 | Zero black frames (Y > 8.0) & active motion (> 0.02) |
 | `D4` | Captions (100% Word Fidelity SRT/VTT) & Chapter Metadata | **PASS** | `100.0` | 171/171 words (100.0%), 4 chapters embedded | 100% spoken-word caption fidelity + embedded MP4 chapters + valid SRT/VTT |
 | `D5` | Branded Intro Bumper, Outro End-Card & Rec.709 Grade | **PASS** | `100.0` | Intro Y=58.1, Outro Y=50.4, Color=bt709 (Rec.709 TV) | Decoded Intro (3-5s) + Outro End-Card + Rec.709 colorimetry |
-| `D6` | 24fps Documentary Parallax, Cartography & Telemetry Liveness | **PASS** | `100.0` | p75 frame step min=1.95, mean=3.28 across 4 acts | Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames) |
+| `D6` | 24fps Documentary Parallax, Cartography & Telemetry Liveness | **PASS** | `100.0` | p75 frame step min=0.99, mean=4.35 across 4 acts | Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames) |
 
 ## AUDIT_E_AV_SYNC_SEMANTIC
 - **Score Progression**: `100.0` -> **`100.0 / 100`** (1 pass)
@@ -80,6 +80,7 @@
 | `black_scenes` | No black scenes | **PASS** | `100.0` | 0 | 0 |
 | `frozen_scenes` | No frozen scenes | **PASS** | `100.0` | 0 | 0 |
 | `human_review_queue` | No scenes awaiting human review | **PASS** | `100.0` | 0 | 0 |
+| `no_repeated_shots` | No repeated shots across the whole film | **PASS** | `100.0` | 0 | 0 pairs |
 | `subject_hard_gate` | Subject hard gate (clause-bound, no wrong-subject or repeated shots) | **PASS** | `100.0` | 20/20 | 20/20 |
 | `caption_sync_spotcheck` | Caption sync spot-check | **PASS** | `100.0` | 6/6 | 6/6 |
 

@@ -139,6 +139,10 @@ class PlateLayout:
     secondary_image_path: Path | None = None
     map_target_hint: str = ""
     map_prev_hint: str = ""
+    # Generic (scene_id == -1) globes show a neutral rotating Earth with no site highlight or
+    # place callout; variation shifts orbital longitude so repeat globes never frame identically.
+    map_neutral: bool = False
+    map_variation: int = 0
     era_text: str = ""
     location_text: str = ""
     chapter_title_text: str = ""
@@ -323,10 +327,14 @@ class MulticamCompositor:
         if not caption_str:
             return
         no_parens = re.sub(r"\s*\([^)]*\)?", "", caption_str).strip()
-        if len(no_parens) > 76:
-            no_parens = no_parens[:73].rsplit(" ", 1)[0]
         no_parens = no_parens.rstrip("·,-& ")
         clean = f"CODE SYNTHESIS   ·   {no_parens.upper()}"
+        # Measured truncation so the badge never runs past the matte bar's right edge.
+        max_w = self.w - 128
+        while clean and int(draw.textlength(clean, font=self._f_matte_reg)) > max_w and len(clean) > 18:
+            clean = clean[:-2].rstrip()
+        if int(draw.textlength(clean, font=self._f_matte_reg)) > max_w:
+            clean = clean[: max(12, int(max_w / 11))].rstrip() + "…"
         draw.text((64, self.h - 33), clean, font=self._f_matte_reg, fill=(148, 162, 180, 196))
 
     def _render_transient_lower_third(
@@ -519,6 +527,8 @@ class MulticamCompositor:
         episode_title: str = "",
         show_lower_third: bool = True,
         prev_location_hint: str = "",
+        neutral_globe: bool = False,
+        globe_variation: int = 0,
     ) -> tuple[PlateLayout, tuple[Path, int, int, str]]:
         """Live 24fps True 3D Raycasted Orbital Earth GIS Globe (`raycast_orbital_earth_globe`)."""
         hud = _apply_bottom_legibility_gradient(Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0)), strength=102)
@@ -527,7 +537,12 @@ class MulticamCompositor:
             draw, chapter.chapter_index, total_chapters, chapter.title, mode_tag="3D ORBITAL EARTH GIS"
         )
         self._draw_logo_bug(draw, show_title)
-        self._draw_bottom_plate_caption(draw, f"3D RAYCASTED EARTH ECEF · 1:50M NATURAL EARTH GIS · {chapter.location}")
+        badge = (
+            "3D RAYCASTED EARTH ECEF · 1:50M NATURAL EARTH GIS"
+            if neutral_globe
+            else f"3D RAYCASTED EARTH ECEF · 1:50M NATURAL EARTH GIS · {chapter.location}"
+        )
+        self._draw_bottom_plate_caption(draw, badge)
 
         hud_path = out_path.with_suffix(".png")
         hud_path.parent.mkdir(parents=True, exist_ok=True)
@@ -552,6 +567,8 @@ class MulticamCompositor:
             transient_lt_path=lt_path,
             map_target_hint=target_hint,
             map_prev_hint=prev_location_hint,
+            map_neutral=neutral_globe,
+            map_variation=globe_variation,
             era_text=chapter.era_or_date,
             location_text=chapter.location,
         )
@@ -811,13 +828,17 @@ class MulticamCompositor:
         the encoder's rawvideo pipe animates the full 24fps sequence from the same engine.
         """
         engine = SemanticDiagramEngine()
+        # Salt the per-subject seed with the clause hash: same subject + same template on a
+        # different clause must produce different geometry (the subject-only seed made four
+        # abstract shots pixel-identical across the film).
+        seed = subject_seed(directive.subject_key) ^ subject_seed(f"clause::{clause}")
         still = engine.render_frame(
             template=directive.diagram_template,
             subject_label=directive.subject_label,
             clause=clause,
             u=0.55,
             time_s=0.8,
-            seed=subject_seed(directive.subject_key),
+            seed=seed,
         )
         out_path.parent.mkdir(parents=True, exist_ok=True)
         Image.fromarray(still).save(out_path, quality=93)
@@ -828,7 +849,7 @@ class MulticamCompositor:
             semantic_template=directive.diagram_template,
             semantic_subject=directive.subject_label,
             semantic_clause=clause,
-            semantic_seed=subject_seed(directive.subject_key),
+            semantic_seed=seed,
         )
 
     def render_broll_hud_overlay(

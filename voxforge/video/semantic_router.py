@@ -116,7 +116,9 @@ _CATEGORY_LEXICON: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     ),
 ]
 
-_DEFAULT_TEMPLATES = (TPL_STATS, TPL_NETWORK, TPL_PROCESS, TPL_PARTICLES)
+# All six engines serve abstract clauses; the stat dashboard is additionally gated to clauses
+# containing real numbers, and the whole-film usage budget spreads selections across the ladder.
+_DEFAULT_TEMPLATES = (TPL_NETWORK, TPL_PARTICLES, TPL_PROCESS, TPL_TIMELINE, TPL_TERRAIN, TPL_STATS)
 
 # Treatment ladders for matched wonder subjects (each maps to an existing pure-code engine).
 _WONDER_TREATMENTS = (
@@ -183,6 +185,10 @@ class VisualDirective:
     source: str
     # Exact clause||context hint the router resolved from, enabling independent Stage E re-checks.
     context: str = ""
+    # Per-subject emission counter for the same scene/treatment pair: the renderer maps this to
+    # a distinct camera lens variant (monuments) or orbital longitude offset (globes), so the
+    # same subject never returns through the identical camera path.
+    variation_index: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -196,6 +202,7 @@ class VisualDirective:
             "confidence": round(self.confidence, 3),
             "source": self.source,
             "context": self.context,
+            "variation_index": self.variation_index,
         }
 
 
@@ -242,6 +249,13 @@ class SemanticShotDirector:
         self.episode_subject = episode_subject or ""
         self.episode_slug = slugify(self.episode_subject)
         self._history: list[VisualDirective] = []
+        # Whole-film template budget (survives the 24-entry history trim) so a 90s film with
+        # eleven diagrams spreads them across the ladder instead of reusing one look four times.
+        self._template_usage: dict[str, int] = {}
+        # Emission counters per rendered monument scene (all treatments share one counter so
+        # every 3D shot of the same wonder gets a unique camera-path index), plus globes.
+        self._monument_emissions: dict[int, int] = {}
+        self._globe_emissions: dict[str, int] = {}
 
     # -- public API ---------------------------------------------------------
 
@@ -287,9 +301,28 @@ class SemanticShotDirector:
             directive = self._diagram_directive(clause, context, intent)
 
         directive = dataclasses.replace(directive, context=hint)
+        directive = self._stamp_variation(directive)
+        if directive.diagram_template:
+            self._template_usage[directive.diagram_template] = (
+                self._template_usage.get(directive.diagram_template, 0) + 1
+            )
         self._history.append(directive)
         if len(self._history) > 24:
             self._history = self._history[-24:]
+        return directive
+
+    def _stamp_variation(self, directive: VisualDirective) -> VisualDirective:
+        """Assign the per-look emission index so repeat subjects get a fresh camera path."""
+        # Wonder-bound shots come first: even a monument's orbital_context globe treatment must
+        # consume the per-monument camera counter, not the generic globe counter.
+        if 0 <= directive.scene_id <= 8:
+            n = self._monument_emissions.get(directive.scene_id, 0)
+            self._monument_emissions[directive.scene_id] = n + 1
+            return dataclasses.replace(directive, variation_index=n)
+        if directive.modality == MODALITY_GLOBE:
+            n = self._globe_emissions.get(directive.subject_key, 0)
+            self._globe_emissions[directive.subject_key] = n + 1
+            return dataclasses.replace(directive, variation_index=n)
         return directive
 
     def attribution_directive(self, chapter_title: str, chapter_location: str, intent: str) -> VisualDirective:
@@ -354,30 +387,41 @@ class SemanticShotDirector:
         else:
             preferred = templates
         key = f"{self.episode_slug}_{category}"
-        template = self._pick_template(preferred, key)
+        template = self._pick_template(preferred, key, clause)
         label = kw.replace("_", " ").title() if kw else (self.episode_subject or "Explainer")
         return VisualDirective(
             key, label, MODALITY_DIAGRAM, -1, template, f"diagram_{template}", label, 0.75, "semantic_category"
         )
 
-    def _pick_template(self, templates: tuple[str, ...], subject_key: str) -> str:
+    # A stat dashboard is only honest when the clause actually contains a quantity; otherwise
+    # the engine would have to invent a number (it previously rendered a fake "60 per cent").
+    _NUMBER_RE = re.compile(r"\d+(?:[.,]\d+)?")
+
+    def _pick_template(self, templates: tuple[str, ...], subject_key: str, clause: str = "") -> str:
         """Pick a template that fits the clause category without looping.
 
-        Variety is tracked PER SUBJECT (same topic must rotate its whole ladder before reuse);
-        different topics legitimately reuse their most fitting template. The immediately
-        preceding template is still avoided when the ladder offers an alternative, so two
-        back-to-back shots never look identical even across subject boundaries.
+        Three variety layers: (1) stat dashboards are banned for numberless clauses so the film
+        never fabricates data; (2) a whole-film per-template budget picks the least-used ladder
+        member first, spreading eleven diagrams across all six looks; (3) the same subject must
+        rotate its ladder before reuse and adjacent shots never share a template.
         """
+        honest = [t for t in templates if t != TPL_STATS or self._NUMBER_RE.search(clause or "")]
+        ladder = honest or list(templates)
         adjacent = self._history[-1].diagram_template if self._history else ""
         subject_recent = {
             h.diagram_template
             for h in self._history[-_REPEAT_WINDOW:]
             if h.diagram_template and h.subject_key == subject_key
         }
-        candidates = [t for t in templates if t not in subject_recent] or list(templates)
-        if adjacent and adjacent in candidates and len(candidates) > 1:
-            candidates = [t for t in candidates if t != adjacent] + [adjacent]
-        return candidates[0]
+
+        def rank(tpl: str) -> tuple[int, int, int]:
+            return (
+                self._template_usage.get(tpl, 0),       # global budget first
+                1 if tpl in subject_recent else 0,      # then per-subject window
+                1 if tpl == adjacent else 0,            # then adjacency
+            )
+
+        return sorted(ladder, key=rank)[0]
 
     # -- guards -------------------------------------------------------------
 

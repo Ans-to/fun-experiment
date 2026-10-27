@@ -497,7 +497,12 @@ class StudioCharacterAnimator:
             if scene_id_override is not None and scene_id_override >= 0
             else self._resolve_scene(scene_hint, plate_path, fallback_idx=seg_seed + 1)
         )
-        lv = (lens_variant + (seg_seed % 2)) % 3
+        # Director-bound monuments carry an explicit per-emission index and own six camera
+        # paths; hint-resolved fallback plates keep the historic seed-parity variation.
+        if scene_id_override is not None and scene_id_override >= 0:
+            lv = lens_variant % 6
+        else:
+            lv = (lens_variant + (seg_seed % 2)) % 3
         n_tot = max(1, n_frames)
 
         for i in range(n_tot):
@@ -522,13 +527,20 @@ class StudioCharacterAnimator:
         n_frames: int,
         curves: SpeechMotionCurves | None = None,
         fallback_index: int = 1,
+        neutral_view: bool = False,
+        variation: int = 0,
     ) -> Iterator[np.ndarray]:
-        """Stream 24fps True 3D Raycasted Curved-Horizon Planet Earth in Deep Space (`raycast_orbital_earth_globe`)."""
+        """Stream 24fps True 3D Raycasted Curved-Horizon Planet Earth in Deep Space (`raycast_orbital_earth_globe`).
+
+        ``neutral_view`` renders a generic rotating Earth with no nation highlight, site pin or
+        place callout: a clause that names no place must not inherit the chapter location card.
+        ``variation`` rotates the starting orbital longitude so repeat globes frame differently.
+        """
         t_lat, t_lon, site_label, gps_str, t_isos = resolve_site_coordinates(target_hint, fallback_index)
         p_lat, p_lon, _, _, _ = resolve_site_coordinates(prev_hint, max(1, fallback_index - 1))
-        has_route = (abs(t_lat - p_lat) + abs(t_lon - p_lon)) > 2.5
+        has_route = (not neutral_view) and (abs(t_lat - p_lat) + abs(t_lon - p_lon)) > 2.5
 
-        atlas_rgb = self._atlas.render_highlighted_region(t_isos)
+        atlas_rgb = self._atlas.base_rgb if neutral_view else self._atlas.render_highlighted_region(t_isos)
 
         # Precompute 3D unit-sphere great-circle SLERP arc elevated up to `1.10R` in space!
         arc_ecef: list[tuple[float, float, float]] = []
@@ -556,33 +568,42 @@ class StudioCharacterAnimator:
         card_w, card_h = 532, 108
         card_im = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
         cdraw = ImageDraw.Draw(card_im)
-        cdraw.rounded_rectangle(
-            [0, 0, card_w - 1, card_h - 1],
-            radius=10,
-            fill=(7, 12, 22, 238),
-            outline=(229, 169, 60, 188),
-            width=2,
-        )
-        cdraw.rectangle([0, 0, 5, card_h - 1], fill=(229, 169, 60, 255))
-        cdraw.text((20, 14), site_label[:38], font=self._f_map_pin, fill=(248, 250, 252, 255))
-        cdraw.text((20, 46), f"ORBITAL GPS   ·  {gps_str}", font=self._f_map_sub, fill=(229, 169, 60, 248))
-        clean_era = re.sub(r"\s*\([^)]*\)?", "", era_text.split("·")[0]).strip()[:38].upper()
-        cdraw.text((20, 72), f"CHRONOLOGY    ·  {clean_era}", font=self._f_map_sub, fill=(178, 194, 214, 234))
+        if not neutral_view:
+            cdraw.rounded_rectangle(
+                [0, 0, card_w - 1, card_h - 1],
+                radius=10,
+                fill=(7, 12, 22, 238),
+                outline=(229, 169, 60, 188),
+                width=2,
+            )
+            cdraw.rectangle([0, 0, 5, card_h - 1], fill=(229, 169, 60, 255))
+            cdraw.text((20, 14), site_label[:38], font=self._f_map_pin, fill=(248, 250, 252, 255))
+            cdraw.text((20, 46), f"ORBITAL GPS   ·  {gps_str}", font=self._f_map_sub, fill=(229, 169, 60, 248))
+            clean_era = re.sub(r"\s*\([^)]*\)?", "", era_text.split("·")[0]).strip()[:38].upper()
+            cdraw.text((20, 72), f"CHRONOLOGY    ·  {clean_era}", font=self._f_map_sub, fill=(178, 194, 214, 234))
         card_rgba = np.asarray(card_im, dtype=np.float32)
 
         # Smooth orbital camera rotation from midway point -> target site, descending `2.38R -> 1.80R`!
         dlon = ((t_lon - p_lon + 180.0) % 360.0) - 180.0
         start_lat = (t_lat - 0.38 * (t_lat - p_lat)) if has_route else (t_lat + 6.0)
         start_lon = (t_lon - 0.38 * dlon) if has_route else (t_lon - 12.0)
+        # Each repeat emission starts from a different orbital longitude (and neutral views
+        # drift continuously instead of flying to a chapter place they never name).
+        start_lon += variation * 47.0
 
         n_tot = max(1, n_frames)
         for i in range(n_tot):
             p = i / float(max(1, n_tot - 1))
             ease = 1.0 - ((1.0 - p) ** 2.35)
 
-            cam_lat_deg = float(np.clip(start_lat + (t_lat - start_lat) * ease - 4.0, -58.0, 58.0))
-            cam_lon_deg = start_lon + (t_lon - start_lon) * ease
-            cam_dist = 2.28 - 0.44 * ease
+            if neutral_view:
+                cam_lat_deg = 20.0 + 7.0 * math.sin(p * math.pi)
+                cam_lon_deg = start_lon - 24.0 + p * 48.0
+                cam_dist = 2.18
+            else:
+                cam_lat_deg = float(np.clip(start_lat + (t_lat - start_lat) * ease - 4.0, -58.0, 58.0))
+                cam_lon_deg = start_lon + (t_lon - start_lon) * ease
+                cam_dist = 2.28 - 0.44 * ease
             clat_r = math.radians(cam_lat_deg)
             clon_r = math.radians(cam_lon_deg)
             sun_lon_r = clon_r + (0.62 - 0.18 * ease)
@@ -624,11 +645,12 @@ class StudioCharacterAnimator:
                     cv2.polylines(glow_l, [pts_np], False, (229, 169, 60), 8, lineType=cv2.LINE_AA)
                     frame = cv2.addWeighted(frame, 0.68, glow_l, 0.32, 0.0)
                     cv2.polylines(frame, [pts_np], False, (255, 224, 128), 3, lineType=cv2.LINE_AA)
+            if not neutral_view:
                 psx, psy, pvis = project_ecef_point(prev_ecef, cam_basis, self.w, self.h)
                 if pvis:
                     cv2.circle(frame, (int(round(psx)), int(round(psy))), 5, (198, 218, 242), -1, lineType=cv2.LINE_AA)
 
-            tsx_f, tsy_f, tvis = project_ecef_point(target_ecef, cam_basis, self.w, self.h)
+            tsx_f, tsy_f, tvis = project_ecef_point(target_ecef, cam_basis, self.w, self.h) if not neutral_view else (0.0, 0.0, False)
             tsx, tsy = int(round(tsx_f)), int(round(tsy_f))
             emp = float(curves.emphasis[min(i, curves.n_frames - 1)]) if curves is not None else 0.45
 

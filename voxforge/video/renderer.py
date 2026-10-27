@@ -659,6 +659,8 @@ def _encode_single_segment(
                 n_frames=frames,
                 curves=curves,
                 fallback_index=task.seg_index + 1,
+                neutral_view=task.layout.map_neutral,
+                variation=task.layout.map_variation,
             )
         elif use_semantic_diagram:
             frame_iter = iter_semantic_diagram_frames(
@@ -958,6 +960,8 @@ def render_episode_video(
                         episode_title=ep_title if (c_i == 0 and t_i == 0) else "",
                         show_lower_third=show_lt_now,
                         prev_location_hint=prev_map_hint,
+                        neutral_globe=beat_directive.scene_id == -1,
+                        globe_variation=beat_directive.variation_index,
                     )
                     prev_map_hint = f"{turn.text} || {ch.title} {ch.location}"
                 elif beat_cam in ("closeup_host_a", "closeup_host_b"):
@@ -1048,7 +1052,14 @@ def render_episode_video(
                         caption_override=f"Engineering Telemetry · {_caption_for_asset(p_f, ch, '', turn.text)}",
                     )
                 else:
-                    chosen_p, cur_lens_variant = _next_distinct_plate(turn.text)
+                    chosen_p, plate_visit = _next_distinct_plate(turn.text)
+                    # Monument repeats must come through a different 3D camera path; archive
+                    # plate cuts keep their own visit-based ken-burns cadence.
+                    cur_lens_variant = (
+                        beat_directive.variation_index
+                        if 0 <= beat_directive.scene_id <= 8
+                        else plate_visit
+                    )
                     cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text)
                     layout = compositor.render_broll_cinema(
                         turn,

@@ -1035,11 +1035,21 @@ class Monument3DEngine:
     def _camera_for(
         self, scene_id: int, u: float, lens_variant: int = 0
     ) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float], float]:
-        lv = lens_variant % 3
+        lv = lens_variant % 6
         if scene_id == SCENE_GIZA:
-            ang = (-0.62 + 0.48 * u) if lv == 0 else ((0.48 - 0.42 * u) if lv == 1 else (-1.08 + 0.38 * u))
-            rad = 13.2 - 2.2 * u if lv != 2 else 8.8 - 1.2 * u
-            return (math.sin(ang) * rad, 3.8 + 1.0 * u, math.cos(ang) * rad), (-0.6, 2.3, -0.5), (0.72, 0.24, -0.64), 1.32
+            # Six distinct camera paths so repeated Giza shots never retrace the same move:
+            # two wide orbits (each direction), a low hero push-in, a high aerial descent,
+            # a flank tracking shot, and a tight near-base inspection.
+            giza_paths = (
+                (-0.62 + 0.48 * u, 13.2 - 2.2 * u, 3.8 + 1.0 * u),
+                (0.48 - 0.42 * u, 12.4 - 1.8 * u, 4.4 + 0.8 * u),
+                (-1.08 + 0.38 * u, 8.8 - 1.2 * u, 2.6 + 0.9 * u),
+                (1.18 - 0.52 * u, 15.4 - 2.6 * u, 7.2 - 1.4 * u),
+                (-1.62 + 0.66 * u, 10.6 - 1.4 * u, 5.0 - 0.6 * u),
+                (0.92 - 0.30 * u, 7.4 - 0.9 * u, 2.0 + 0.5 * u),
+            )
+            ang, rad, height = giza_paths[lv]
+            return (math.sin(ang) * rad, height, math.cos(ang) * rad), (-0.6, 2.3, -0.5), (0.72, 0.24, -0.64), 1.32
         elif scene_id == SCENE_PHAROS:
             ang = -0.52 + 0.56 * u + lv * 0.72
             rad = 12.6 - 1.8 * u
@@ -1072,8 +1082,10 @@ class Monument3DEngine:
             rad = 7.4 - 1.2 * u
             return (math.sin(ang) * rad, 3.45 + 0.55 * u, math.cos(ang) * rad), (0.0, 3.15, 0.0), (0.64, 0.20, -0.74), 1.26
         else:
-            ang = -0.5 + 0.55 * u
-            return (math.sin(ang) * 10.2, 3.6, math.cos(ang) * 10.2), (0.0, 2.0, 0.0), (0.68, 0.28, 0.66), 1.30
+            # Offset each lens variant by 60 degrees so generic fallback scenes also vary.
+            ang = -0.5 + 0.55 * u + lv * (math.tau / 6.0)
+            rad = 10.2 + 1.4 * math.sin(lv * 1.7)
+            return (math.sin(ang) * rad, 3.6 + 0.7 * (lv % 3), math.cos(ang) * rad), (0.0, 2.0, 0.0), (0.68, 0.28, 0.66), 1.30
 
     def render_frame(
         self,

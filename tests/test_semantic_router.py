@@ -133,3 +133,52 @@ def test_template_ladder_rotates_without_short_term_repetition() -> None:
     # Adjacent shots never repeat, and the full category ladder is used before rotation.
     assert all(templates[i] != templates[i - 1] for i in range(1, len(templates)))
     assert len(set(templates[:4])) == 4
+
+
+def test_stat_dashboard_requires_real_numbers_in_clause() -> None:
+    # Regression: numberless clauses rendered a fabricated "60 per cent of model" readout.
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    for clause in (
+        "Out of the original Seven Wonders cataloged by Greek travelers",
+        "fire and human greed destroyed six, leaving only one",
+        "the World endure as humanity's boldest signature in stone",
+    ):
+        directive = director.directive_for_clause(clause, "Origins", "scene")
+        assert directive.diagram_template != "stat_dashboard", clause
+    numbered = director.directive_for_clause(
+        "the Great Pyramid stood 146.6 meters tall", "Giza", "scene"
+    )
+    assert numbered.scene_id == SCENE_GIZA  # clause binds the monument before template choice
+
+
+def test_whole_film_template_budget_spreads_diagrams_across_ladder() -> None:
+    # Twelve abstract, numberless shots must rotate across the ladder instead of replaying one look.
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    used: dict[str, int] = {}
+    for i in range(12):
+        directive = director.directive_for_clause(
+            f"an abstract reflection about legacy and meaning, chapter {i}", "Origins", "scene"
+        )
+        if directive.diagram_template:
+            used[directive.diagram_template] = used.get(directive.diagram_template, 0) + 1
+    assert len(used) >= 4
+    assert max(used.values()) - min(used.values()) <= 1
+
+
+def test_every_monument_emission_gets_a_distinct_variation_index() -> None:
+    # One counter per wonder across ALL its treatments: repeated 3D shots must never retrace
+    # the same camera path even when the treatment ladder wraps (regression for seg4~seg14
+    # near-identical broll where two treatments collided on the same lens variant).
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    variations = []
+    for i in range(7):
+        directive = director.directive_for_clause(
+            f"the Great Pyramid of Giza rises over the plateau, note {i}", "Giza", "scene"
+        )
+        assert directive.scene_id == SCENE_GIZA
+        variations.append(directive.variation_index)
+    assert variations == list(range(7))
+
+    # A different wonder keeps its own counter.
+    other = director.directive_for_clause("the Taj Mahal shimmered over the Yamuna", "Agra", "scene")
+    assert other.variation_index == 0

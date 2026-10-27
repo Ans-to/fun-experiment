@@ -42,6 +42,61 @@ PANEL = (17, 26, 44)
 TEXT = (238, 242, 248)
 MUTED = (158, 176, 200)
 
+# Filler words that carry no visual signal when a numberless clause needs key-term chips.
+_STOPWORDS = frozenset(
+    """a an and or but the of to in on at by for with from into over under through after before
+    as is are was were be been being it its they them their this that these those we you your our
+    his her hers their ours not no yes than then so yet nor about above below between during
+    because while where when what which who whom whose how why can could would should shall will
+    may might must do does did done has have had having just only over such very more most some
+    any each every other another one two also still even ever never often always across along""".split()
+)
+_NUMBER_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([a-zA-Z%]*)")
+
+
+def extract_key_terms(clause: str, limit: int = 4) -> list[str]:
+    """Pick the most informative content words from a clause, preserving original casing."""
+    seen: set[str] = set()
+    terms: list[str] = []
+    for raw in re.findall(r"[A-Za-z][A-Za-z'-]+", clause or ""):
+        low = raw.lower().strip("'-")
+        if len(low) < 4 or low in _STOPWORDS or low in seen:
+            continue
+        seen.add(low)
+        terms.append(raw)
+    # Prefer capitalised (named) entities, then longer, more specific words.
+    terms.sort(key=lambda w: (w[0].islower(), -len(w)))
+    return terms[:limit]
+
+
+def stat_panel_content(clause: str, u: float) -> dict:
+    """Pure, testable spec for the stat dashboard's left panel.
+
+    Numeric clauses show their real measured value; numberless clauses get clause-derived key
+    terms instead of an invented percentage, so the plate never fabricates data.
+    """
+    nums = _NUMBER_RE.findall(clause or "")
+    nums = [(a, (b or "units").lower()) for a, b in nums if a][:3]
+    if nums:
+        raw, unit = nums[0]
+        try:
+            target = float(raw.replace(",", ""))
+        except ValueError:
+            target, unit = 100.0, "units"
+        cur = target * min(1.0, u * 1.15)
+        # Preserve the clause's own decimal precision so the plate never contradicts narration
+        # ("146.6 meters" must not round to 147); integer counts stay integer with separators.
+        decimals = len(raw.split(".", 1)[1]) if "." in raw else 0
+        if unit in {"thousand", "million", "billion", "trillion"}:
+            label = f"{cur:,.1f}".rstrip("0").rstrip(".") if cur < 100 else f"{cur:,.0f}"
+        elif decimals:
+            label = f"{cur:,.{decimals}f}"
+        else:
+            label = f"{cur:,.0f}"
+        return {"kind": "numeric", "label": label, "unit": unit.upper()}
+    return {"kind": "keywords", "terms": extract_key_terms(clause), "unit": "KEY SIGNALS"}
+
+
 _TEMPLATE_KICKERS = {
     TPL_TERRAIN: "TECTONIC & TERRAIN MODEL",
     TPL_NETWORK: "RELATIONSHIP NETWORK MODEL",
@@ -58,6 +113,8 @@ class SemanticDiagramEngine:
     def __init__(self) -> None:
         self._f_kicker = load_font("SpaceGrotesk-Bold.ttf", 17)
         self._f_title = load_font("SpaceGrotesk-Bold.ttf", 34)
+        # Size ladder lets long episode titles shrink to fit instead of running off-canvas.
+        self._f_title_ladder = [load_font("SpaceGrotesk-Bold.ttf", s) for s in (34, 28, 24, 20)]
         self._f_big = load_font("SpaceGrotesk-Bold.ttf", 64)
         self._f_mid = load_font("SpaceGrotesk-Medium.ttf", 22)
         self._f_small = load_font("Inter-Medium.ttf", 17)
@@ -87,8 +144,31 @@ class SemanticDiagramEngine:
             TPL_TIMELINE: self._tpl_timeline,
         }.get(template, self._tpl_stats)
         draw_fn(canvas, rng, u, time_s, clause)
+        # The stat dashboard renders its own key-signal panel; don't duplicate the chips strip.
+        if template != TPL_STATS:
+            self._draw_key_terms(canvas, extract_key_terms(clause, limit=3), u)
         self._draw_chrome(canvas, template, subject_label, clause)
         return canvas
+
+    def _draw_key_terms(self, canvas: np.ndarray, terms: list[str], u: float) -> None:
+        """Clause-derived signal chips: every plate visibly carries its own narration's content
+        words, which both improves semantic relevance and structurally distinguishes same-family
+        templates built for different clauses."""
+        if not terms:
+            return
+        x, y = 120, 838
+        for i, term in enumerate(terms[:3]):
+            if u * 1.3 <= i * 0.18:
+                break
+            chip = term.upper()[:22]
+            (tw, th), _bl = cv2.getTextSize(chip, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+            x1 = min(canvas.shape[1] - 120, x + tw + 40)
+            cv2.rectangle(canvas, (x, y), (x1, y + th + 20), PANEL, -1, cv2.LINE_AA)
+            cv2.rectangle(canvas, (x, y), (x1, y + th + 20), CYAN, 1, cv2.LINE_AA)
+            cv2.putText(canvas, chip, (x + 20, y + th + 8), cv2.FONT_HERSHEY_SIMPLEX, 0.6, TEXT, 2, cv2.LINE_AA)
+            x = x1 + 18
+            if x > canvas.shape[1] - 320:
+                break
 
     # -- shared canvas & chrome ---------------------------------------------
 
@@ -118,12 +198,26 @@ class SemanticDiagramEngine:
         draw = ImageDraw.Draw(img)
         draw.rectangle([64, 56, 72, 92], fill=GOLD)
         draw.text((88, 54), f"PURE-CODE EXPLAINER  ·  {_TEMPLATE_KICKERS.get(template, '')}", font=self._f_kicker, fill=GOLD)
-        title = subject_label.upper()[:72]
-        draw.text((86, 96), title, font=self._f_title, fill=TEXT)
-        wrapped = textwrap.wrap(clause or subject_label, width=98)[:2]
-        for i, line in enumerate(wrapped):
-            draw.text((86, canvas.shape[0] - 96 + i * 30), line, font=self._f_small, fill=MUTED)
+        # Fit the title by measured width (the old fixed 72-char slice still overflowed long
+        # episode names); wrap to at most two lines before shrinking the font size.
+        max_w = canvas.shape[1] - 172
+        title_lines = self._fit_title(draw, (subject_label or "").upper(), max_w)
+        y = 96
+        for line, font in title_lines[:2]:
+            draw.text((86, y), line, font=font, fill=TEXT)
+            y += int(font.size * 1.25)
+        # The spoken clause is intentionally NOT repeated here: the burned caption already
+        # carries it verbatim, and duplicating it collided with the caption band.
         canvas[:] = np.asarray(img)
+
+    def _fit_title(self, draw, text: str, max_w: int) -> list[tuple[str, object]]:
+        for font in self._f_title_ladder:
+            for width in (48, 38, 30, 24):
+                lines = textwrap.wrap(text, width=width) or [text]
+                if all(draw.textlength(line, font=font) <= max_w for line in lines):
+                    return [(line, font) for line in lines[:2]]
+        font = self._f_title_ladder[-1]
+        return [(line[:24].rstrip() + "…", font) for line in textwrap.wrap(text, width=24)[:2]]
 
     # -- template 1: terrain / tectonic -------------------------------------
 
@@ -245,28 +339,33 @@ class SemanticDiagramEngine:
         box_w, box_h = 250, 190
         gap = (1920 - 2 * 120 - stages * box_w) // (stages - 1)
         y0 = 430
+        # Seed-driven per-shot variation: glyph order and vertical rhythm must change with the
+        # clause salt, otherwise two process plates render pixel-identical regardless of seed.
+        glyph_order = rng.permutation(5).tolist()
+        row_jitter = rng.integers(-34, 35, size=stages)
         centers = []
         for s in range(stages):
             x0 = 120 + s * (box_w + gap)
+            sy = int(y0 + row_jitter[s])
             active = (s / stages) <= min(1.0, u * 1.25)
             col = GOLD if active else GRID
-            cv2.rectangle(c, (x0, y0), (x0 + box_w, y0 + box_h), PANEL, -1, cv2.LINE_AA)
-            cv2.rectangle(c, (x0, y0), (x0 + box_w, y0 + box_h), col, 2, cv2.LINE_AA)
-            # distinct abstract glyph per stage: circle, square, triangle, cross, ring
-            gx, gy = x0 + box_w // 2, y0 + box_h // 2 - 12
-            if s % 5 == 0:
+            cv2.rectangle(c, (x0, sy), (x0 + box_w, sy + box_h), PANEL, -1, cv2.LINE_AA)
+            cv2.rectangle(c, (x0, sy), (x0 + box_w, sy + box_h), col, 2, cv2.LINE_AA)
+            # distinct abstract glyph per stage, order shuffled per clause seed
+            gx, gy = x0 + box_w // 2, sy + box_h // 2 - 12
+            if glyph_order[s] == 0:
                 cv2.circle(c, (gx, gy), 34, col, 3, cv2.LINE_AA)
-            elif s % 5 == 1:
+            elif glyph_order[s] == 1:
                 cv2.rectangle(c, (gx - 30, gy - 30), (gx + 30, gy + 30), col, 3, cv2.LINE_AA)
-            elif s % 5 == 2:
+            elif glyph_order[s] == 2:
                 cv2.polylines(c, [np.array([(gx, gy - 38), (gx + 36, gy + 28), (gx - 36, gy + 28)])], True, col, 3, cv2.LINE_AA)
-            elif s % 5 == 3:
+            elif glyph_order[s] == 3:
                 cv2.line(c, (gx - 34, gy), (gx + 34, gy), col, 3, cv2.LINE_AA)
                 cv2.line(c, (gx, gy - 34), (gx, gy + 34), col, 3, cv2.LINE_AA)
             else:
                 cv2.circle(c, (gx, gy), 36, col, 3, cv2.LINE_AA)
                 cv2.circle(c, (gx, gy), 14, col, -1, cv2.LINE_AA)
-            centers.append((x0 + box_w, y0 + box_h // 2, x0 + box_w + gap, y0 + box_h // 2))
+            centers.append((x0 + box_w, sy + box_h // 2, x0 + box_w + gap, sy + box_h // 2))
         glow = np.zeros_like(c)
         for ci, (x1, y1, x2, y2) in enumerate(centers):
             cv2.line(c, (x1, y1), (x2, y2), GRID, 2, cv2.LINE_AA)
@@ -285,36 +384,30 @@ class SemanticDiagramEngine:
     # -- template 5: stat dashboard -----------------------------------------
 
     def _tpl_stats(self, c: np.ndarray, rng: np.random.Generator, u: float, t: float, clause: str) -> None:
-        nums = re.findall(
-            r"(\d+(?:[.,]\d+)?)\s*"
-            r"(%|percent|trillion|billion|million|thousand|kilometres?|kilometers?|km|"
-            r"miles?|metres?|meters?|years?|days?|hours?|minutes?|seconds?|times?|degrees?)?",
-            clause or "",
-            flags=re.I,
-        )
-        nums = [(a, (b or "units").lower()) for a, b in nums if a][:3]
-        # Left panel: big counting readout
+        spec = stat_panel_content(clause, u)
+        # Left panel: real measured readout, or clause-derived key-term chips (never fake data)
         px, py, pw, ph = 120, 300, 760, 460
         cv2.rectangle(c, (px, py), (px + pw, py + ph), PANEL, -1, cv2.LINE_AA)
         cv2.rectangle(c, (px, py), (px + pw, py + ph), GRID, 1, cv2.LINE_AA)
-        if nums:
-            raw, unit = nums[0]
-            try:
-                target = float(raw.replace(",", ""))
-            except ValueError:
-                target, unit = 100.0, "units"
-            # Scale words stay attached to the number ("2.4 million"), physical units count up directly.
-            scale_words = {"thousand", "million", "billion", "trillion"}
-            if unit in scale_words:
-                cur = target * min(1.0, u * 1.15)
-                label = f"{cur:,.1f}".rstrip("0").rstrip(".") if cur < 100 else f"{cur:,.0f}"
-            else:
-                cur = target * min(1.0, u * 1.15)
-                label = f"{cur:,.0f}" if cur >= 100 else f"{cur:,.1f}"
+        if spec["kind"] == "numeric":
+            self._pil_text(c, spec["label"], (px + 40, py + 120), self._f_big, TEXT)
+            self._pil_text(c, spec["unit"], (px + 44, py + 230), self._f_mid, GOLD)
         else:
-            label, unit = f"{int(round(100 * min(1.0, u * 1.15)))}", "per cent of model"
-        self._pil_text(c, label, (px + 40, py + 120), self._f_big, TEXT)
-        self._pil_text(c, unit.upper(), (px + 44, py + 230), self._f_mid, GOLD)
+            self._pil_text(c, spec["unit"], (px + 40, py + 44), self._f_mid, GOLD)
+            terms = spec["terms"] or ["CONCEPT", "RELATION", "EVIDENCE"]
+            chip_y = py + 110
+            for i, term in enumerate(terms[:4]):
+                # Stagger chip reveal so the panel animates in sync with the shot's progress.
+                if u * 1.35 <= i * 0.22:
+                    break
+                chip = term.upper()
+                (tw, th), _bl = cv2.getTextSize(chip, cv2.FONT_HERSHEY_SIMPLEX, 0.72, 2)
+                x0, y0 = px + 40, chip_y
+                x1, y1 = min(px + pw - 40, x0 + tw + 48), y0 + th + 26
+                cv2.rectangle(c, (x0, y0), (x1, y1), GRID, -1, cv2.LINE_AA)
+                cv2.rectangle(c, (x0, y0), (x1, y1), GOLD, 1, cv2.LINE_AA)
+                cv2.putText(c, chip, (x0 + 24, y1 - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.72, TEXT, 2, cv2.LINE_AA)
+                chip_y = y1 + 22
         # Right panel: animated bars + verb-shaped curve
         rx, ry, rw, rh = 960, 300, 840, 460
         cv2.rectangle(c, (rx, ry), (rx + rw, ry + rh), PANEL, -1, cv2.LINE_AA)
@@ -343,14 +436,18 @@ class SemanticDiagramEngine:
 
     def _tpl_timeline(self, c: np.ndarray, rng: np.random.Generator, u: float, t: float, clause: str) -> None:
         h, w = c.shape[:2]
-        n_marks = 6
+        # Marker count, spacing jitter and arc heights all consume the clause salt so two
+        # timeline plates can never render identically for different clauses.
+        n_marks = int(rng.integers(5, 8))
         ax_y = int(h * 0.6)
         x0, x1 = 200, w - 200
+        x_jitter = rng.integers(-26, 27, size=n_marks)
+        arc_scale = rng.uniform(18.0, 46.0, size=n_marks)
         cv2.line(c, (x0, ax_y), (x1, ax_y), GRID, 2, cv2.LINE_AA)
         for m in range(n_marks):
             frac = m / (n_marks - 1)
-            mx = int(x0 + frac * (x1 - x0))
-            wobble = int(26 * math.sin(frac * math.pi))
+            mx = int(x0 + frac * (x1 - x0) + x_jitter[m])
+            wobble = int(arc_scale[m] * math.sin(frac * math.pi))
             my = ax_y - wobble
             lit = frac <= min(1.0, u * 1.2)
             cv2.line(c, (mx, ax_y), (mx, my), GRID, 1, cv2.LINE_AA)
