@@ -31,6 +31,7 @@ import cv2
 import numpy as np
 
 from voxforge.models import AudioMasterMeta, EpisodeScript, StageAudit, AuditCheck
+from voxforge.video.procedural_world import resolve_procedural_scene_id
 
 # Plan visual family -> expected pixel-evidence group produced by the pure-code engine.
 _FAMILY_GROUPS: dict[str, set[str]] = {
@@ -96,6 +97,30 @@ def classify_frame_group(frame_bgr: np.ndarray) -> str:
     if stone_frac > 0.16:
         return "monument"
     return "unknown"
+
+
+def _planned_subject_mismatch(entry: dict, script: EpisodeScript) -> str | None:
+    """Independently verify scene identity using the complete active narration turn."""
+    clause = str(entry.get("narration_clause", "")).strip()
+    if not clause:
+        return None
+    turn_id = int(entry.get("turn_id", -1))
+    turn = next((t for t in script.all_turns if t.turn_id == turn_id), None)
+    if turn is None:
+        return None
+    chapter = next((ch for ch in script.chapters if ch.chapter_index == turn.chapter_index), None)
+    if chapter is None:
+        return None
+    expected_sid, expected_title = resolve_procedural_scene_id(
+        f"{clause} || {turn.text} || {chapter.title} {chapter.location}",
+        fallback_idx=int(entry.get("seg_index", 0)) + 1,
+    )
+    if int(entry.get("scene_id", -1)) == expected_sid:
+        return None
+    return (
+        f"planned subject={entry.get('subject')} scene_id={entry.get('scene_id')} "
+        f"but narration context resolves to {expected_title} scene_id={expected_sid}"
+    )
 
 
 class _VideoProber:
@@ -199,6 +224,12 @@ def audit_av_sync(
         frozen_hits = 0
         black_hits = 0
         for e in entries:
+            subject_mismatch = _planned_subject_mismatch(e, script)
+            if subject_mismatch:
+                mismatches += 1
+                e["validation_status"] = "failed:planned_subject_mismatch"
+                e["validation_note"] = subject_mismatch
+                continue
             fam = e.get("visual_family", "")
             expected = _FAMILY_GROUPS.get(fam, {"monument", "darkhud", "geo", "quote"})
             t0 = float(e.get("scene_start_sec", 0.0))

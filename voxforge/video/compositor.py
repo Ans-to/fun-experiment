@@ -762,10 +762,11 @@ class MulticamCompositor:
         out_path: Path,
         asset_override: Path | None = None,
         zoom_in_override: bool | None = None,
+        scene_context: str = "",
     ) -> PlateLayout:
         """Render clean full-bleed Rec.709 1920x1080 Pure-Code 3D Monument plate."""
         del asset_override
-        s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
+        s_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
         bg = self._code_plate_for_hint(s_hint, chapter.chapter_index)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         bg.save(out_path, quality=93)

@@ -242,6 +242,12 @@ def _pick_plate_from_pool(
     return non_adj[rot_idx % len(non_adj)] if non_adj else pool[rot_idx % len(pool)]
 
 
+def _scene_resolution_text(clause: str, full_turn: str, chapter_context: str) -> str:
+    """Keep the active phrase first, but retain its full-turn proper-noun context."""
+    parts = [part for part in (clause, full_turn, chapter_context) if part.strip()]
+    return " || ".join(parts)
+
+
 def _caption_for_asset(p: Path | None, ch: ChapterScript, fallback: str = "", turn_text: str = "") -> str:
     del p
     _, scene_title = resolve_procedural_scene_id(
@@ -856,12 +862,16 @@ def render_episode_video(
                 lead_attribution_sec=2.9 if (want_turn_lt and not is_ep_opener) else 0.0,
             )
             lt_emitted = False
+            full_turn_text = turn.text
 
             for b_i, (beat_cam, beat_end_sec, beat_clause) in enumerate(beats):
                 s_sec, dur_sec = _alloc_seg_duration(beat_end_sec)
-                # Clause-scoped turn copy: every downstream caption/plate/HUD resolves the
-                # picture from the exact spoken clause of THIS beat, not the whole turn.
+                # Keep exact active clause for captions while carrying the full source sentence
+                # as disambiguating context for procedural subject/asset selection.
                 turn = dataclasses.replace(turn, text=beat_clause) if beat_clause else turn
+                scene_resolution_hint = _scene_resolution_text(
+                    beat_clause, full_turn_text, f"{ch.title} {ch.location}"
+                )
                 plate_file = plates_dir / f"seg_{seg_idx:04d}_{beat_cam}.jpg"
                 hud_overlay: tuple[Path, int, int, str] | None = None
 
@@ -883,9 +893,9 @@ def render_episode_video(
                         show_lower_third=show_lt_now,
                         prev_location_hint=prev_map_hint,
                     )
-                    prev_map_hint = f"{turn.text} || {ch.title} {ch.location}"
+                    prev_map_hint = scene_resolution_hint
                 elif beat_cam in ("closeup_host_a", "closeup_host_b"):
-                    chosen_p, cur_lens_variant = _next_distinct_plate(turn.text)
+                    chosen_p, cur_lens_variant = _next_distinct_plate(scene_resolution_hint)
                     cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text)
                     layout, hud_overlay = compositor.render_host_closeup(
                         turn,
@@ -898,8 +908,8 @@ def render_episode_video(
                         caption_override=cap_txt,
                     )
                 elif beat_cam == "reaction_shot":
-                    p1, _ = _next_distinct_plate(turn.text)
-                    p2, _ = _next_distinct_plate(turn.text)
+                    p1, _ = _next_distinct_plate(scene_resolution_hint)
+                    p2, _ = _next_distinct_plate(scene_resolution_hint)
                     layout, hud_overlay = compositor.render_reaction_shot(
                         turn,
                         ch,
@@ -908,12 +918,12 @@ def render_episode_video(
                         plate_file,
                         primary_asset=p1,
                         secondary_asset=p2,
-                        primary_caption=_caption_for_asset(p1, ch, "", turn.text),
-                        secondary_caption=_caption_for_asset(p2, ch, "", turn.text),
+                        primary_caption=_caption_for_asset(p1, ch, "", scene_resolution_hint),
+                        secondary_caption=_caption_for_asset(p2, ch, "", scene_resolution_hint),
                     )
                 elif beat_cam == "studio_insert":
-                    p1, _ = _next_distinct_plate(turn.text)
-                    p2, _ = _next_distinct_plate(turn.text)
+                    p1, _ = _next_distinct_plate(scene_resolution_hint)
+                    p2, _ = _next_distinct_plate(scene_resolution_hint)
                     layout, hud_overlay = compositor.render_studio_insert(
                         turn,
                         ch,
@@ -923,11 +933,11 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_ins_hud.png",
                         primary_asset=p1,
                         secondary_asset=p2,
-                        primary_caption=_caption_for_asset(p1, ch, "", turn.text),
-                        secondary_caption=_caption_for_asset(p2, ch, "", turn.text),
+                        primary_caption=_caption_for_asset(p1, ch, "", scene_resolution_hint),
+                        secondary_caption=_caption_for_asset(p2, ch, "", scene_resolution_hint),
                     )
                 elif beat_cam == "quote_card":
-                    p_q, _ = _next_distinct_plate(turn.text)
+                    p_q, _ = _next_distinct_plate(scene_resolution_hint)
                     layout = compositor.render_quote_card(
                         turn, ch, total_ch, show_title, plate_file, asset_override=p_q
                     )
@@ -937,10 +947,10 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_q_hud.png",
                         total_chapters=total_ch,
                         show_title=show_title,
-                        caption_override=f"Narration-linked quote card · {_caption_for_asset(p_q, ch, '', turn.text)}",
+                        caption_override=f"Narration-linked quote card · {_caption_for_asset(p_q, ch, '', scene_resolution_hint)}",
                     )
                 elif beat_cam == "split_fact_card":
-                    p_f, _ = _next_distinct_plate(turn.text)
+                    p_f, _ = _next_distinct_plate(scene_resolution_hint)
                     layout = compositor.render_split_fact_card(
                         turn, ch, total_ch, show_title, plate_file, asset_override=p_f
                     )
@@ -950,17 +960,18 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_f_hud.png",
                         total_chapters=total_ch,
                         show_title=show_title,
-                        caption_override=f"Engineering Telemetry · {_caption_for_asset(p_f, ch, '', turn.text)}",
+                        caption_override=f"Engineering Telemetry · {_caption_for_asset(p_f, ch, '', scene_resolution_hint)}",
                     )
                 else:
-                    chosen_p, cur_lens_variant = _next_distinct_plate(turn.text)
-                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text)
+                    chosen_p, cur_lens_variant = _next_distinct_plate(scene_resolution_hint)
+                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, scene_resolution_hint)
                     layout = compositor.render_broll_cinema(
                         turn,
                         ch,
                         plate_file,
                         asset_override=chosen_p,
                         zoom_in_override=((seg_idx % 2) == 0),
+                        scene_context=full_turn_text,
                     )
                     hud_overlay = compositor.render_broll_hud_overlay(
                         turn,
@@ -979,7 +990,7 @@ def render_episode_video(
                 use_fade_out = False
 
                 sid_b, scene_title_b = resolve_procedural_scene_id(
-                    f"{turn.text} || {ch.title} {ch.location}", fallback_idx=seg_idx + 1
+                    scene_resolution_hint, fallback_idx=seg_idx + 1
                 )
                 intent_b = _turn_visual_intent(turn.text)
                 plan.entries.append(

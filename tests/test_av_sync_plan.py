@@ -75,6 +75,7 @@ def test_planner_returns_clause_triples_covering_turn() -> None:
 
 def test_clause_scene_resolution_uses_full_active_turn_before_chapter_fallback() -> None:
     from voxforge.video.procedural_world import SCENE_MACHU_PICCHU, resolve_procedural_scene_id
+    from voxforge.video.renderer import _scene_resolution_text
 
     clause = "Perched on a narrow granite fault saddle nearly eight"
     active_turn = (
@@ -82,7 +83,8 @@ def test_clause_scene_resolution_uses_full_active_turn_before_chapter_fallback()
         "Machu Picchu rises over the Urubamba River."
     )
     broad_chapter = "Citadels of the Americas: Chichén Itzá & Machu Picchu"
-    sid, title = resolve_procedural_scene_id(f"{clause} || {active_turn} || {broad_chapter}")
+    hint = _scene_resolution_text(clause, active_turn, broad_chapter)
+    sid, title = resolve_procedural_scene_id(hint)
     assert sid == SCENE_MACHU_PICCHU
     assert "Machu Picchu" in title
 
@@ -154,6 +156,34 @@ def test_generic_explanatory_simulation_renders() -> None:
     )
     assert frame.shape == (360, 640, 3)
     assert float(frame.mean()) > 5.0  # not a black frame; glyphs/panels drawn
+
+
+def test_stage_e_rejects_plan_subject_that_conflicts_with_full_narration_turn() -> None:
+    from types import SimpleNamespace
+
+    from voxforge.audit.av_sync_qa import _planned_subject_mismatch
+    from voxforge.video.procedural_world import SCENE_CHICHEN_ITZA, SCENE_MACHU_PICCHU
+
+    turn = SimpleNamespace(
+        turn_id=13,
+        chapter_index=0,
+        text=(
+            "Perched on a narrow granite fault saddle nearly eight thousand feet above sea level, "
+            "Machu Picchu rises over the Urubamba River."
+        ),
+    )
+    chapter = SimpleNamespace(chapter_index=0, title="Citadels of the Americas", location="Chichén Itzá and Machu Picchu")
+    script = SimpleNamespace(all_turns=[turn], chapters=[chapter])
+    bad_entry = {
+        "turn_id": 13,
+        "seg_index": 42,
+        "narration_clause": "Perched on a narrow granite fault saddle nearly eight",
+        "scene_id": SCENE_CHICHEN_ITZA,
+        "subject": "El Castillo, Chichén Itzá",
+    }
+    assert _planned_subject_mismatch(bad_entry, script) is not None
+    bad_entry["scene_id"] = SCENE_MACHU_PICCHU
+    assert _planned_subject_mismatch(bad_entry, script) is None
 
 
 def test_stage_e_human_review_queue_on_uncertain_scene(tmp_path) -> None:
