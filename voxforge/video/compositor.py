@@ -34,8 +34,20 @@ from voxforge.video.procedural_world import (
     ProceduralCadCache,
     resolve_procedural_scene_id,
 )
+from voxforge.video.semantic_diagrams import SemanticDiagramEngine
+from voxforge.video.semantic_router import VisualDirective, subject_seed
 
-AnimMode = Literal["none", "broll_depth", "geo_map", "archival_desk", "telemetry_split", "kinetic_quote", "smooth_card", "intro_montage"]
+AnimMode = Literal[
+    "none",
+    "broll_depth",
+    "geo_map",
+    "archival_desk",
+    "telemetry_split",
+    "kinetic_quote",
+    "smooth_card",
+    "intro_montage",
+    "semantic_diagram",
+]
 
 # Verbatim primary-source historical eyewitness inscriptions (8 monument-specific records, 100% complete sentences)
 _HISTORICAL_PRIMARY_QUOTES: list[tuple[tuple[str, ...], str, str, str]] = [
@@ -140,6 +152,17 @@ class PlateLayout:
     quote_citation: str = ""
     hud_overlay_path: Path | None = None
     scene_hint: str = ""
+    # Semantic explainer diagrams (anim_mode == "semantic_diagram")
+    semantic_template: str = ""
+    semantic_subject: str = ""
+    semantic_clause: str = ""
+    semantic_seed: int = 0
+    # Director-resolved wonder scene id; forces monument/CAD/sim engines to draw the exact
+    # subject the clause bound to instead of re-resolving via the legacy hint fallback.
+    directive_scene_id: int | None = None
+    # Director's treatment label (e.g. lidar_scan / physics_simulation) so the animation engine
+    # choice matches the treatment recorded in the scene plan instead of segment-index parity.
+    semantic_treatment: str = ""
 
 
 def _hex_to_rgba(hex_str: str, alpha: int = 255) -> tuple[int, int, int, int]:
@@ -774,6 +797,38 @@ class MulticamCompositor:
             ken_burns_zoom_in=z_in,
             anim_mode="none",
             scene_hint=s_hint,
+        )
+
+    def render_semantic_diagram(
+        self,
+        directive: VisualDirective,
+        clause: str,
+        out_path: Path,
+    ) -> PlateLayout:
+        """Render a clause-driven neutral explainer plate (no monument geometry is ever used).
+
+        A mid-shot still is persisted as the segment plate (tail frame / non-pipe fallback);
+        the encoder's rawvideo pipe animates the full 24fps sequence from the same engine.
+        """
+        engine = SemanticDiagramEngine()
+        still = engine.render_frame(
+            template=directive.diagram_template,
+            subject_label=directive.subject_label,
+            clause=clause,
+            u=0.55,
+            time_s=0.8,
+            seed=subject_seed(directive.subject_key),
+        )
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        Image.fromarray(still).save(out_path, quality=93)
+        return PlateLayout(
+            image_path=out_path,
+            anim_mode="semantic_diagram",
+            scene_hint=clause,
+            semantic_template=directive.diagram_template,
+            semantic_subject=directive.subject_label,
+            semantic_clause=clause,
+            semantic_seed=subject_seed(directive.subject_key),
         )
 
     def render_broll_hud_overlay(

@@ -15,10 +15,14 @@ Checks performed:
   4. A/V duration drift — decoded container duration vs real master audio duration.
   5. Caption accuracy spot-check — active subtitle cues must show bright text in the
      caption band of the decoded frame.
+  6. Subject hard gate — every shot must be bound to a real clause with a complete semantic
+     directive, its scene_id/subject must match the directive, monument and wonder-context
+     globe/quote shots independently re-match a wonder keyword in their own clause+context,
+     neutral diagrams stay on scene_id -1, and no consecutive (subject, treatment) pair repeats.
 
 Every scene's validation status is written back into `scene_plan.json` (never silently
-accepted): a single critical semantic mismatch fails the stage and therefore fails
-studio certification.
+accepted): a single critical semantic mismatch or subject-gate failure fails the stage and
+therefore fails studio certification.
 """
 
 from __future__ import annotations
@@ -31,6 +35,8 @@ import cv2
 import numpy as np
 
 from voxforge.models import AudioMasterMeta, EpisodeScript, StageAudit, AuditCheck
+from voxforge.video.procedural_world import match_wonder_scene_id
+from voxforge.video.semantic_router import ALL_TEMPLATES
 
 # Plan visual family -> expected pixel-evidence group produced by the pure-code engine.
 _FAMILY_GROUPS: dict[str, set[str]] = {
@@ -42,7 +48,12 @@ _FAMILY_GROUPS: dict[str, set[str]] = {
     "studio_insert": {"darkhud"},
     "reaction_shot": {"darkhud"},
     "quote_card": {"quote"},
+    "semantic_diagram": {"darkhud"},
 }
+
+_PLACEHOLDER_CLAUSE = "(voice attribution / establishing beat)"
+_MONUMENT_MODALITIES = {"monument_3d", "lidar_cad", "physics_sim"}
+_KNOWN_SOURCES = {"wonder_keyword", "semantic_category", "place_globe", "citation_quote", "clause_diagram"}
 
 
 def classify_frame_group(frame_bgr: np.ndarray) -> str:
@@ -156,6 +167,75 @@ def _caption_band_active(frame_bgr: np.ndarray) -> bool:
     return bool(bright > 0.0015)
 
 
+def _subject_hard_gate(entries: list[dict]) -> list[tuple[int, str]]:
+    """Subject-level certification gate over the renderer's per-clause semantic directives.
+
+    Every shot must be bound to a real narration clause, its recorded scene_id must match the
+    directive, monument shots must independently re-match a wonder keyword in their own clause,
+    generic shots must use a known clause-derived template, and no ``(subject, treatment)`` pair
+    may repeat on consecutive shots. Returns ``[(seg_index, reason), ...]`` and writes a failing
+    ``validation_status``/note onto each offending entry.
+    """
+    failures: list[tuple[int, str]] = []
+    prev_key: tuple[str, str] | None = None
+    for e in entries:
+        seg = int(e.get("seg_index", -1))
+        clause = str(e.get("narration_clause", "")).strip()
+        d = e.get("semantic_directive") or {}
+        reasons: list[str] = []
+
+        if not clause or clause == _PLACEHOLDER_CLAUSE or len(clause) < 12:
+            reasons.append("placeholder_or_empty_clause")
+        if not d or d.get("subject_key") in (None, "") or d.get("source") not in _KNOWN_SOURCES:
+            reasons.append("missing_or_placeholder_directive")
+
+        if d:
+            if e.get("scene_id") != d.get("scene_id"):
+                reasons.append("scene_id_directive_mismatch")
+            if str(e.get("subject", "")) != str(d.get("subject_label", "")):
+                reasons.append("subject_label_mismatch")
+            modality = d.get("modality", "")
+            sid = d.get("scene_id")
+            # Independent re-resolution through the SAME production matcher: the clause plus its
+            # recorded planning context must still keyword-match the bound wonder scene.
+            hint = f"{clause} || {d.get('context', '')}".strip(" |") if clause else ""
+            if modality in _MONUMENT_MODALITIES:
+                if not isinstance(sid, int) or not 0 <= sid <= 8:
+                    reasons.append("monument_shot_without_valid_scene_id")
+                elif hint and match_wonder_scene_id(hint) != sid:
+                    reasons.append("clause_subject_does_not_match_rendered_monument")
+            elif modality == "semantic_diagram":
+                # Neutral clause-derived diagrams never bind to monument geometry.
+                if sid != -1:
+                    reasons.append("non_monument_shot_bound_to_monument_scene_id")
+                if d.get("diagram_template") not in ALL_TEMPLATES:
+                    reasons.append("unknown_diagram_template")
+            elif modality in ("orbital_globe", "kinetic_quote"):
+                # Generic place/citation shots use -1; wonder-context globe/quote shots carry the
+                # wonder's id and must independently re-match it (no monument geometry is drawn).
+                if sid == -1:
+                    pass
+                elif isinstance(sid, int) and 0 <= sid <= 8:
+                    if hint and match_wonder_scene_id(hint) != sid:
+                        reasons.append("clause_subject_does_not_match_rendered_monument")
+                else:
+                    reasons.append("invalid_scene_id_for_globe_quote_shot")
+            else:
+                reasons.append("unknown_modality")
+            key = (str(d.get("subject_key", "")), str(d.get("treatment", "")))
+            if prev_key is not None and key == prev_key:
+                reasons.append("consecutive_identical_subject_treatment")
+            prev_key = key
+
+        if reasons:
+            failures.append((seg, ";".join(reasons)))
+            prior = str(e.get("validation_status", ""))
+            if not prior.startswith("failed"):
+                e["validation_status"] = "failed:subject_gate"
+            e["validation_note"] = f"{e.get('validation_note', '')} | subject_gate={';'.join(reasons)}".strip(" |")
+    return failures
+
+
 def audit_av_sync(
     video_mp4: Path,
     scene_plan_json: Path,
@@ -168,6 +248,7 @@ def audit_av_sync(
     improvements: list[str] = []
     mismatches = 0
     uncertain = 0
+    subject_gate_hits = 0
     penalties = 0.0
 
     if not scene_plan_json.exists():
@@ -287,6 +368,23 @@ def audit_av_sync(
         ))
         penalties += 4.0 * black_hits + 4.0 * frozen_hits
 
+        # --- Subject-level hard gate: clause binding, subject match, no-repetition invariant ---
+        subject_gate_failures = _subject_hard_gate(entries)
+        subject_gate_hits = len(subject_gate_failures)
+        checks.append(_chk(
+            "subject_hard_gate",
+            "Subject hard gate (clause-bound, no wrong-subject or repeated shots)",
+            subject_gate_hits == 0,
+            100.0 * (total_scored - subject_gate_hits) / total_scored,
+            f"{total_scored - subject_gate_hits}/{total_scored}",
+            f"{total_scored}/{total_scored}",
+            "Each rendered scene_id must match the clause-resolved subject; placeholder-bound "
+            "shots and consecutive identical (subject, treatment) pairs fail certification.",
+        ))
+        if subject_gate_hits:
+            details = ", ".join(f"seg{s}:{why}" for s, why in subject_gate_failures[:6])
+            improvements.append(f"Subject hard gate blocked {subject_gate_hits} shot(s): {details}")
+
         # --- Caption accuracy spot-check against real decoded frames ---
         turns = script.all_turns
         caption_hits = 0
@@ -317,8 +415,10 @@ def audit_av_sync(
     finally:
         prober.close()
 
-    final_score = round(max(0.0, 100.0 - penalties - (6.0 * mismatches) - (3.0 * uncertain)), 1)
-    passed = mismatches == 0 and uncertain == 0 and final_score >= 90.0
+    final_score = round(
+        max(0.0, 100.0 - penalties - (6.0 * mismatches) - (3.0 * uncertain) - (6.0 * subject_gate_hits)), 1
+    )
+    passed = mismatches == 0 and uncertain == 0 and subject_gate_hits == 0 and final_score >= 90.0
     improvements.append(f"Validated {len(entries)} scene-plan entries against decoded final-render frames.")
     if mismatches:
         improvements.append(f"FLAGGED {mismatches} narration↔visual semantic mismatches (certification blocked).")
@@ -335,6 +435,7 @@ def audit_av_sync(
         "passed": passed,
         "mismatches": mismatches,
         "human_review_queue": uncertain,
+        "subject_gate_failures": subject_gate_hits,
         "black_scenes": black_hits,
         "frozen_scenes": frozen_hits,
         "av_drift_sec": round(drift, 3),

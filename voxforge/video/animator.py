@@ -488,10 +488,15 @@ class StudioCharacterAnimator:
         fast_push: bool = False,
         lens_variant: int = 0,
         scene_hint: str = "",
+        scene_id_override: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream live 24fps True 3D Z-Buffered Architectural Monument Cinema (`Monument3DEngine`)."""
         del fast_push
-        sid = self._resolve_scene(scene_hint, plate_path, fallback_idx=seg_seed + 1)
+        sid = (
+            scene_id_override
+            if scene_id_override is not None and scene_id_override >= 0
+            else self._resolve_scene(scene_hint, plate_path, fallback_idx=seg_seed + 1)
+        )
         lv = (lens_variant + (seg_seed % 2)) % 3
         n_tot = max(1, n_frames)
 
@@ -677,6 +682,7 @@ class StudioCharacterAnimator:
         n_frames: int,
         seg_seed: int = 0,
         scene_hint: str = "",
+        scene_id_override: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream 24fps Live 3D Monument Cinema + Staggered Kinetic Primary-Source Quote & Highlighter!"""
         lines = textwrap.wrap(verbatim_quote, width=42)[:4]
@@ -708,7 +714,8 @@ class StudioCharacterAnimator:
 
         for i, bg_frame in enumerate(
             self.iter_broll_depth_frames(
-                plate_path, n_tot, seg_seed=seg_seed + 11, zoom_in=True, lens_variant=1, scene_hint=scene_hint
+                plate_path, n_tot, seg_seed=seg_seed + 11, zoom_in=True, lens_variant=1,
+                scene_hint=scene_hint, scene_id_override=scene_id_override,
             )
         ):
             p = i / float(max(1, n_tot - 1))
@@ -762,12 +769,19 @@ class StudioCharacterAnimator:
         n_frames: int,
         seg_seed: int = 0,
         scene_hint: str = "",
+        scene_id_override: int | None = None,
+        force_cad: bool | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream live 24fps Physics/Engineering Simulations & Rotating 3D Volumetric LiDAR Scans!"""
         del secondary_plate
         full_hint = f"{scene_hint} {primary_caption} {secondary_caption} {chapter_tag}"
-        sid = self._resolve_scene(full_hint, primary_plate, fallback_idx=seg_seed + 1)
-        use_physics_sim = (seg_seed % 2) == 0
+        sid = (
+            scene_id_override
+            if scene_id_override is not None and scene_id_override >= 0
+            else self._resolve_scene(full_hint, primary_plate, fallback_idx=seg_seed + 1)
+        )
+        # Director treatment wins when supplied; otherwise fall back to the legacy parity rhythm.
+        use_physics_sim = (seg_seed % 2) == 0 if force_cad is None else (not force_cad)
 
         n_tot = max(1, n_frames)
         for i in range(n_tot):
@@ -792,11 +806,16 @@ class StudioCharacterAnimator:
         curves: SpeechMotionCurves | None = None,
         seg_seed: int = 0,
         scene_hint: str = "",
+        scene_id_override: int | None = None,
     ) -> Iterator[np.ndarray]:
         """Stream 24fps Live Rotating 3D LiDAR Viewport + Fast-Cascading 4-Card Counting Telemetry!"""
         hx = accent_hex.lstrip("#")
         acc_rgb = (int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16))
-        sid = self._resolve_scene(f"{scene_hint} {chapter_title} {location_text}", photo_path, fallback_idx=seg_seed + 1)
+        sid = (
+            scene_id_override
+            if scene_id_override is not None and scene_id_override >= 0
+            else self._resolve_scene(f"{scene_hint} {chapter_title} {location_text}", photo_path, fallback_idx=seg_seed + 1)
+        )
 
         clean_loc = re.sub(r"\s*\([^)]*\)", "", location_text).strip()
         clean_era = era_text.split("·")[0].split("&")[0].strip()

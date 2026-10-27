@@ -41,7 +41,17 @@ from voxforge.video.animator import (
     parse_historical_year,
 )
 from voxforge.video.compositor import MulticamCompositor, PlateLayout
-from voxforge.video.procedural_world import SCENE_CLASSICAL_GENERIC, resolve_procedural_scene_id
+from voxforge.video.procedural_world import resolve_procedural_scene_id
+from voxforge.video.semantic_diagrams import iter_semantic_diagram_frames
+from voxforge.video.semantic_router import (
+    MODALITY_DIAGRAM,
+    MODALITY_GLOBE,
+    MODALITY_LIDAR,
+    MODALITY_PHYSICS_SIM,
+    MODALITY_QUOTE,
+    SemanticShotDirector,
+    VisualDirective,
+)
 from voxforge.video.subtitles import (
     CaptionCue,
     build_all_caption_cues,
@@ -165,17 +175,31 @@ def _split_turn_clauses(text: str, max_beats: int = 5) -> list[str]:
     return parts
 
 
-def _family_for_intent(intent: str, scene_mapped: bool, beat_idx: int) -> str:
-    """Map a narration clause's semantic intent onto the visual family that answers it."""
-    if intent == "eng":
-        return "split_fact_card"
-    if intent == "geo":
+def _camera_for_directive(directive: VisualDirective, spk_cu: CameraAngle) -> CameraAngle:
+    """Map a semantic directive onto the pure-code render family that depicts its subject.
+
+    Generic topics land on the new ``semantic_diagram`` engine family; monument directives keep
+    the established 3D/globe/sim/quote families, distinguished by treatment. This mapping never
+    invents monument footage for a non-monument clause.
+    """
+    if directive.modality == MODALITY_DIAGRAM:
+        return "semantic_diagram"
+    if directive.modality == MODALITY_GLOBE:
         return "wide_studio"
-    if intent == "quote":
+    if directive.modality == MODALITY_QUOTE:
         return "quote_card"
-    if intent == "people":
+    if directive.modality in (MODALITY_LIDAR, MODALITY_PHYSICS_SIM):
         return "studio_insert"
-    return "broll_cinema" if scene_mapped else ("split_fact_card" if beat_idx % 2 == 0 else "studio_insert")
+    if directive.treatment == "detail_closeup":
+        return spk_cu
+    return "broll_cinema"
+
+
+def _directive_caption(directive: VisualDirective, plate: Path | None, ch: ChapterScript, turn_text: str) -> str:
+    """Plate caption that never names a monument for a non-monument (generic topic) directive."""
+    if directive.scene_id == -1:
+        return directive.subject_label or ch.title
+    return _caption_for_asset(plate, ch, "", turn_text)
 
 
 def _read_segment_mono_audio(master_wav: Path, start_sec: float, duration_sec: float) -> tuple[np.ndarray, int]:
@@ -279,6 +303,7 @@ _REQUIRED_VISUAL_TEXT = {
     "studio_insert": "Explanatory simulation blackboard / LiDAR turntable illustrating the spoken mechanism",
     "reaction_shot": "Dual-plate archival light-table illustrating the spoken comparison",
     "quote_card": "Verbatim primary-source inscription typography of the spoken citation",
+    "semantic_diagram": "Clause-derived neutral animated explainer diagram of the spoken subject (no unrelated models)",
 }
 _VISUAL_SOURCE = {
     "broll_cinema": "pure-code:Monument3DEngine+broll_depth",
@@ -289,6 +314,7 @@ _VISUAL_SOURCE = {
     "studio_insert": "pure-code:PhysicsSimulationEngine/ProceduralCadCache",
     "reaction_shot": "pure-code:PhysicsSimulationEngine/ProceduralCadCache",
     "quote_card": "pure-code:kinetic typography",
+    "semantic_diagram": "pure-code:SemanticDiagramEngine",
 }
 
 
@@ -297,16 +323,19 @@ def _plan_turn_editorial_beats(
     turn_start_sec: float,
     turn_end_sec: float,
     env_50hz: np.ndarray,
-    is_episode_opener: bool,
-    is_episode_closer: bool,
+    director: SemanticShotDirector,
+    chapter_title: str,
+    chapter_location: str,
     scene_context: str = "",
     lead_attribution_sec: float = 0.0,
-) -> list[tuple[CameraAngle, float, str]]:
-    """Decompose a narration segment into clause-aligned documentary visual beats.
+) -> list[tuple[CameraAngle, float, str, VisualDirective]]:
+    """Decompose a narration segment into clause-aligned, subject-bound documentary beats.
 
-    Each beat carries the exact narration clause it illustrates, so picture changes track
-    the spoken subject/action at phrase level (durations come from the real TTS audio via
-    the caller's frame-accurate turn timestamps + breath-pause snapping).
+    Every beat carries the exact narration clause it illustrates AND the semantic director's
+    verdict for that clause, so picture changes track the spoken subject/action at phrase level.
+    There are no empty/placeholder beats: openers, closers and voice-attribution moments are all
+    resolved from real chapter/clause text, and the director's rolling treatment window prevents
+    the same ``(subject, treatment)`` pair from recurring back-to-back.
     """
     total_dur = max(0.4, turn_end_sec - turn_start_sec)
     spk_cu: CameraAngle = "closeup_host_a" if turn.speaker == "HOST_A" else "closeup_host_b"
@@ -314,86 +343,82 @@ def _plan_turn_editorial_beats(
     primary = turn.camera if intent == "scene" else _INTENT_PRIMARY[intent]
 
     if total_dur < 5.6:
-        if primary == "reaction_shot":
-            if total_dur >= 3.9:
-                react_d = 1.95
-                cut_t = _snap_to_breath_pause(
-                    env_50hz, turn_end_sec - react_d, turn_start_sec + 1.8, turn_end_sec - 1.5
-                )
-                return [(spk_cu, cut_t, ""), ("studio_insert", turn_end_sec, turn.text)]
-            return [(spk_cu, turn_end_sec, turn.text)]
-        if is_episode_closer and primary != "wide_studio":
-            return [("wide_studio", turn_end_sec, turn.text)]
-        return [(primary, turn_end_sec, turn.text)]
+        if primary == "reaction_shot" and total_dur >= 3.9:
+            react_d = 1.95
+            cut_t = _snap_to_breath_pause(
+                env_50hz, turn_end_sec - react_d, turn_start_sec + 1.8, turn_end_sec - 1.5
+            )
+            d_a = director.directive_for_clause(turn.text, scene_context, "people")
+            d_b = director.directive_for_clause(turn.text, scene_context, "eng")
+            return [
+                (spk_cu, cut_t, turn.text, d_a),
+                (_camera_for_directive(d_b, spk_cu), turn_end_sec, turn.text, d_b),
+            ]
+        directive = director.directive_for_clause(turn.text, scene_context, intent)
+        return [(_camera_for_directive(directive, spk_cu), turn_end_sec, turn.text, directive)]
 
-    # ---- Clause-aligned beat construction: one visual beat per meaningful spoken clause ----
-    specs: list[tuple[CameraAngle, float, str]] = []
-    if is_episode_opener:
-        specs = [
-            ("broll_cinema", 4.4, ""),
-            ("wide_studio", 4.1, ""),
-            (spk_cu, 3.8, ""),
-            ("broll_cinema", 4.6, ""),
-            ("studio_insert", 4.0, ""),
-        ]
-    elif is_episode_closer:
-        specs = [
-            ("broll_cinema", 4.5, ""),
-            (spk_cu, 3.6, ""),
-            ("wide_studio", 4.2, ""),
-            ("broll_cinema", 4.4, ""),
-        ]
-    else:
-        if lead_attribution_sec > 0.0:
-            specs.append((spk_cu, lead_attribution_sec, ""))
-        clauses = _split_turn_clauses(turn.text)
-        for ci, clause in enumerate(clauses):
-            intent_c = _turn_visual_intent(clause)
-            sid_c, _ = resolve_procedural_scene_id(f"{clause} || {scene_context}", fallback_idx=ci + 1)
-            fam = _family_for_intent(intent_c, sid_c != SCENE_CLASSICAL_GENERIC, ci)
-            specs.append((fam, float(max(3, len(clause.split()))), clause))
+    # ---- Clause-aligned beat construction: one bound directive per spoken clause ----
+    specs: list[tuple[CameraAngle, float, str, VisualDirective]] = []
+    if lead_attribution_sec > 0.0:
+        attr_clause = f"{chapter_title} {chapter_location}".strip() or turn.text
+        d_attr = director.attribution_directive(chapter_title, chapter_location, "people")
+        specs.append((_camera_for_directive(d_attr, spk_cu), lead_attribution_sec, attr_clause, d_attr))
 
-    # Merge beats that would fall below the 2.2s minimum shot length
+    clauses = _split_turn_clauses(turn.text)
+    for clause in clauses:
+        intent_c = _turn_visual_intent(clause)
+        directive_c = director.directive_for_clause(clause, scene_context, intent_c)
+        specs.append(
+            (
+                _camera_for_directive(directive_c, spk_cu),
+                float(max(3, len(clause.split()))),
+                clause,
+                directive_c,
+            )
+        )
+
+    # Merge beats that would fall below the 2.2s minimum shot length (merged beat keeps the
+    # first clause's directive; the combined clause text stays bound to both spoken fragments).
     def _scaled_min_ok(weights: list[float], total: float) -> bool:
         s = sum(weights)
         return all(w * total / s >= 2.2 for w in weights)
 
-    while len(specs) > 2 and not _scaled_min_ok([w for _, w, _ in specs], total_dur):
-        # merge the shortest adjacent pair
+    while len(specs) > 2 and not _scaled_min_ok([w for _, w, _, _ in specs], total_dur):
         idx = min(range(1, len(specs)), key=lambda i: specs[i][1])
         prev = specs[idx - 1]
-        merged = (prev[0], prev[1] + specs[idx][1], f"{prev[2]} {specs[idx][2]}".strip())
+        nxt = specs[idx]
+        merged = (prev[0], prev[1] + nxt[1], f"{prev[2]} {nxt[2]}".strip(), prev[3])
         specs[idx - 1] = merged
         specs.pop(idx)
 
-    # Long-narration rule: never hold one picture beyond ~6.2s — split the heaviest clause.
+    # Long-narration rule: never hold one picture beyond ~6.2s — split the heaviest clause and
+    # give the second half its own fresh directive (never an empty placeholder beat).
     while len(specs) < 8:
-        wsum = sum(w for _, w, _ in specs)
+        wsum = sum(w for _, w, _, _ in specs)
         scale0 = total_dur / max(1e-6, wsum)
         heavy = [i for i, s in enumerate(specs) if s[1] * scale0 > 6.2]
         if not heavy:
             break
         i_h = max(heavy, key=lambda i: specs[i][1])
-        cam_h, w_h, cl_h = specs[i_h]
+        cam_h, w_h, cl_h, d_h = specs[i_h]
         words_h = (cl_h or "").split()
         if len(words_h) >= 6:
             mid_h = len(words_h) // 2
+            half1, half2 = " ".join(words_h[:mid_h]), " ".join(words_h[mid_h:])
+            d2 = director.directive_for_clause(half2, scene_context, _turn_visual_intent(half2))
             specs[i_h : i_h + 1] = [
-                (cam_h, w_h / 2.0, " ".join(words_h[:mid_h])),
-                (cam_h, w_h / 2.0, " ".join(words_h[mid_h:])),
+                (cam_h, w_h / 2.0, half1, d_h),
+                (_camera_for_directive(d2, spk_cu), w_h / 2.0, half2, d2),
             ]
         else:
-            specs[i_h : i_h + 1] = [(cam_h, w_h / 2.0, cl_h), (cam_h, w_h / 2.0, "")]
+            break
 
-    if is_episode_closer and specs[-1][0] != "broll_cinema":
-        specs[-1] = ("broll_cinema", specs[-1][1], specs[-1][2])
-
-    weight_sum = sum(w for _, w, _ in specs)
-    beats: list[tuple[CameraAngle, float, str]] = []
+    weight_sum = sum(w for _, w, _, _ in specs)
+    beats: list[tuple[CameraAngle, float, str, VisualDirective]] = []
     cur_t = turn_start_sec
-    for idx_b, (cam, wgt, clause) in enumerate(specs):
+    for idx_b, (cam, wgt, clause, directive_b) in enumerate(specs):
         if idx_b == len(specs) - 1:
-            beats.append((cam, turn_end_sec, clause))
+            beats.append((cam, turn_end_sec, clause, directive_b))
             break
         target_end = cur_t + total_dur * (wgt / weight_sum)
         min_bound = cur_t + 2.35
@@ -402,7 +427,7 @@ def _plan_turn_editorial_beats(
             snapped = float(np.clip(target_end, cur_t + 0.8, turn_end_sec - 0.8))
         else:
             snapped = _snap_to_breath_pause(env_50hz, target_end, min_bound, max_bound)
-        beats.append((cam, snapped, clause))
+        beats.append((cam, snapped, clause, directive_b))
         cur_t = snapped
 
     return beats
@@ -438,6 +463,7 @@ def _encode_single_segment(
     )
     use_geo_map = anim_mode == "geo_map" and not is_marathon_cpu
     use_archival_desk = anim_mode == "archival_desk" and not is_marathon_cpu
+    use_semantic_diagram = anim_mode == "semantic_diagram" and not is_marathon_cpu
     use_smooth_card = (
         not is_intro_montage
         and not use_kinetic_quote
@@ -451,6 +477,7 @@ def _encode_single_segment(
         or use_broll_depth
         or use_geo_map
         or use_archival_desk
+        or use_semantic_diagram
         or use_smooth_card
     )
 
@@ -631,6 +658,17 @@ def _encode_single_segment(
                 curves=curves,
                 fallback_index=task.seg_index + 1,
             )
+        elif use_semantic_diagram:
+            frame_iter = iter_semantic_diagram_frames(
+                template=task.layout.semantic_template,
+                subject_label=task.layout.semantic_subject,
+                clause=task.layout.semantic_clause,
+                seed=task.layout.semantic_seed,
+                n_frames=frames,
+                fps=fps,
+                width=VIDEO_SPEC.width,
+                height=VIDEO_SPEC.height,
+            )
         elif use_archival_desk:
             sec_img = task.layout.secondary_image_path or task.layout.image_path
             frame_iter = animator.iter_archival_desk_frames(
@@ -642,6 +680,12 @@ def _encode_single_segment(
                 n_frames=frames,
                 seg_seed=task.seg_index,
                 scene_hint=task.layout.scene_hint,
+                scene_id_override=task.layout.directive_scene_id,
+                force_cad=(
+                    True if task.layout.semantic_treatment == "lidar_scan"
+                    else False if task.layout.semantic_treatment == "physics_simulation"
+                    else None
+                ),
             )
         elif use_kinetic_quote:
             photo_src = task.layout.secondary_image_path or task.layout.image_path
@@ -653,6 +697,7 @@ def _encode_single_segment(
                 n_frames=frames,
                 seg_seed=task.seg_index,
                 scene_hint=task.layout.scene_hint,
+                scene_id_override=task.layout.directive_scene_id,
             )
         elif use_telemetry:
             photo_src = task.layout.secondary_image_path or task.layout.image_path
@@ -667,6 +712,7 @@ def _encode_single_segment(
                 curves=curves,
                 seg_seed=task.seg_index,
                 scene_hint=task.layout.scene_hint,
+                scene_id_override=task.layout.directive_scene_id,
             )
         elif use_broll_depth:
             frame_iter = animator.iter_broll_depth_frames(
@@ -677,6 +723,7 @@ def _encode_single_segment(
                 curves=curves,
                 lens_variant=task.lens_variant,
                 scene_hint=task.layout.scene_hint,
+                scene_id_override=task.layout.directive_scene_id,
             )
         else:
             frame_iter = animator.iter_smooth_card_frames(
@@ -743,6 +790,8 @@ def render_episode_video(
     show_title = script.spec.show_title
     ep_title = script.spec.episode_title
     plan = ScenePlan(topic=f"{show_title}: {ep_title}")
+    # One stateful director per film: clause subjects + rolling no-repeat treatment window.
+    semantic_director = SemanticShotDirector(f"{show_title}: {ep_title}")
     master_wav = Path(audio_meta.master_wav_path)
     env_50hz = _build_rms_envelope_50hz(master_wav)
     cpu_count = os.cpu_count() or 2
@@ -859,7 +908,6 @@ def render_episode_video(
         # 2. Sub-Turn Documentary Cinema, 3D GIS Cartography, Archival Desk & Live Telemetry Beats
         for t_i, turn in enumerate(ch.turns):
             is_ep_opener = c_i == 0 and t_i == 0
-            is_ep_closer = c_i == len(script.chapters) - 1 and t_i == len(ch.turns) - 1
             if t_i + 1 < len(ch.turns):
                 shot_end_sec = ch.turns[t_i + 1].start_sec
             elif c_i + 1 < len(script.chapters):
@@ -875,14 +923,15 @@ def render_episode_video(
                 turn_cur_start,
                 shot_end_sec,
                 env_50hz,
-                is_episode_opener=is_ep_opener,
-                is_episode_closer=is_ep_closer,
+                semantic_director,
+                ch.title,
+                ch.location,
                 scene_context=f"{ch.title} {ch.location}",
                 lead_attribution_sec=2.9 if (want_turn_lt and not is_ep_opener) else 0.0,
             )
             lt_emitted = False
 
-            for b_i, (beat_cam, beat_end_sec, beat_clause) in enumerate(beats):
+            for b_i, (beat_cam, beat_end_sec, beat_clause, beat_directive) in enumerate(beats):
                 s_sec, dur_sec = _alloc_seg_duration(beat_end_sec)
                 # Clause-scoped turn copy: every downstream caption/plate/HUD resolves the
                 # picture from the exact spoken clause of THIS beat, not the whole turn.
@@ -951,6 +1000,23 @@ def render_episode_video(
                         primary_caption=_caption_for_asset(p1, ch, "", turn.text),
                         secondary_caption=_caption_for_asset(p2, ch, "", turn.text),
                     )
+                elif beat_cam == "semantic_diagram":
+                    layout = compositor.render_semantic_diagram(
+                        beat_directive,
+                        beat_clause,
+                        plate_file,
+                    )
+                    hud_overlay = compositor.render_broll_hud_overlay(
+                        turn,
+                        ch,
+                        plates_dir / f"seg_{seg_idx:04d}_sd_hud.png",
+                        total_chapters=total_ch,
+                        show_title=show_title,
+                        caption_override=(
+                            f"Pure-Code Explainer · {beat_directive.on_screen_label} · "
+                            f"{beat_directive.diagram_template.replace('_', ' ').title()}"
+                        ),
+                    )
                 elif beat_cam == "quote_card":
                     p_q, _ = _next_distinct_plate(turn.text)
                     layout = compositor.render_quote_card(
@@ -962,7 +1028,9 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_q_hud.png",
                         total_chapters=total_ch,
                         show_title=show_title,
-                        caption_override=f"Primary-Source Inscription · {_caption_for_asset(p_q, ch, '', turn.text)}",
+                        caption_override=(
+                            f"Primary-Source Inscription · {_directive_caption(beat_directive, p_q, ch, turn.text)}"
+                        ),
                     )
                 elif beat_cam == "split_fact_card":
                     p_f, _ = _next_distinct_plate(turn.text)
@@ -996,6 +1064,14 @@ def render_episode_video(
                         caption_override=cap_txt,
                     )
 
+                # Stamp the director's resolved scene id + treatment so the animation engines draw
+                # exactly the clause-bound subject/treatment instead of legacy hint/parity fallbacks.
+                layout = dataclasses.replace(
+                    layout,
+                    directive_scene_id=beat_directive.scene_id,
+                    semantic_treatment=beat_directive.treatment,
+                )
+
                 ass_file = ass_dir / f"seg_{seg_idx:04d}.ass"
                 has_subs = write_segment_ass(cues, s_sec, s_sec + dur_sec, ass_file)
 
@@ -1003,32 +1079,31 @@ def render_episode_video(
                 use_fade_in = False
                 use_fade_out = False
 
-                sid_b, scene_title_b = resolve_procedural_scene_id(
-                    f"{turn.text} || {ch.title} {ch.location}", fallback_idx=seg_idx + 1
-                )
                 intent_b = _turn_visual_intent(turn.text)
                 plan.entries.append(
                     ScenePlanEntry(
-                        scene_id=sid_b,
+                        scene_id=beat_directive.scene_id,
                         seg_index=seg_idx,
                         chapter_index=c_i,
                         turn_id=turn.turn_id,
-                        narration_clause=beat_clause or "(voice attribution / establishing beat)",
+                        narration_clause=beat_clause,
                         narration_start_sec=round(s_sec, 3),
                         narration_end_sec=round(s_sec + dur_sec, 3),
-                        subject=scene_title_b or ep_title,
+                        subject=beat_directive.subject_label or ep_title,
                         action_or_event=intent_b,
                         required_visual=_REQUIRED_VISUAL_TEXT.get(beat_cam, "pure-code cinematic plate"),
                         visual_family=beat_cam,
                         visual_asset_source=_VISUAL_SOURCE.get(beat_cam, "pure-code engine"),
                         scene_start_sec=round(s_sec, 3),
                         scene_end_sec=round(s_sec + dur_sec, 3),
-                        on_screen_text=(ch.title if not beat_clause else beat_clause[:96]),
+                        on_screen_text=beat_clause[:96],
                         relevance_criteria=(
-                            f"family={beat_cam} must depict intent={intent_b}; subject={scene_title_b}; "
-                            "clause keywords drive procedural scene resolution"
+                            f"family={beat_cam} must depict subject_key={beat_directive.subject_key} "
+                            f"via modality={beat_directive.modality}/treatment={beat_directive.treatment}; "
+                            f"clause-resolved source={beat_directive.source}"
                         ),
                         validation_status="passed_plan_gate",
+                        semantic_directive=beat_directive.to_dict(),
                     )
                 )
 

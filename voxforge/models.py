@@ -17,6 +17,7 @@ CameraAngle = Literal[
     "quote_card",
     "broll_cinema",
     "split_fact_card",
+    "semantic_diagram",
     "outro_card",
 ]
 
@@ -322,6 +323,9 @@ class ScenePlanEntry:
     relevance_criteria: str
     validation_status: str = "pending"
     validation_note: str = ""
+    # Full SemanticShotDirector verdict (subject key, modality, treatment, template, source)
+    # so Stage E can independently enforce the subject-level hard gate from the plan alone.
+    semantic_directive: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)

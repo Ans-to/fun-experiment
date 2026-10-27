@@ -202,6 +202,43 @@ def test_live_24fps_documentary_motion_engines_not_still(tmp_path: Path) -> None
     assert len(tel_frames) == 10 and tel_frames[0].shape == (1080, 1920, 3)
     assert float(np.mean(np.abs(tel_frames[-1].astype(float) - tel_frames[0].astype(float)))) > 1.0
 
+    # Director scene_id override: a Giza-keyword hint forced onto the Pharos id must draw the
+    # same frames as a naturally Pharos-resolving hint (regression for legacy fallback rotating
+    # a shot onto an unrelated monument, e.g. a Khufu telemetry panel inside a Pharos scene).
+    # Neutral captions keep the legacy hint resolution driven only by scene_hint; odd seg_seed
+    # selects the sid-specific CAD/LiDAR engine where the two monuments visibly differ.
+    forced = list(
+        anim.iter_archival_desk_frames(
+            dummy_path, dummy_path, "Survey", "Model", "Chapter", 5,
+            seg_seed=1, scene_hint="Khufu Giza pyramid", scene_id_override=1,
+        )
+    )
+    natural = list(
+        anim.iter_archival_desk_frames(
+            dummy_path, dummy_path, "Survey", "Model", "Chapter", 5,
+            seg_seed=1, scene_hint="Pharos lighthouse Alexandria",
+        )
+    )
+    assert np.array_equal(forced[2], natural[2])
+    legacy = list(
+        anim.iter_archival_desk_frames(
+            dummy_path, dummy_path, "Survey", "Model", "Chapter", 5,
+            seg_seed=1, scene_hint="Khufu Giza pyramid",
+        )
+    )
+    assert not np.array_equal(forced[2], legacy[2])  # without override the hint resolves Giza
+
+    # Director treatment routing: force_cad overrides the even-seg physics-sim parity default.
+    kw = dict(seg_seed=2, scene_hint="Khufu Giza pyramid")
+    cad_forced = list(anim.iter_archival_desk_frames(
+        dummy_path, dummy_path, "Survey", "Model", "Chapter", 5, force_cad=True, **kw))
+    sim_forced = list(anim.iter_archival_desk_frames(
+        dummy_path, dummy_path, "Survey", "Model", "Chapter", 5, force_cad=False, **kw))
+    parity_default = list(anim.iter_archival_desk_frames(
+        dummy_path, dummy_path, "Survey", "Model", "Chapter", 5, **kw))
+    assert not np.array_equal(cad_forced[2], sim_forced[2])      # treatment switches engine
+    assert np.array_equal(parity_default[2], sim_forced[2])      # even seg defaults to physics sim
+
     # 4. Pillar 1: Live 3D Z-Buffered Architectural Monument Cinema (`Monument3DEngine`)
     broll_frames = list(
         anim.iter_broll_depth_frames(dummy_path, 6, seg_seed=1, curves=curves, scene_hint="Petra Treasury")
@@ -226,15 +263,22 @@ def test_subturn_editorial_director_prevents_long_holds() -> None:
         duration_sec=21.0,
     )
     env = np.full(2500, 0.1, dtype=np.float32)
+    from voxforge.video.semantic_router import SemanticShotDirector
+
+    director = SemanticShotDirector("The Great Pyramid of Giza")
     beats = _plan_turn_editorial_beats(
         turn, 20.0, 41.0, env,
-        is_episode_opener=False, is_episode_closer=False, lead_attribution_sec=2.9,
+        director, "Great Pyramid of Giza", "Giza Egypt",
+        scene_context="Great Pyramid of Giza Giza Egypt", lead_attribution_sec=2.9,
     )
     assert len(beats) >= 3
-    assert beats[0][0] == "closeup_host_b"
     prev = 20.0
-    for cam, end_t, clause in beats:
+    pairs = []
+    for cam, end_t, clause, directive in beats:
         dur = end_t - prev
         assert 1.8 <= dur <= 8.0
+        assert clause and len(clause) >= 12  # no placeholder/empty beats
+        pairs.append((directive.subject_key, directive.treatment))
         prev = end_t
     assert abs(prev - 41.0) < 1e-6
+    assert all(pairs[i] != pairs[i - 1] for i in range(1, len(pairs)))

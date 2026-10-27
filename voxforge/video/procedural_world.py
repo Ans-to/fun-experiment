@@ -97,14 +97,27 @@ _SCENE_KEYWORD_RULES: list[tuple[tuple[str, ...], int]] = [
 
 def resolve_monument_scene_id(text_hint: str, fallback_seed: int = 0) -> int:
     """Resolve exact 3D procedural monument ID prioritizing spoken turn text over chapter title."""
-    clauses = [c.strip().lower() for c in text_hint.split("||") if c.strip()]
+    matched = match_wonder_scene_id(text_hint)
+    if matched is not None:
+        return matched
+    clauses = [c.strip().lower() for c in (text_hint or "").split("||") if c.strip()]
+    if any("wonder" in c for c in clauses):
+        return fallback_seed % 9
+    return SCENE_CLASSICAL_GENERIC
+
+
+def match_wonder_scene_id(text_hint: str) -> int | None:
+    """Pure keyword match to a wonder scene; returns ``None`` when no monument is relevant.
+
+    Unlike :func:`resolve_monument_scene_id`, this never falls back to a rotating or generic
+    scene, so callers can distinguish a genuine subject match from an unrelated fallback.
+    """
+    clauses = [c.strip().lower() for c in (text_hint or "").split("||") if c.strip()]
     for low in clauses:
         for kws, sid in _SCENE_KEYWORD_RULES:
             if any(re.search(rf"\b{re.escape(k)}\b", low) for k in kws):
                 return sid
-    if any("wonder" in c for c in clauses):
-        return fallback_seed % 9
-    return SCENE_CLASSICAL_GENERIC
+    return None
 
 
 def resolve_procedural_scene_id(text_hint: str, fallback_idx: int = 0) -> tuple[int, str]:

@@ -35,21 +35,32 @@ def test_split_turn_clauses_caps_and_merges() -> None:
     assert _split_turn_clauses("Short turn.") == ["Short turn."]
 
 
-def test_family_for_intent_mapping() -> None:
-    from voxforge.video.renderer import _family_for_intent
+def test_camera_for_directive_mapping() -> None:
+    from voxforge.video.renderer import _camera_for_directive
+    from voxforge.video.semantic_router import (
+        MODALITY_DIAGRAM,
+        MODALITY_GLOBE,
+        MODALITY_LIDAR,
+        MODALITY_MONUMENT,
+        MODALITY_QUOTE,
+        VisualDirective,
+    )
 
-    assert _family_for_intent("eng", True, 0) == "split_fact_card"
-    assert _family_for_intent("geo", True, 0) == "wide_studio"
-    assert _family_for_intent("quote", True, 0) == "quote_card"
-    assert _family_for_intent("people", True, 0) == "studio_insert"
-    assert _family_for_intent("scene", True, 0) == "broll_cinema"
-    # Unmapped (generic) scenes never fall back to monument cinema:
-    assert _family_for_intent("scene", False, 0) == "split_fact_card"
-    assert _family_for_intent("scene", False, 1) == "studio_insert"
+    def d(modality: str, treatment: str = "exterior_wide", template: str = "") -> VisualDirective:
+        return VisualDirective("k", "Label", modality, -1 if modality != MODALITY_MONUMENT else 0,
+                               template, treatment, "Label", 0.9, "semantic_category")
+
+    assert _camera_for_directive(d(MODALITY_DIAGRAM, template="node_network"), "closeup_host_a") == "semantic_diagram"
+    assert _camera_for_directive(d(MODALITY_GLOBE, "orbital_context"), "closeup_host_a") == "wide_studio"
+    assert _camera_for_directive(d(MODALITY_QUOTE, "kinetic_typography"), "closeup_host_a") == "quote_card"
+    assert _camera_for_directive(d(MODALITY_LIDAR, "lidar_scan"), "closeup_host_a") == "studio_insert"
+    assert _camera_for_directive(d(MODALITY_MONUMENT, "detail_closeup"), "closeup_host_b") == "closeup_host_b"
+    assert _camera_for_directive(d(MODALITY_MONUMENT, "exterior_wide"), "closeup_host_a") == "broll_cinema"
 
 
-def test_planner_returns_clause_triples_covering_turn() -> None:
+def test_planner_returns_clause_bound_directives_without_placeholders() -> None:
     from voxforge.video.renderer import _plan_turn_editorial_beats
+    from voxforge.video.semantic_router import SemanticShotDirector
 
     turn = _turn(
         "The wall began as rammed-earth forts, and the Ming rebuilt it in stone. "
@@ -57,20 +68,51 @@ def test_planner_returns_clause_triples_covering_turn() -> None:
         "needed news within hours of a raid."
     )
     env = np.full(2500, 0.12, dtype=np.float32)
+    director = SemanticShotDirector("The Great Wall of China")
     beats = _plan_turn_editorial_beats(
         turn, 20.0, 40.0, env,
-        is_episode_opener=False, is_episode_closer=False,
+        director,
+        "The Great Wall",
+        "Beijing China",
         scene_context="Great Wall of China Beijing",
     )
     assert len(beats) >= 3
     prev = 20.0
-    for cam, end_t, clause in beats:
+    pairs: list[tuple[str, str]] = []
+    for cam, end_t, clause, directive in beats:
         assert 2.0 <= end_t - prev <= 8.0
         prev = end_t
+        # Every beat is bound to a real clause and a resolved subject — no placeholders.
+        assert clause and len(clause) >= 12
+        assert directive.subject_key and directive.subject_label
+        pairs.append((directive.subject_key, directive.treatment))
     assert abs(prev - 40.0) < 1e-6
-    # Geo clause ("mountains"/"across") or eng clause must drive at least one non-broll family
-    fams = {cam for cam, _, _ in beats}
-    assert fams & {"wide_studio", "split_fact_card", "studio_insert", "quote_card"}
+    # No consecutive identical (subject, treatment) pair — the anti-loop invariant.
+    assert all(pairs[i] != pairs[i - 1] for i in range(1, len(pairs)))
+
+
+def test_planner_arbitrary_topic_uses_diagram_family_not_monuments() -> None:
+    from voxforge.video.renderer import _plan_turn_editorial_beats
+    from voxforge.video.semantic_router import MODALITY_DIAGRAM, SemanticShotDirector
+
+    turn = _turn(
+        "Magma buoyancy drives molten rock upward through the crust, while dissolved gases "
+        "fragment the lava into ash. The eruption column climbs until it reaches the stable "
+        "stratosphere, and then winds distribute tephra across entire continents downwind."
+    )
+    env = np.full(2500, 0.12, dtype=np.float32)
+    director = SemanticShotDirector("How Volcanoes Erupt")
+    beats = _plan_turn_editorial_beats(
+        turn, 10.0, 34.0, env, director, "The Fiery Engine", "Pacific Ring of Fire",
+        scene_context="How Volcanoes Erupt Pacific Ring of Fire",
+    )
+    assert beats
+    for cam, end_t, clause, directive in beats:
+        assert directive.scene_id == -1
+        assert directive.modality in (MODALITY_DIAGRAM, "orbital_globe", "kinetic_quote")
+        if directive.modality == MODALITY_DIAGRAM:
+            assert cam == "semantic_diagram"
+            assert directive.diagram_template
 
 
 def test_scene_plan_serialization_roundtrip() -> None:
@@ -191,13 +233,19 @@ def test_stage_e_human_review_queue_on_uncertain_scene(tmp_path) -> None:
         "topic": "synthetic",
         "scenes": [
             {
-                "scene_id": 0, "seg_index": 0, "chapter_index": 0, "turn_id": 1,
-                "narration_clause": "synthetic uncertain scene",
+                "scene_id": -1, "seg_index": 0, "chapter_index": 0, "turn_id": 1,
+                "narration_clause": "synthetic uncertain scene with enough clause length",
                 "narration_start_sec": 0.0, "narration_end_sec": 10.0,
                 "subject": "synthetic", "action_or_event": "geo",
                 "required_visual": "globe", "visual_family": "wide_studio",
                 "visual_asset_source": "test", "scene_start_sec": 0.0, "scene_end_sec": 10.0,
                 "on_screen_text": "", "relevance_criteria": "", "validation_status": "pending",
+                "semantic_directive": {
+                    "subject_key": "synthetic_place", "subject_label": "synthetic",
+                    "modality": "orbital_globe", "scene_id": -1, "diagram_template": "",
+                    "treatment": "orbital_context", "on_screen_label": "synthetic",
+                    "confidence": 0.8, "source": "place_globe",
+                },
             }
         ],
     }
@@ -212,3 +260,116 @@ def test_stage_e_human_review_queue_on_uncertain_scene(tmp_path) -> None:
     assert stage.passed is False
     frames = sorted((tmp_path / "human_review").glob("seg0000_p*.jpg"))
     assert len(frames) >= 3
+
+
+def _valid_entry(seg: int, clause: str, *, scene_id: int = -1, modality: str = "semantic_diagram",
+                 subject: str = "Volcanic Eruptions", key: str = "volcanoes_geoscience",
+                 treatment: str = "diagram_terrain_tectonic", template: str = "terrain_tectonic",
+                 source: str = "semantic_category") -> dict:
+    return {
+        "scene_id": scene_id, "seg_index": seg, "chapter_index": 0, "turn_id": seg,
+        "narration_clause": clause,
+        "narration_start_sec": float(seg), "narration_end_sec": float(seg + 4),
+        "subject": subject, "action_or_event": "scene",
+        "required_visual": "diagram", "visual_family": "semantic_diagram",
+        "visual_asset_source": "pure-code:SemanticDiagramEngine",
+        "scene_start_sec": float(seg), "scene_end_sec": float(seg + 4),
+        "on_screen_text": clause[:96], "relevance_criteria": "test", "validation_status": "pending",
+        "semantic_directive": {
+            "subject_key": key, "subject_label": subject, "modality": modality,
+            "scene_id": scene_id, "diagram_template": template, "treatment": treatment,
+            "on_screen_label": subject, "confidence": 0.75, "source": source,
+        },
+    }
+
+
+def test_subject_hard_gate_accepts_clean_subject_bound_plan() -> None:
+    from voxforge.audit.av_sync_qa import _subject_hard_gate
+
+    entries = [
+        _valid_entry(0, "Magma pressure rises beneath the crust as gases dissolve", treatment="diagram_terrain_tectonic"),
+        _valid_entry(1, "The network of magma chambers feeds the central vent system",
+                     key="volcanoes_geoscience", treatment="diagram_node_network", template="node_network"),
+        _valid_entry(2, "Particles of superheated tephra explode into the upper atmosphere",
+                     key="volcanoes_geoscience", treatment="diagram_particle_cluster", template="particle_cluster"),
+    ]
+    assert _subject_hard_gate(entries) == []
+    assert all(e["validation_status"] == "pending" for e in entries)
+
+
+def test_subject_hard_gate_blocks_placeholder_wrong_subject_and_repeats() -> None:
+    from voxforge.audit.av_sync_qa import _PLACEHOLDER_CLAUSE, _subject_hard_gate
+
+    # 1) placeholder-bound shot must fail
+    placeholder = _valid_entry(0, _PLACEHOLDER_CLAUSE)
+    # 2) monument scene_id on a clause that does not keyword-match that monument
+    wrong_monument = _valid_entry(
+        1, "Sourdough fermentation depends on wild yeast and lactic acid bacteria",
+        scene_id=0, modality="monument_3d", subject="Great Pyramid of Giza",
+        key="great_pyramid_of_giza", treatment="exterior_wide", template="", source="wonder_keyword",
+    )
+    # 3) consecutive identical (subject, treatment) pair
+    repeat_a = _valid_entry(2, "The eruption column climbed through the troposphere rapidly",
+                            treatment="diagram_stat_dashboard", template="stat_dashboard")
+    repeat_b = _valid_entry(3, "Ashfall smothered farmland across three surrounding regions",
+                            treatment="diagram_stat_dashboard", template="stat_dashboard")
+    entries = [placeholder, wrong_monument, repeat_a, repeat_b]
+    failures = dict((s, why) for s, why in _subject_hard_gate(entries))
+    assert set(failures) == {0, 1, 3}
+    assert "placeholder_or_empty_clause" in failures[0]
+    assert "clause_subject_does_not_match_rendered_monument" in failures[1]
+    assert "consecutive_identical_subject_treatment" in failures[3]
+    assert entries[0]["validation_status"].startswith("failed")
+    assert entries[1]["validation_status"].startswith("failed")
+    assert entries[2]["validation_status"] == "pending"  # first of the pair is legitimate
+    assert entries[3]["validation_status"].startswith("failed")
+
+
+def test_subject_hard_gate_accepts_wonder_context_globe_and_quote_shots() -> None:
+    from voxforge.audit.av_sync_qa import _subject_hard_gate
+
+    globe = _valid_entry(
+        0, "Across the Giza plateau and the Nile valley the monument's reach extended",
+        scene_id=0, modality="orbital_globe", subject="Great Pyramid of Giza",
+        key="great_pyramid_of_giza", treatment="orbital_context", template="",
+        source="place_globe",
+    )
+    globe["visual_family"] = "wide_studio"
+    globe["semantic_directive"]["context"] = "Great Pyramid of Giza Necropolis"
+    assert _subject_hard_gate([globe]) == []
+
+    # Generic-topic globe keeps scene_id -1 and also passes.
+    generic_globe = _valid_entry(
+        1, "Trade routes stretched across three continents and many remote regions",
+        scene_id=-1, modality="orbital_globe", subject="Trade Routes",
+        key="trade_routes_place", treatment="orbital_context", template="",
+        source="place_globe",
+    )
+    generic_globe["visual_family"] = "wide_studio"
+    assert _subject_hard_gate([generic_globe]) == []
+
+
+def test_subject_hard_gate_blocks_diagram_bound_to_monument_scene() -> None:
+    from voxforge.audit.av_sync_qa import _subject_hard_gate
+
+    bad = _valid_entry(
+        0, "Sourdough fermentation depends on wild yeast and lactic acid bacteria colonies",
+        scene_id=0, modality="semantic_diagram", subject="Sourdough",
+        key="sourdough_food_process", treatment="diagram_process_flow",
+        template="process_flow", source="semantic_category",
+    )
+    failures = _subject_hard_gate([bad])
+    assert failures and "non_monument_shot_bound_to_monument_scene_id" in failures[0][1]
+
+
+def test_subject_hard_gate_accepts_keyword_matched_monument_shots() -> None:
+    from voxforge.audit.av_sync_qa import _subject_hard_gate
+
+    entry = _valid_entry(
+        0, "The Great Pyramid at Giza was raised for Pharaoh Khufu from limestone blocks",
+        scene_id=0, modality="monument_3d", subject="Great Pyramid of Giza",
+        key="great_pyramid_of_giza", treatment="exterior_wide", template="", source="wonder_keyword",
+    )
+    entry["semantic_directive"]["context"] = "Great Pyramid of Giza Necropolis"
+    entry["visual_family"] = "broll_cinema"
+    assert _subject_hard_gate([entry]) == []
