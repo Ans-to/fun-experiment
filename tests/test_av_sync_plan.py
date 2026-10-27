@@ -75,7 +75,7 @@ def test_planner_returns_clause_triples_covering_turn() -> None:
 
 def test_clause_scene_resolution_uses_full_active_turn_before_chapter_fallback() -> None:
     from voxforge.video.procedural_world import SCENE_MACHU_PICCHU, resolve_procedural_scene_id
-    from voxforge.video.renderer import _scene_resolution_text, _shot_lens_variant
+    from voxforge.video.renderer import _scene_resolution_text
 
     clause = "Perched on a narrow granite fault saddle nearly eight"
     active_turn = (
@@ -158,11 +158,15 @@ def test_generic_explanatory_simulation_renders() -> None:
     assert float(frame.mean()) > 5.0  # not a black frame; glyphs/panels drawn
 
 
-def test_repeated_landmark_shots_rotate_lens_coverage_by_segment() -> None:
-    from voxforge.video.renderer import _shot_lens_variant
+def test_repeated_shot_angles_rotate_without_changing_the_optical_pass() -> None:
+    from voxforge.video.animator import _camera_variant_for_segment
+    from voxforge.video.procedural_world import Monument3DEngine, SCENE_MACHU_PICCHU
 
-    assert _shot_lens_variant(0, 33) != _shot_lens_variant(0, 34)
-    assert _shot_lens_variant(0, 42) != _shot_lens_variant(0, 48)
+    assert _camera_variant_for_segment(42) != _camera_variant_for_segment(48)
+    engine = Monument3DEngine()
+    cinematic_camera = engine._camera_for(SCENE_MACHU_PICCHU, 0.5, lens_variant=0, camera_variant=1)
+    technical_camera = engine._camera_for(SCENE_MACHU_PICCHU, 0.5, lens_variant=1, camera_variant=1)
+    assert cinematic_camera == technical_camera
 
 
 def test_fact_card_metrics_are_filtered_to_the_active_landmark() -> None:

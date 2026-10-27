@@ -378,6 +378,11 @@ class _NaturalEarthAtlas:
         return out
 
 
+def _camera_variant_for_segment(seg_index: int) -> int:
+    """Deterministic shot-angle variation, independent of the established optical treatment."""
+    return (seg_index % 5) % 3
+
+
 class StudioCharacterAnimator:
     """100% Pure-Code 24fps 3D Architectural, Physics, LiDAR & Orbital Earth Renderer."""
 
@@ -494,7 +499,15 @@ class StudioCharacterAnimator:
             u_raw = 0.72 * p + 0.28 * (0.5 - 0.5 * math.cos(math.pi * p))
             u = u_raw if zoom_in else (1.0 - u_raw)
             time_s = seg_seed * 2.5 + i / 24.0
-            rgb = self._monument_3d.render_frame(sid, u, time_s, self.w, self.h, lens_variant=lv)
+            rgb = self._monument_3d.render_frame(
+                sid,
+                u,
+                time_s,
+                self.w,
+                self.h,
+                lens_variant=lv,
+                camera_variant=_camera_variant_for_segment(seg_seed),
+            )
 
             if curves is not None:
                 emp = float(curves.emphasis[min(i, curves.n_frames - 1)])

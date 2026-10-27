@@ -1009,9 +1009,11 @@ class Monument3DEngine:
         return self._cache[scene_id]
 
     def _camera_for(
-        self, scene_id: int, u: float, lens_variant: int = 0
+        self, scene_id: int, u: float, lens_variant: int = 0, camera_variant: int = 0
     ) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float], float]:
-        lv = lens_variant % 3
+        # Camera coverage is independent from the approved cinematic/technical optical pass.
+        del lens_variant
+        lv = camera_variant % 3
         if scene_id == SCENE_GIZA:
             ang = (-0.62 + 0.48 * u) if lv == 0 else ((0.48 - 0.42 * u) if lv == 1 else (-1.08 + 0.38 * u))
             rad = 13.2 - 2.2 * u if lv != 2 else 8.8 - 1.2 * u
@@ -1062,10 +1064,13 @@ class Monument3DEngine:
         w: int = 1920,
         h: int = 1080,
         lens_variant: int = 0,
+        camera_variant: int = 0,
     ) -> np.ndarray:
         tris, cols, emit, edges, water_y = self._get_scene(scene_id)
         lidar_pts = self._lidar_cache[scene_id]
-        ro, ta, sun, fov = self._camera_for(scene_id, u, lens_variant=lens_variant)
+        ro, ta, sun, fov = self._camera_for(
+            scene_id, u, lens_variant=lens_variant, camera_variant=camera_variant
+        )
 
         # Organic handheld camera breathing: dual-sine sub-decimeter position sway + micro pan drift
         # (deterministic in `time_s` so parallel out-of-order frame renders stay perfectly consistent).
