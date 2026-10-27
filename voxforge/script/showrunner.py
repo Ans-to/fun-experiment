@@ -501,16 +501,11 @@ def _compose_chapter_dialogue(
         hook_1 = dossier.cold_open_hook_facts[0] if dossier.cold_open_hook_facts else subtopic.summary
         used_sentences.add(hook_1)
         if is_compact:
-            raw_pairs.append(
-                (
-                    "HOST_A",
-                    f"{hook_1} Across forty-five centuries of human ambition, these monuments chart the outer boundary of stone, geometry, and civilization.",
-                )
-            )
+            raw_pairs.append(("HOST_A", hook_1))
             raw_pairs.append(
                 (
                     "HOST_B",
-                    "Beneath the iconic silhouettes lies a forensic engineering mystery: how pre-industrial builders defied gravity, flash floods, and seismic shock.",
+                    "The question is simple: what did these builders understand about stone, weight, and time?",
                 )
             )
         else:

@@ -521,7 +521,9 @@ def _encode_single_segment(
     fades.append("format=yuv420p")
     fc_parts.append(f"[{cur_v}]{','.join(fades)}[vout]")
 
-    crf_val = "25" if is_marathon_cpu else "24.8"
+    # Favor fine line/text and gradient retention for algorithmic motion graphics at 1080p.
+    # CRF 21 is a deliberate quality-first compromise; marathon CPU renders stay slightly leaner.
+    crf_val = "23" if is_marathon_cpu else "21"
     maxrate = "820k" if is_marathon_cpu else "840k"
     bufsize = "1640k" if is_marathon_cpu else "1680k"
 

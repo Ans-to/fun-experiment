@@ -47,7 +47,7 @@ SCENE_CLASSICAL_GENERIC = 9
 SCENE_CAPTIONS: dict[int, str] = {
     SCENE_GIZA: "3D Architectural Reconstruction · Great Pyramid of Giza & Necropolis (2560 BCE)",
     SCENE_PHAROS: "3D Architectural Reconstruction · Pharos Lighthouse of Alexandria (c. 280 BCE)",
-    SCENE_GREAT_WALL: "3D Topographic & Fortification Model · Ming Great Wall at Jinshanling",
+    SCENE_GREAT_WALL: "3D Topographic & Fortification Model · China's Great Wall Frontier Network",
     SCENE_PETRA: "3D Subtractive Rock-Cut Model · Al-Khazneh & The Siq Canyon, Petra",
     SCENE_COLOSSEUM: "3D Structural Cutaway · Flavian Amphitheatre & Subterranean Hypogeum, Rome",
     SCENE_MACHU_PICCHU: "3D Andean Elevation & Terrace Model · Machu Picchu & Huayna Picchu",
@@ -1425,9 +1425,9 @@ class PhysicsSimulationEngine:
                 if lit:
                     r_p = int(12 + 22 * (((u * 4.0) - k * 0.12) % 1.0))
                     cv2.circle(glow_layer, (nx, ny - 26), r_p, (255, 168, 48), 2, lineType=cv2.LINE_AA)
-            kicker_txt = "OPTICAL TELEGRAPH RELAY & AMYLOPECTIN MORTAR SIMULATION"
-            title_txt = "Ming Frontier Network: 700 km/h Smoke-and-Fire Signal Propagation"
-            eq_txt = f"Active Relay Towers Lit: {int(min(18, round(u * 22)))} / 18 Sector Nodes   |   Network Span: 21,196 km"
+            kicker_txt = "LINE-OF-SIGHT BEACON RELAY · HISTORICAL CONCEPT MODEL"
+            title_txt = "Great Wall Beacon Network: Signals Across the Northern Frontier"
+            eq_txt = f"Beacon towers revealed: {int(min(18, round(u * 22)))} / 18   |   Concept: tower-to-tower signaling"
 
         elif scene_id == SCENE_PETRA:
             # Nabataean Pressurized Terracotta Siphon & Flash-Flood Check-Dam Fluid Particle Simulation!
