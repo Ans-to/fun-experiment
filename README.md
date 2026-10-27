@@ -48,6 +48,31 @@ Every frame across the film is generated algorithmically in code via `@numba.nji
 
 ---
 
+## Render Quality Tuning (Pure-Code Optical Finishing Chain)
+
+Every plate passes an edge-adaptive optical finish (Lanczos plate upscale + halo-controlled
+edge sharpening that leaves skies/starfields/HUD gradients untouched) and a quality-first
+H.264 encode (CRF 22, variance-AQ, tuned 3 Mbps VBV window — measured SSIM 0.78→0.91 vs. the
+legacy 840k-capped encode, zero Stage E frame-family flips; see
+[`docs/VIDEO_FINISHING_AND_ENCODE_UPGRADE.md`](docs/VIDEO_FINISHING_AND_ENCODE_UPGRADE.md)).
+Supersampling is CPU-opt-in so free Colab renders stay fast:
+
+| Environment variable | Default | Effect |
+|---|---|---|
+| `VOXFORGE_RENDER_SCALE` | `0.5` | Monument facet rasterizer internal scale (0.35–1.0); `1.0` = native 1080p SSAA anti-aliasing |
+| `VOXFORGE_GLOBE_SCALE` | `0.75` | Orbital Earth raycast scale vs. 1080p (0.5–1.0); 0.75 anti-aliases GIS vector coastlines |
+| `VOXFORGE_SHARPEN_AMOUNT` | `0.55` | Edge-adaptive sharpen strength; `0` disables the pass |
+| `VOXFORGE_ENCODE_PROFILE` | `quality` | H.264 quality/size tier: `quality` (~4 Mbps, SSIM 0.91), `balanced` (~3 Mbps), `compact` (~2 Mbps for size-budgeted outputs) |
+
+```bash
+# Maximum-fidelity offline render (slower, fully anti-aliased geometry)
+VOXFORGE_RENDER_SCALE=1.0 ./documentary "build a 5 minute documentary on 7 wonders of the world"
+```
+
+Evidence, measured A/B metrics and contact sheets: [`docs/VIDEO_FINISHING_AND_ENCODE_UPGRADE.md`](docs/VIDEO_FINISHING_AND_ENCODE_UPGRADE.md)
+and `qa_evidence/quality_stills/` (reproduce with `tools/render_quality_compare.py` /
+`tools/globe_quality_compare.py`).
+
 ## Quick Start
 
 ```bash

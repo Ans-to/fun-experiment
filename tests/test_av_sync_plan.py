@@ -130,6 +130,33 @@ def test_frame_group_classifier_separates_families() -> None:
     assert classify_frame_group(lidar) == "darkhud"
 
 
+def test_short_quote_card_detected_via_central_band() -> None:
+    """A short 2-3 line inscription never reaches the 4.5% whole-frame white mass, but its
+    concentrated central-band typography must still read as a quote (regression for the
+    Pharos quote scene that previously classified as darkhud)."""
+    from voxforge.audit.av_sync_qa import classify_frame_group
+
+    rng = np.random.default_rng(3)
+    h, w = 1080, 1920
+    # Dark quote backdrop with three short white text rows concentrated in the composition band.
+    quote = np.full((h, w, 3), 22, dtype=np.uint8)
+    for row_y in (430, 500, 570):
+        quote[row_y : row_y + 26, 360:1180] = (248, 250, 252)
+    quote += rng.integers(0, 5, quote.shape, dtype=np.uint8)
+    assert classify_frame_group(quote) == "quote"
+
+    # Sparse neutral-white telemetry/HUD copy stays below the band threshold -> darkhud.
+    hud = np.full((h, w, 3), 16, dtype=np.uint8)
+    for row_y in (460, 540):
+        hud[row_y : row_y + 10, 360:600] = (235, 235, 235)  # thin, short labels
+    assert classify_frame_group(hud) == "darkhud"
+
+    # Amber/cyan HUD glyphs are not neutral white, so they never trigger the quote gate.
+    glyph = np.full((h, w, 3), 14, dtype=np.uint8)
+    glyph[300:700:40, 300:1500] = (240, 180, 60)
+    assert classify_frame_group(glyph) == "darkhud"
+
+
 def test_generic_explanatory_simulation_renders() -> None:
     from voxforge.video.procedural_world import SCENE_CLASSICAL_GENERIC, PhysicsSimulationEngine
 

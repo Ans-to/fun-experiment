@@ -51,6 +51,26 @@ from voxforge.video.subtitles import (
 )
 
 
+# CG encode tiers (crf, maxrate, bufsize) selected by VOXFORGE_ENCODE_PROFILE.
+# Tuned on real engine frames via tools/encode_tuning.py (PSNR/SSIM vs CRF 12 reference,
+# zero Stage E frame-family flips). Each profile lists the standard then marathon tier.
+_ENCODE_PROFILES: dict[str, tuple[tuple[str, str, str], tuple[str, str, str]]] = {
+    "quality": (("22", "3000k", "6000k"), ("23", "2000k", "4000k")),
+    "balanced": (("23", "2500k", "5000k"), ("24", "1700k", "3400k")),
+    "compact": (("24", "1600k", "3200k"), ("25", "1200k", "2400k")),
+}
+
+
+def _encode_rate_control(is_marathon_cpu: bool) -> tuple[str, str, str]:
+    """Resolve ``(crf, maxrate, bufsize)`` from the ``VOXFORGE_ENCODE_PROFILE`` knob.
+
+    Unknown values fall back to the tuned quality default rather than failing the render.
+    """
+    profile = os.environ.get("VOXFORGE_ENCODE_PROFILE", "quality").strip().lower()
+    tiers = _ENCODE_PROFILES.get(profile, _ENCODE_PROFILES["quality"])
+    return tiers[1] if is_marathon_cpu else tiers[0]
+
+
 @dataclass
 class RenderSegmentTask:
     seg_index: int
@@ -521,11 +541,14 @@ def _encode_single_segment(
     fades.append("format=yuv420p")
     fc_parts.append(f"[{cur_v}]{','.join(fades)}[vout]")
 
-    # Favor fine line/text and gradient retention for algorithmic motion graphics at 1080p.
-    # CRF 21 is a deliberate quality-first compromise; marathon CPU renders stay slightly leaner.
-    crf_val = "23" if is_marathon_cpu else "21"
-    maxrate = "820k" if is_marathon_cpu else "840k"
-    bufsize = "1640k" if is_marathon_cpu else "1680k"
+    # Quality-first CG rate control, tuned on real engine frames (tools/encode_tuning.py):
+    # the legacy 840k cap throttled complex monument/sim frames to ~1.16 Mbps (measured
+    # SSIM 0.78 vs the high-quality reference, and it even flips one Stage E frame family
+    # via dark-gradient block noise). The tuned windows let CRF lead on hard CG detail
+    # while bounding worst-case bitrate; measured SSIM 0.91 with zero family flips.
+    # aq-mode=3 (variance AQ) protects flat twilight skies and obsidian HUD gradients.
+    # Override the quality/size tradeoff with VOXFORGE_ENCODE_PROFILE=quality|balanced|compact.
+    crf_val, maxrate, bufsize = _encode_rate_control(is_marathon_cpu)
 
     cmd = [
         ffmpeg_bin,
@@ -564,6 +587,10 @@ def _encode_single_segment(
         VIDEO_SPEC.color_trc,
         "-color_range",
         VIDEO_SPEC.color_range,
+        # Variance-adaptive quantization: cleaner flat gradients/dark skies on CG plates,
+        # with a mild strength bump to suppress macroblocking without bloating bitrate.
+        "-x264-params",
+        "aq-mode=3:aq-strength=0.8",
         "-video_track_timescale",
         "12288",
         "-an",

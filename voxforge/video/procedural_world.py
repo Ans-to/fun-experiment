@@ -24,6 +24,7 @@ in code via LLVM/AVX2 `@numba.njit` 3D graphics & physics kernels:
 from __future__ import annotations
 
 import math
+import os
 import re
 import threading
 import cv2
@@ -31,7 +32,31 @@ import numba
 import numpy as np
 from PIL import Image, ImageDraw
 
+from voxforge.video.finish import edge_adaptive_sharpen, upscale_plate
 from voxforge.video.infographics import load_font
+
+
+def _env_float(name: str, default: float, low: float, high: float) -> float:
+    """Read a clamped float tuning knob from the environment (missing/invalid -> default)."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return float(max(low, min(high, float(raw))))
+    except (TypeError, ValueError):
+        return default
+
+
+# Internal raster scale for the Z-buffered monument engine: 0.5 reproduces the legacy
+# half-resolution pipeline; higher values supersample (SSAA) before the delivery-raster
+# downscale. Tunable via VOXFORGE_RENDER_SCALE without touching code.
+MONUMENT_RENDER_SCALE = _env_float("VOXFORGE_RENDER_SCALE", 0.5, 0.35, 1.0)
+# Internal raycast scale of the orbital Earth globe relative to the 1080p delivery raster.
+# 0.75 (1440x810) supersamples the hard GIS vector borders so the Lanczos downscale
+# anti-aliases them; native 1080p raycast edges staircase instead (measured ~2x aliasing).
+GLOBE_RENDER_SCALE = _env_float("VOXFORGE_GLOBE_SCALE", 0.75, 0.5, 1.0)
+# Edge-adaptive detail recovery on upscaled plates; 0.0 disables the finishing pass.
+SHARPEN_AMOUNT = _env_float("VOXFORGE_SHARPEN_AMOUNT", 0.55, 0.0, 1.2)
 
 SCENE_GIZA = 0
 SCENE_PHAROS = 1
@@ -951,12 +976,18 @@ def _camera_basis(
 class Monument3DEngine:
     """Native `1920x1080` Lemmino-Style Dark-Obsidian Volumetric 3D Architectural Cinema Engine."""
 
-    def __init__(self) -> None:
+    def __init__(self, internal_scale: float | None = None, sharpen: bool = True) -> None:
         self._cache: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]] = {}
         self._lidar_cache: dict[int, np.ndarray] = {}
         self._spot_cache: dict[tuple[int, int], np.ndarray] = {}
         self._lock = threading.Lock()
         self._f_hud = load_font("SpaceGrotesk-Bold.ttf", 14)
+        # Supersampling factor for the solid-facet rasterizer (<1 = render smaller then
+        # Lanczos-upscale; 1.0 = native 1080p raster; >0.5 yields SSAA anti-aliased edges).
+        self._internal_scale = (
+            MONUMENT_RENDER_SCALE if internal_scale is None else float(max(0.35, min(1.0, internal_scale)))
+        )
+        self._sharpen = bool(sharpen) and SHARPEN_AMOUNT > 0.0
 
     def _get_scene(self, scene_id: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
         if scene_id in self._cache:
@@ -1068,10 +1099,12 @@ class Monument3DEngine:
             py_sun = 0.5 * h - (sx * 60.0 * up[0] + sy * 60.0 * up[1] + sz * 60.0 * up[2]) * (fov * float(h)) / z_sun
         sun_in_frame = -w * 0.35 < px_sun < w * 1.35 and -h * 0.35 < py_sun < h * 1.35
 
-        # Rasterize solid Z-buffered facets at 1/2 internal resolution (`960x540` -> bicubic `1920x1080`),
-        # then overlay native `1920x1080` 28k LiDAR points & anti-aliased CAD edges (`3x` faster, razor-sharp 1080p!)
-        rw = max(64, w // 2)
-        rh = max(36, h // 2)
+        # Rasterize solid Z-buffered facets at a configurable internal resolution (default
+        # `960x540`, supersamplable up to native `1920x1080` via VOXFORGE_RENDER_SCALE), then
+        # Lanczos-upscale onto the delivery raster before the native-res 28k LiDAR points and
+        # anti-aliased CAD edges are overlaid.
+        rw = max(48, int(round(w * self._internal_scale)))
+        rh = max(27, int(round(h * self._internal_scale)))
         key_wh = (rw, rh)
         if key_wh not in self._spot_cache:
             with self._lock:
@@ -1084,7 +1117,9 @@ class Monument3DEngine:
                     bg[..., 1] = (9.0 + 28.0 * spot).astype(np.uint8)
                     bg[..., 2] = (18.0 + 48.0 * spot).astype(np.uint8)
                     rng_s = np.random.default_rng(2026)
-                    for _ in range(140):
+                    # Keep star density constant when supersampling to larger internal buffers.
+                    n_stars = int(round(140 * (rw * rh) / float(960 * 540)))
+                    for _ in range(max(40, min(900, n_stars))):
                         sx_p = int(rng_s.integers(0, rw))
                         sy_p = int(rng_s.integers(0, max(1, rh // 2)))
                         b_v = int(rng_s.integers(65, 165))
@@ -1131,7 +1166,7 @@ class Monument3DEngine:
             ro[0], ro[1], ro[2], rt[0], rt[1], rt[2],
             up[0], up[1], up[2], fw[0], fw[1], fw[2], sx, sy, sz, fov, -999.0,
         )
-        img = cv2.resize(img_low, (w, h), interpolation=cv2.INTER_CUBIC)
+        img = upscale_plate(img_low, w, h)  # Lanczos-4 upscale / area-averaged SSAA downscale
         zbuf = cv2.resize(zbuf_low, (w, h), interpolation=cv2.INTER_NEAREST)
 
         # Cinematic aerial-perspective depth fog: distant geometry & water recede into twilight haze
@@ -1156,6 +1191,7 @@ class Monument3DEngine:
             # plus genuine crepuscular shafts wherever monument silhouettes occlude the sun.
             dxq, dyq = fxq - xxq, fyq - yyq
             acc = np.zeros((qh, qw), dtype=np.float32)
+            rays_acc = np.zeros((qh, qw), dtype=np.float32)
             wgt, wsum = 1.0, 0.0
             for k in range(18):
                 t_s = (k + 1) / 18.0 * 0.32
@@ -1164,10 +1200,12 @@ class Monument3DEngine:
                 acc += srcm[yi, xi] * wgt
                 wsum += wgt
                 wgt *= 0.82
-                rays = np.clip(acc / wsum - 0.10, 0.0, 1.0) * 0.50
-                rays_f = cv2.resize(rays, (w, h), interpolation=cv2.INTER_LINEAR)[..., None]
-                tint = np.array([255.0, 196.0, 120.0], dtype=np.float32) / 255.0
-                img = np.clip(img.astype(np.float32) + rays_f * tint * 40.0, 0.0, 255.0).astype(np.uint8)
+                # Accumulate at quarter resolution; resize/blend once after the loop
+                # (the old path ran 18 full-1080p resizes + float round-trips per frame).
+                rays_acc += np.clip(acc / wsum - 0.10, 0.0, 1.0) * 0.50
+            rays_f = cv2.resize(rays_acc, (w, h), interpolation=cv2.INTER_LINEAR)[..., None]
+            tint = np.array([255.0, 196.0, 120.0], dtype=np.float32) / 255.0
+            img = np.clip(img.astype(np.float32) + rays_f * tint * 40.0, 0.0, 255.0).astype(np.uint8)
 
         # Project Z-tested 28,000 Volumetric LiDAR Surface Points + Sweeping Laser Cross-Section!
         focal = fov * float(h)
@@ -1267,6 +1305,12 @@ class Monument3DEngine:
             img[:, :, 0] = np.clip(rf + streak * 40.0 + core * 70.0, 0.0, 255.0).astype(np.uint8)
             img[:, :, 1] = np.clip(gf + streak * 90.0 + core * 50.0, 0.0, 255.0).astype(np.uint8)
             img[:, :, 2] = np.clip(bf + streak * 190.0 + core * 25.0, 0.0, 255.0).astype(np.uint8)
+
+        # Edge-adaptive detail recovery: restores silhouette/masonry crispness lost in the
+        # internal-buffer upscale without amplifying sky gradient grain (grain is added later
+        # by the optical finishing chain, so it never gets sharpened here).
+        if self._sharpen:
+            img = edge_adaptive_sharpen(img, amount=SHARPEN_AMOUNT)
         return img
 
 

@@ -59,16 +59,26 @@ def classify_frame_group(frame_bgr: np.ndarray) -> str:
     mean_lum = float(lum.mean())
     deep_blue_frac = float(np.mean(b - r > 70.0))          # saturated ocean blue of the GIS globe
     blue_frac = float(np.mean((b - r > 25.0) & (b > 90.0)))  # any blue wash (sky gradients count too)
-    white_frac = float(np.mean((r > 198.0) & (g > 198.0) & (b > 198.0)))
+    white_mask = (r > 198.0) & (g > 198.0) & (b > 198.0)
+    white_frac = float(np.mean(white_mask))
+    hh, ww = lum.shape
+    # Quote typography is concentrated in the central composition band, not spread across the
+    # whole frame. A short 2-3 line inscription never reaches the 4.5% whole-frame white mass,
+    # so measure the neutral-white density where the kinetic quote block actually lives.
+    # Amber/cyan HUD glyphs fail the neutral-white mask; bright stone fails the dark-frame gate.
+    band = white_mask[int(hh * 0.28) : int(hh * 0.72), int(ww * 0.08) : int(ww * 0.92)]
+    quote_band_frac = float(np.mean(band))
     chan_spread = np.maximum(np.abs(r - g), np.maximum(np.abs(g - b), np.abs(r - b)))
     stone_frac = float(np.mean((lum > 70.0) & (lum < 215.0) & (chan_spread < 46.0)))
     dark_frac = float(np.mean(lum < 25.0))
-    hh, ww = lum.shape
     deep_mask = b - r > 70.0
     coherent_deep = float(np.mean(deep_mask.reshape(hh // 8, 8, ww // 8, 8).mean(axis=(1, 3)) > 0.7))
     land_frac = float(np.mean((g - r > 8.0) & (g > 55.0) & (b - g < 30.0) & (lum > 45.0) & (lum < 210.0)))
-    if white_frac > 0.045 and mean_lum < 75.0:
-        # Quote cards: white typography on a dark backdrop (noon-bright stone must not qualify).
+    if mean_lum < 75.0 and (white_frac > 0.045 or quote_band_frac > 0.012):
+        # Quote cards: concentrated white typography on a dark backdrop. The whole-frame mass
+        # test catches dense long inscriptions; the central-band test catches short 2-3 line
+        # quotes. Noon-bright stone fails the mean-luma gate; sparse amber/cyan HUD glyphs fail
+        # the neutral-white band threshold (measured telemetry band ~0.007 vs quote ~0.019).
         return "quote"
     if deep_blue_frac > 0.06 and blue_frac > 0.12 and (
         land_frac > 0.08 or (coherent_deep > 0.12 and deep_blue_frac > 0.13)

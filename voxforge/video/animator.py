@@ -33,12 +33,15 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from voxforge.config import ASSETS_DIR, VIDEO_SPEC
+from voxforge.video.finish import edge_adaptive_sharpen, upscale_plate
 from voxforge.video.infographics import load_font
 from voxforge.video.procedural_world import (
+    GLOBE_RENDER_SCALE,
     SCENE_COLOSSEUM,
     SCENE_GIZA,
     SCENE_GREAT_WALL,
     SCENE_TAJ_MAHAL,
+    SHARPEN_AMOUNT,
     Monument3DEngine,
     PhysicsSimulationEngine,
     ProceduralCadCache,
@@ -385,6 +388,9 @@ class StudioCharacterAnimator:
         del rig_dir
         self.w = VIDEO_SPEC.width
         self.h = VIDEO_SPEC.height
+        # Internal raycast resolution of the orbital globe (supersamplable via VOXFORGE_GLOBE_SCALE).
+        self._globe_w = max(64, int(round(self.w * GLOBE_RENDER_SCALE)))
+        self._globe_h = max(36, int(round(self.h * GLOBE_RENDER_SCALE)))
 
         self._atlas = _NaturalEarthAtlas(3840, 1920)
         self._monument_3d = Monument3DEngine()
@@ -582,8 +588,8 @@ class StudioCharacterAnimator:
 
             frame_low, cam_basis = raycast_orbital_earth_globe(
                 atlas_rgb,
-                1280,
-                720,
+                self._globe_w,
+                self._globe_h,
                 clat_r,
                 clon_r,
                 cam_dist,
@@ -591,7 +597,12 @@ class StudioCharacterAnimator:
                 sun_dy,
                 sun_dz,
             )
-            frame = cv2.resize(frame_low, (self.w, self.h), interpolation=cv2.INTER_CUBIC)
+            frame = upscale_plate(frame_low, self.w, self.h)
+            # Crisp coastline/terminator edges without touching the deep-space starfield.
+            # Gentler cap than the monument pass: the raycaster already yields hard atlas
+            # borders, so stronger sharpening would staircase the 1:50m vector coastlines.
+            if SHARPEN_AMOUNT > 0.0:
+                frame = edge_adaptive_sharpen(frame, amount=min(SHARPEN_AMOUNT, 0.35))
 
             # Project 3D elevated great-circle ballistic arc across curved planet!
             if arc_ecef:
