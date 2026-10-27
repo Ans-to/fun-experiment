@@ -104,7 +104,7 @@ def resolve_historical_quote(chapter_hint: str, fallback_text: str) -> tuple[str
     if len(chosen.split()) > 28:
         clauses = re.split(r"\s*[—;:]\s*", chosen)
         chosen = clauses[0].rstrip(",. ") + "."
-    return chosen, "ARCHIVAL CHRONICLE", f"Historical Field Dossier · {chapter_hint.split(':')[0][:42]}"
+    return chosen, "VOXFORGE NARRATION", f"Narration excerpt · {chapter_hint.split(':')[0][:42]}"
 
 
 @dataclass(frozen=True)
@@ -724,7 +724,8 @@ class MulticamCompositor:
             width=1,
         )
         draw.rectangle([bx0, by0, bx0 + 6, by1], fill=acc)
-        draw.text((bx0 + 48, by0 + 28), "PRIMARY HISTORICAL INSCRIPTION   ·   ARCHIVAL RECORD", font=self._f_badge, fill=acc)
+        badge = "NARRATION EXCERPT · EDITORIAL EMPHASIS" if author_name == "VOXFORGE NARRATION" else "HISTORICAL SOURCE · CONTEXTUAL EXCERPT"
+        draw.text((bx0 + 48, by0 + 28), badge, font=self._f_badge, fill=acc)
         draw.text((bx0 + 42, by0 + 52), "“", font=self._f_quote_mark, fill=(229, 169, 60, 148))
 
         qy = by0 + 132

@@ -16,7 +16,8 @@ I inspected the current flagship's actual script, Stage A-D report, Stage E scen
 2. Raised ordinary 1080p render quality from CRF 24.8 to CRF 21, retaining a slightly more storage-efficient CRF 23 for marathon CPU renders. This prioritizes legible small typography, fine map lines, gradients, and subtle motion in the code-rendered graphics.
 3. Replaced the compact-documentary opener's generic “forty-five centuries of human ambition / outer boundary” exposition with a concise question a narrator can deliver naturally.
 4. Corrected a specific inspected visual error: the Great Wall simulation previously titled the Qin/Meng Tian frontier a “Ming Frontier Network” and claimed “700 km/h” signal propagation without grounding. The new graphic says “Great Wall Beacon Network: Signals Across the Northern Frontier,” labels itself a historical concept model, and drops the unsupported speed and network-span claims. The scene caption is now dynasty-neutral.
-5. Preserved the existing TTS normalization, 48 kHz mastering, measured -16 LUFS web profile, and -1 dBTP ceiling; no unsupported EQ/compression changes were made without listening evidence.
+5. Fixed quote-card retrieval after inspecting the rendered frame: it previously chose an Artemis quotation from the chapter title for a generic Great Pyramid question. Quote lookup now keys off the spoken turn, and an unmatched turn is displayed as a VoxForge narration excerpt rather than falsely attributed archival text. The quote-card scene plan and audit family now permit its real monument background. Added a regression test for unrelated-quote leakage.
+6. Preserved the existing TTS normalization, 48 kHz mastering, measured -16 LUFS web profile, and -1 dBTP ceiling; no unsupported EQ/compression changes were made without listening evidence.
 
 ## Limits and next validation
 

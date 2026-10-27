@@ -41,7 +41,9 @@ _FAMILY_GROUPS: dict[str, set[str]] = {
     "split_fact_card": {"darkhud"},
     "studio_insert": {"darkhud"},
     "reaction_shot": {"darkhud"},
-    "quote_card": {"quote"},
+    # Quote cards are editorial overlays on a topic-matched plate; the background can
+    # legitimately classify as monument while the card itself carries the quotation.
+    "quote_card": {"quote", "monument"},
 }
 
 

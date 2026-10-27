@@ -258,7 +258,7 @@ _REQUIRED_VISUAL_TEXT = {
     "split_fact_card": "Live counting telemetry + LiDAR viewport illustrating spoken figures/structure",
     "studio_insert": "Explanatory simulation blackboard / LiDAR turntable illustrating the spoken mechanism",
     "reaction_shot": "Dual-plate archival light-table illustrating the spoken comparison",
-    "quote_card": "Verbatim primary-source inscription typography of the spoken citation",
+    "quote_card": "Exact narration excerpt or topic-matched historical quotation over a relevant monument plate",
 }
 _VISUAL_SOURCE = {
     "broll_cinema": "pure-code:Monument3DEngine+broll_depth",
@@ -935,7 +935,7 @@ def render_episode_video(
                         plates_dir / f"seg_{seg_idx:04d}_q_hud.png",
                         total_chapters=total_ch,
                         show_title=show_title,
-                        caption_override=f"Primary-Source Inscription · {_caption_for_asset(p_q, ch, '', turn.text)}",
+                        caption_override=f"Narration-linked quote card · {_caption_for_asset(p_q, ch, '', turn.text)}",
                     )
                 elif beat_cam == "split_fact_card":
                     p_f, _ = _next_distinct_plate(turn.text)

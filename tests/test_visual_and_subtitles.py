@@ -238,3 +238,19 @@ def test_subturn_editorial_director_prevents_long_holds() -> None:
         assert 1.8 <= dur <= 8.0
         prev = end_t
     assert abs(prev - 41.0) < 1e-6
+
+
+def test_quote_resolution_does_not_borrow_unrelated_chapter_quote() -> None:
+    from voxforge.video.compositor import resolve_historical_quote
+
+    unrelated = "The question is simple: what did these builders understand about stone, weight, and time?"
+    quote, author, citation = resolve_historical_quote(unrelated, unrelated)
+    assert "house of Artemis" not in quote
+    assert quote == unrelated
+    assert author == "VOXFORGE NARRATION"
+    assert citation.startswith("Narration excerpt")
+
+    matched = "Antipater described the house of Artemis and its place among the Seven Wonders."
+    quote2, author2, _ = resolve_historical_quote(matched, matched)
+    assert "house of Artemis" in quote2
+    assert author2 == "ANTIPATER OF SIDON"
