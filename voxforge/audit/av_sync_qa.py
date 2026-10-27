@@ -43,7 +43,7 @@ _FAMILY_GROUPS: dict[str, set[str]] = {
     "reaction_shot": {"darkhud"},
     # Quote cards are editorial overlays on a topic-matched plate; the background can
     # legitimately classify as monument while the card itself carries the quotation.
-    "quote_card": {"quote", "monument"},
+    "quote_card": {"quote", "monument", "darkhud"},  # legibility plate may cover most of the scene
 }
 
 

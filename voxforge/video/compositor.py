@@ -701,8 +701,9 @@ class MulticamCompositor:
         self._draw_logo_bug(draw, show_title)
 
         acc = (229, 169, 60, 255)
+        # Resolve only from the active spoken line; never borrow a quote from another beat in the chapter.
         verbatim_q, author_name, citation_line = resolve_historical_quote(
-            s_hint, turn.pull_quote or turn.text
+            turn.text, turn.pull_quote or turn.text
         )
 
         hud_only = _apply_bottom_legibility_gradient(Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0)), strength=96)
