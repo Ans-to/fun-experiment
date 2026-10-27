@@ -1272,6 +1272,16 @@ class Monument3DEngine:
             img[:, :, 0] = np.clip(rf + streak * 40.0 + core * 70.0, 0.0, 255.0).astype(np.uint8)
             img[:, :, 1] = np.clip(gf + streak * 90.0 + core * 50.0, 0.0, 255.0).astype(np.uint8)
             img[:, :, 2] = np.clip(bf + streak * 190.0 + core * 25.0, 0.0, 255.0).astype(np.uint8)
+
+        if lens_variant % 3 == 0:
+            # Warm-neutral film grade for the cinematic material pass only. Technical scans
+            # stay cool cyan; this makes limestone/concrete read as material, not as blue CAD.
+            warm = img.astype(np.float32)
+            material_mask = zbuf < 90.0  # Preserve the approved sky/sun-optics pixels exactly.
+            warm[..., 0][material_mask] = np.clip(warm[..., 0][material_mask] * 1.28 + 1.0, 0.0, 255.0)
+            warm[..., 1][material_mask] = np.clip(warm[..., 1][material_mask] * 1.03, 0.0, 255.0)
+            warm[..., 2][material_mask] = np.clip(warm[..., 2][material_mask] * 0.72, 0.0, 255.0)
+            img = warm.astype(np.uint8)
         return img
 
 
