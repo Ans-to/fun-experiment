@@ -530,20 +530,42 @@ def _build_monument_3d_scene(scene_id: int) -> tuple[np.ndarray, np.ndarray, np.
 
         mb.add_heightfield(-15.0, 15.0, -16.0, 10.0, 54, 54, andes_fn, wire_stride=4)
 
-        # 12 Stepped Inca Ashlar Agricultural & Ceremonial Terraces
-        for t in range(12):
-            y0 = -0.4 + t * 0.28
-            y1 = y0 + 0.26
-            rx = 4.6 - t * 0.30
-            rz = 3.8 - t * 0.24
-            mb.add_cylinder(-0.3, y0, y1, 0.4, rx, rx * 0.98, 16, (0.56, 0.55, 0.52), wire=(1 if t % 3 == 0 else 0))
-            mb.add_cylinder(-0.3, y1, y1 + 0.02, 0.4, rx * 0.98, 0.05, 16, (0.24, 0.48, 0.24))
+        # Contour terraces flank the citadel on both slopes; avoid a concentric, pyramid-like mound.
+        terrace_stone = (0.48, 0.47, 0.43)
+        terrace_grass = (0.24, 0.39, 0.25)
+        for side in (-1.0, 1.0):
+            for tier in range(6):
+                cx = side * (4.8 - 0.32 * tier)
+                cy = 0.12 + 0.28 * tier
+                cz = 2.0 - 0.48 * tier
+                hx = 1.35 - 0.08 * tier
+                hz = 2.35 - 0.12 * tier
+                mb.add_box(cx, cy, cz, hx, 0.14, hz, terrace_stone, wire=1)
+                mb.add_box(cx, cy + 0.15, cz, hx * 0.98, 0.035, hz * 0.96, terrace_grass, wire=0)
 
-        # Intihuatana Astronomical Stone & Trapezoidal Granite Enclosures
-        mb.add_box(-0.3, 3.12, 0.4, 0.68, 0.18, 0.68, (0.72, 0.70, 0.66), wire=2)
-        mb.add_frustum(-0.3, 3.30, 3.78, 0.4, 0.18, 0.14, 0.12, 0.10, (1.0, 0.80, 0.32), emissive=0.75, wire=2)
-        for hx, hz in ((-1.85, 1.3), (1.35, 1.1), (-1.55, -0.6), (1.25, -0.7)):
-            mb.add_box(hx, 2.35, hz, 0.48, 0.28, 0.32, (0.66, 0.64, 0.60), wire=1)
+        # Distinct low Inca kancha compounds: open doorways, trapezoidal piers and long lintels.
+        def add_kancha(cx: float, cz: float, hx: float, hz: float, wall_h: float) -> None:
+            stone = (0.63, 0.61, 0.56)
+            wall = 0.12
+            floor_y = 0.22
+            mb.add_box(cx, floor_y, cz, hx + 0.16, 0.12, hz + 0.16, (0.44, 0.43, 0.39), wire=1)
+            # Back and side walls form a roofless rectangular room.
+            mb.add_box(cx, floor_y + wall_h / 2, cz - hz + wall / 2, hx, wall_h / 2, wall / 2, stone, wire=1)
+            mb.add_box(cx - hx + wall / 2, floor_y + wall_h / 2, cz, wall / 2, wall_h / 2, hz, stone, wire=1)
+            mb.add_box(cx + hx - wall / 2, floor_y + wall_h / 2, cz, wall / 2, wall_h / 2, hz, stone, wire=1)
+            # Front is articulated as three broad piers and a heavy spanning lintel.
+            for px in (cx - hx + wall / 2, cx, cx + hx - wall / 2):
+                mb.add_box(px, floor_y + wall_h / 2, cz + hz - wall / 2, wall / 2, wall_h / 2, wall / 2, stone, wire=1)
+            mb.add_box(cx, floor_y + wall_h - wall / 2, cz + hz - wall / 2, hx, wall / 2, wall / 2, stone, wire=1)
+
+        add_kancha(-0.65, 1.15, 1.20, 0.70, 0.92)  # Temple of the Three Windows study
+        add_kancha(1.75, 0.35, 0.88, 0.56, 0.76)
+        add_kancha(-2.10, -0.35, 0.82, 0.52, 0.72)
+        add_kancha(0.45, -1.10, 0.76, 0.48, 0.70)
+
+        # Small, weathered Intihuatana ritual stone on a natural rock outcrop.
+        mb.add_box(-0.1, 1.55, -0.65, 0.48, 0.12, 0.42, (0.55, 0.53, 0.49), wire=1)
+        mb.add_frustum(-0.1, 1.67, 2.18, -0.65, 0.12, 0.30, 0.20, 0.18, (0.60, 0.58, 0.53), wire=1)
 
     elif scene_id == SCENE_CHICHEN_ITZA:
         # Plaza + Jungle Horizon + 9-Terraced El Castillo + 4×91 Staircases + Upper Temple of Kukulcán!
@@ -1010,9 +1032,10 @@ class Monument3DEngine:
             rad = 10.8 - 1.6 * u if lv != 2 else 7.2 - 0.9 * u
             return (math.sin(ang) * rad, 5.2 - 0.6 * u, math.cos(ang) * rad), (0.0, 1.35, 0.0), (0.72, 0.30, 0.62), 1.30
         elif scene_id == SCENE_MACHU_PICCHU:
-            ang = -0.30 + 0.48 * u + (0.38 if lv == 1 else 0.0)
-            rad = 10.2 - 1.6 * u
-            return (math.sin(ang) * rad - 0.3, 4.85 - 0.35 * u, math.cos(ang) * rad + 1.2), (0.0, 2.55, -2.8), (0.68, 0.32, 0.65), 1.26
+            # Broad, elevated three-quarter master: terraces, low compounds and both peaks read together.
+            ang = -0.48 + 0.66 * u + (-0.34 if lv == 0 else (0.38 if lv == 1 else 0.88))
+            rad = 12.6 - 1.5 * u
+            return (math.sin(ang) * rad - 0.3, 5.25 - 0.25 * u, math.cos(ang) * rad + 1.2), (0.0, 2.0, -2.8), (0.68, 0.32, 0.65), 1.48
         elif scene_id == SCENE_CHICHEN_ITZA:
             ang = (-0.54 + 0.52 * u) + lv * 0.78
             rad = 9.8 - 1.6 * u

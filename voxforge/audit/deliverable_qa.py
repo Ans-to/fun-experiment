@@ -278,7 +278,7 @@ def write_audit_reports(
             f"| 11 | Quote Cards & Animated Telemetry | **VERIFIED** | Historical Pull-Quotes (`{cams.count('quote_card')}`) + staggered 4-Metric Engineering Split-Views (`{cams.count('split_fact_card')}`) |",
             "| 12 | Breath-Synced Editorial Transitions | **VERIFIED** | Sub-turn cuts snapped to 50Hz RMS breath valleys + `0.38s` dissolves at Act boundaries |",
             "| 13 | Consistent Rec.709 Cinema Color Grade | **VERIFIED** | Unified Rec.709 16–235 LUT + fine 35mm anti-banding film grain + `bt709` stream tags |",
-            f"| 14 | Clear EBU R128 Audio Mix | **VERIFIED** | `{audio_meta.integrated_lufs:.2f} LUFS`, `{audio_meta.true_peak_dbtp:.2f} dBTP` (zero clipping), ducked cinematic score |",
+            f"| 14 | ITU-R BS.1770-4 Web-Delivery Audio Mix | **VERIFIED** | `{audio_meta.integrated_lufs:.2f} LUFS`, `{audio_meta.true_peak_dbtp:.2f} dBTP` (zero clipping), ducked cinematic score; -16 LUFS web target, not EBU R128 broadcast normalization |",
             f"| 15 | Branded Outro / End Card | **VERIFIED** | `{script.outro_duration_sec:.1f}s` documentary end-credits & Next Feature Film card |",
             "",
         ]

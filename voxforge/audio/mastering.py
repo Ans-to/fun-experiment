@@ -1,4 +1,4 @@
-"""Broadcast Vocal Processing, Sidechain Ducking & Two-Pass EBU R128 Mastering.
+"""Broadcast-Style Vocal Processing, Sidechain Ducking & -16 LUFS Web Mastering.
 
 Implements a full studio post-production console:
   1. Per-speaker parametric vocal EQ (80Hz HPF, warmth, mud cut, 3.5kHz presence, de-esser)
@@ -6,6 +6,7 @@ Implements a full studio post-production console:
   3. Subtle conversational stereo stage (-14% Host A, +14% Host B) + studio room tone (-53 dBFS)
   4. Sample-accurate exponential sidechain ducking of musical underscore
   5. Two-pass FFmpeg ITU-R BS.1770-4 `loudnorm` hitting -16.0 LUFS & <= -1.0 dBTP
+     (web/streaming target; not the -23 LUFS EBU R128 broadcast normalization target)
 """
 
 from __future__ import annotations

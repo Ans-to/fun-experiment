@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         Panel.fit(
             f"[bold gold1]VOXFORGE · AUTONOMOUS DOCUMENTARY FILM ENGINE[/bold gold1]\n"
             f"[white]Command:[/white] [italic cyan]\"{full_command}\"[/italic cyan]\n"
-            f"[dim]Zero API Keys · Deep Research · 24fps 2.5D & Cartography · EBU R128 Mastering · Closed-Loop QA[/dim]",
+            f"[dim]Zero API Keys · Deep Research · 24fps 2.5D & Cartography · -16 LUFS / BS.1770-4 Mastering · Closed-Loop QA[/dim]",
             border_style="gold1",
         )
     )

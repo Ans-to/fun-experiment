@@ -158,6 +158,35 @@ def test_generic_explanatory_simulation_renders() -> None:
     assert float(frame.mean()) > 5.0  # not a black frame; glyphs/panels drawn
 
 
+def test_fact_card_metrics_are_filtered_to_the_active_landmark() -> None:
+    from types import SimpleNamespace
+
+    from voxforge.video.compositor import _metrics_for_scene
+
+    metrics = [
+        SimpleNamespace(label="Central Finial Height", value="73 Meters"),
+        SimpleNamespace(label="Artisan Workforce", value="20,000 specialists"),
+        SimpleNamespace(label="Corcovado Peak", value="710 m above Rio"),
+        SimpleNamespace(label="Arm Wingspan", value="28 meters"),
+    ]
+    taj = _metrics_for_scene(metrics, "Taj Mahal, Agra")
+    christ = _metrics_for_scene(metrics, "Christ the Redeemer, Rio de Janeiro")
+    assert [m.label for m in taj] == ["Central Finial Height", "Artisan Workforce"]
+    assert [m.label for m in christ] == ["Corcovado Peak", "Arm Wingspan"]
+    paired = [
+        SimpleNamespace(label="Elevation", value="2,430 m"),
+        SimpleNamespace(label="Subsurface Effort", value="60% drains"),
+        SimpleNamespace(label="Total Calendar Steps", value="365"),
+        SimpleNamespace(label="Pyramid Nested Shells", value="3"),
+    ]
+    assert [m.label for m in _metrics_for_scene(paired, "Machu Picchu & Huayna Picchu")] == [
+        "Elevation", "Subsurface Effort"
+    ]
+    assert [m.label for m in _metrics_for_scene(paired, "El Castillo, Chichén Itzá")] == [
+        "Total Calendar Steps", "Pyramid Nested Shells"
+    ]
+
+
 def test_stage_e_rejects_plan_subject_that_conflicts_with_full_narration_turn() -> None:
     from types import SimpleNamespace
 

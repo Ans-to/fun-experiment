@@ -37,6 +37,25 @@ from voxforge.video.procedural_world import (
 
 AnimMode = Literal["none", "broll_depth", "geo_map", "archival_desk", "telemetry_split", "kinetic_quote", "smooth_card", "intro_montage"]
 
+
+def _metrics_for_scene(metrics: list, scene_title: str) -> list:
+    """Filter chapter-level fact bundles so paired-landmark stats cannot leak across subjects."""
+    title = scene_title.lower()
+    cue_sets = {
+        "machu picchu": ("elevation", "subsurface"),
+        "chichén": ("calendar", "pyramid"),
+        "chichen": ("calendar", "pyramid"),
+        "taj mahal": ("finial", "artisan"),
+        "christ the redeemer": ("corcovado", "wingspan"),
+        "al-khazneh": ("khazneh", "rainfall"),
+        "colosseum": ("ellipse", "construction"),
+    }
+    cues = next((vals for key, vals in cue_sets.items() if key in title), ())
+    if not cues:
+        return list(metrics[:4])
+    selected = [m for m in metrics if any(cue in f"{m.label} {m.value}".lower() for cue in cues)]
+    return selected[:4] if selected else list(metrics[:2])
+
 # Verbatim primary-source historical eyewitness inscriptions (8 monument-specific records, 100% complete sentences)
 _HISTORICAL_PRIMARY_QUOTES: list[tuple[tuple[str, ...], str, str, str]] = [
     (
@@ -496,6 +515,7 @@ class MulticamCompositor:
         episode_title: str = "",
         show_lower_third: bool = True,
         prev_location_hint: str = "",
+        scene_context: str = "",
     ) -> tuple[PlateLayout, tuple[Path, int, int, str]]:
         """Live 24fps True 3D Raycasted Orbital Earth GIS Globe (`raycast_orbital_earth_globe`)."""
         hud = _apply_bottom_legibility_gradient(Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0)), strength=102)
@@ -520,7 +540,7 @@ class MulticamCompositor:
                 prominent_episode_title=episode_title,
             )
 
-        target_hint = f"{turn.text} || {chapter.title} {chapter.location}"
+        target_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
         layout = PlateLayout(
             image_path=hud_path,
             anim_mode="geo_map",
@@ -544,10 +564,11 @@ class MulticamCompositor:
         show_lower_third: bool | None = None,
         asset_override: Path | None = None,
         caption_override: str | None = None,
+        scene_context: str = "",
     ) -> tuple[PlateLayout, tuple[Path, int, int, str]]:
         """Live 24fps Pure-Code 3D Architectural Monument Reconstruction."""
         del asset_override
-        s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
+        s_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
         _, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
         bg = self._code_plate_for_hint(s_hint, chapter.chapter_index)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -598,10 +619,11 @@ class MulticamCompositor:
         secondary_asset: Path | None = None,
         primary_caption: str = "",
         secondary_caption: str = "",
+        scene_context: str = "",
     ) -> tuple[PlateLayout, tuple[Path, int, int, str]]:
         """Live 24fps Volumetric 3D LiDAR Point-Cloud & Physics Simulation."""
         del primary_asset, secondary_asset
-        s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
+        s_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
         _, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -644,10 +666,11 @@ class MulticamCompositor:
         secondary_asset: Path | None = None,
         primary_caption: str = "",
         secondary_caption: str = "",
+        scene_context: str = "",
     ) -> tuple[PlateLayout, tuple[Path, int, int, str]]:
         """Live 24fps Mathematical & Engineering Physics Simulation / 3D LiDAR Cutaway."""
         del primary_asset, secondary_asset
-        s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
+        s_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
         _, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
 
         bg_out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -686,10 +709,11 @@ class MulticamCompositor:
         show_title: str,
         out_path: Path,
         asset_override: Path | None = None,
+        scene_context: str = "",
     ) -> PlateLayout:
         """Render Verbatim Eyewitness Primary-Source Inscription Plate over live 3D monument."""
         del asset_override
-        s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
+        s_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
         bg_src = self._code_plate_for_hint(s_hint, chapter.chapter_index)
         bg = ImageEnhance.Brightness(bg_src.filter(ImageFilter.GaussianBlur(radius=9.0))).enhance(0.56).convert("RGBA")
 
@@ -811,11 +835,12 @@ class MulticamCompositor:
         show_title: str,
         out_path: Path,
         asset_override: Path | None = None,
+        scene_context: str = "",
     ) -> PlateLayout:
         """Render 2-Column Archaeological & Engineering Telemetry View (`anim_mode == 'none'`)."""
         del asset_override
-        s_hint = f"{turn.text} || {chapter.title} {chapter.location}"
-        sid, _ = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
+        s_hint = f"{turn.text} || {scene_context} || {chapter.title} {chapter.location}"
+        sid, scene_title = resolve_procedural_scene_id(s_hint, chapter.chapter_index)
         canvas = self._studio_bg.copy()
         overlay = Image.new("RGBA", (self.w, self.h), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
@@ -844,13 +869,13 @@ class MulticamCompositor:
         draw.text((rx + 38, ty + 30), f"STRUCTURAL TELEMETRY  ·  {chapter.era_or_date.split('·')[0].split('&')[0].strip().upper()}"[:52], font=self._f_badge, fill=acc)
 
         cy = ty + 64
-        short_ch_title = chapter.title.split(":")[0] if len(chapter.title) > 52 else chapter.title
+        short_ch_title = scene_title
         for line in textwrap.wrap(short_ch_title, width=32)[:2]:
             draw.text((rx + 38, cy), line, font=self._f_panel_title, fill=(255, 255, 255, 255))
             cy += 38
 
         cy += 18
-        metrics = turn.fact_metrics or [
+        metrics = _metrics_for_scene(turn.fact_metrics, scene_title) or [
             type("M", (), {"label": "Site Location", "value": chapter.location[:22]})(),
             type("M", (), {"label": "Historical Era", "value": chapter.era_or_date[:22]})(),
         ]
@@ -874,7 +899,7 @@ class MulticamCompositor:
                 vy += 34
             draw.text((gx + 22, gy + row_h - 38), str(m.label).upper()[:26], font=self._f_panel_lbl, fill=acc)
 
-        coord_txt = f"ALGORITHMIC 3D SURVEY  ·  {chapter.location.upper()}"[:62]
+        coord_txt = f"ALGORITHMIC 3D SURVEY  ·  {scene_title.upper()}"[:62]
         draw.text((rx + 38, ty + lh - 38), coord_txt, font=self._f_panel_lbl, fill=(148, 163, 184, 212))
 
         final_im = Image.alpha_composite(canvas, overlay).convert("RGB")

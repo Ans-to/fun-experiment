@@ -892,11 +892,12 @@ def render_episode_video(
                         episode_title=ep_title if (c_i == 0 and t_i == 0) else "",
                         show_lower_third=show_lt_now,
                         prev_location_hint=prev_map_hint,
+                        scene_context=full_turn_text,
                     )
                     prev_map_hint = scene_resolution_hint
                 elif beat_cam in ("closeup_host_a", "closeup_host_b"):
                     chosen_p, cur_lens_variant = _next_distinct_plate(scene_resolution_hint)
-                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, turn.text)
+                    cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, scene_resolution_hint)
                     layout, hud_overlay = compositor.render_host_closeup(
                         turn,
                         ch,
@@ -906,6 +907,7 @@ def render_episode_video(
                         show_lower_third=show_lt_now,
                         asset_override=chosen_p,
                         caption_override=cap_txt,
+                        scene_context=full_turn_text,
                     )
                 elif beat_cam == "reaction_shot":
                     p1, _ = _next_distinct_plate(scene_resolution_hint)
@@ -920,6 +922,7 @@ def render_episode_video(
                         secondary_asset=p2,
                         primary_caption=_caption_for_asset(p1, ch, "", scene_resolution_hint),
                         secondary_caption=_caption_for_asset(p2, ch, "", scene_resolution_hint),
+                        scene_context=full_turn_text,
                     )
                 elif beat_cam == "studio_insert":
                     p1, _ = _next_distinct_plate(scene_resolution_hint)
@@ -935,11 +938,14 @@ def render_episode_video(
                         secondary_asset=p2,
                         primary_caption=_caption_for_asset(p1, ch, "", scene_resolution_hint),
                         secondary_caption=_caption_for_asset(p2, ch, "", scene_resolution_hint),
+                        scene_context=full_turn_text,
                     )
                 elif beat_cam == "quote_card":
                     p_q, _ = _next_distinct_plate(scene_resolution_hint)
                     layout = compositor.render_quote_card(
-                        turn, ch, total_ch, show_title, plate_file, asset_override=p_q
+                        turn, ch, total_ch, show_title, plate_file,
+                        asset_override=p_q,
+                        scene_context=full_turn_text,
                     )
                     hud_overlay = compositor.render_broll_hud_overlay(
                         turn,
@@ -952,7 +958,9 @@ def render_episode_video(
                 elif beat_cam == "split_fact_card":
                     p_f, _ = _next_distinct_plate(scene_resolution_hint)
                     layout = compositor.render_split_fact_card(
-                        turn, ch, total_ch, show_title, plate_file, asset_override=p_f
+                        turn, ch, total_ch, show_title, plate_file,
+                        asset_override=p_f,
+                        scene_context=full_turn_text,
                     )
                     hud_overlay = compositor.render_broll_hud_overlay(
                         turn,
