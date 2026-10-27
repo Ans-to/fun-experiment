@@ -329,7 +329,9 @@ def _plan_turn_editorial_beats(
         clauses = _split_turn_clauses(turn.text)
         for ci, clause in enumerate(clauses):
             intent_c = _turn_visual_intent(clause)
-            sid_c, _ = resolve_procedural_scene_id(f"{clause} || {scene_context}", fallback_idx=ci + 1)
+            sid_c, _ = resolve_procedural_scene_id(
+                f"{clause} || {turn.text} || {scene_context}", fallback_idx=ci + 1
+            )
             fam = _family_for_intent(intent_c, sid_c != SCENE_CLASSICAL_GENERIC, ci)
             specs.append((fam, float(max(3, len(clause.split()))), clause))
 

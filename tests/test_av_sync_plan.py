@@ -73,6 +73,20 @@ def test_planner_returns_clause_triples_covering_turn() -> None:
     assert fams & {"wide_studio", "split_fact_card", "studio_insert", "quote_card"}
 
 
+def test_clause_scene_resolution_uses_full_active_turn_before_chapter_fallback() -> None:
+    from voxforge.video.procedural_world import SCENE_MACHU_PICCHU, resolve_procedural_scene_id
+
+    clause = "Perched on a narrow granite fault saddle nearly eight"
+    active_turn = (
+        "Perched on a narrow granite fault saddle nearly eight thousand feet above sea level, "
+        "Machu Picchu rises over the Urubamba River."
+    )
+    broad_chapter = "Citadels of the Americas: Chichén Itzá & Machu Picchu"
+    sid, title = resolve_procedural_scene_id(f"{clause} || {active_turn} || {broad_chapter}")
+    assert sid == SCENE_MACHU_PICCHU
+    assert "Machu Picchu" in title
+
+
 def test_scene_plan_serialization_roundtrip() -> None:
     entry = ScenePlanEntry(
         scene_id=4, seg_index=12, chapter_index=2, turn_id=7,

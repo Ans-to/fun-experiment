@@ -31,6 +31,8 @@ A 12-frame decoded review showed that the visuals were too uniformly wireframe-h
 
 The prior alternating male/female co-host delivery made the documentary sound like a panel discussion. Documentary-writing sources recommend a consistent narrator for expository films, and Kokoro's own voice documentation notes that voice choice and chunk size affect quality. This pass converts finished generated turns to one continuous lead voice (Dr. Maya Lin), selects the documented A-grade `af_heart` voice instead of blending three male voices, centers narration in the stereo image, and changes the editorial gate from a two-host balance target to narrator continuity. The working script can still use question/answer-like beats, but they are delivered as one voiceover, not acted as a synthetic conversation.
 
+A second decoded review found a planner defect the family classifier could not expose: a short Machu Picchu clause was being resolved using only the chapter title, whose first landmark was Chichén Itzá. The plan therefore pointed at the wrong 3D model. Clause resolution now checks the exact clause, then the complete active spoken turn, then the chapter fallback; a regression test locks the Machu-vs-Chichén case. This is a meaning-level fix, not a classifier threshold change.
+
 The opening factual hook was rewritten to short, concrete spoken lines (“Greek writers named seven wonders. Six are gone. Khufu's Great Pyramid still rises above Giza…”), replacing a long compound sentence with an unsupported attribution to “human greed.” This follows documentary writing guidance to make each line understandable once, vary sentence length, and use image/silence for part of the storytelling.
 
 ## Rendered result

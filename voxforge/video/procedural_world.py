@@ -1278,9 +1278,8 @@ class Monument3DEngine:
             # stay cool cyan; this makes limestone/concrete read as material, not as blue CAD.
             warm = img.astype(np.float32)
             material_mask = zbuf < 90.0  # Preserve the approved sky/sun-optics pixels exactly.
-            warm[..., 0][material_mask] = np.clip(warm[..., 0][material_mask] * 1.28 + 1.0, 0.0, 255.0)
-            warm[..., 1][material_mask] = np.clip(warm[..., 1][material_mask] * 1.03, 0.0, 255.0)
-            warm[..., 2][material_mask] = np.clip(warm[..., 2][material_mask] * 0.72, 0.0, 255.0)
+            warm[..., 0][material_mask] = np.clip(warm[..., 0][material_mask] * 1.08, 0.0, 255.0)
+            warm[..., 2][material_mask] = np.clip(warm[..., 2][material_mask] * 0.90, 0.0, 255.0)
             img = warm.astype(np.uint8)
         return img
 

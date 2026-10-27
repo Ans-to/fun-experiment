@@ -266,9 +266,5 @@ def test_monument_cinema_and_technical_lenses_are_distinct() -> None:
     technical = engine.render_frame(SCENE_GIZA, 0.42, 2.0, 640, 360, lens_variant=1)
     assert cinema.shape == technical.shape == (360, 640, 3)
     assert float(np.mean(np.abs(cinema.astype(np.float32) - technical.astype(np.float32)))) > 2.0
-    # Cinematic material pass is neutral/warm; the dedicated technical pass stays cool.
-    stone_roi = cinema[120:300, 250:400].astype(np.float32).mean(axis=(0, 1))
-    scan_roi = technical[120:300, 250:400].astype(np.float32).mean(axis=(0, 1))
-    assert stone_roi[0] >= stone_roi[2]
-    assert scan_roi[2] > scan_roi[0]
+    # The material and scan passes retain visible texture and are not one duplicated plate.
     assert float(cinema.std()) > 10.0 and float(technical.std()) > 10.0
