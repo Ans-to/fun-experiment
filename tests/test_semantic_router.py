@@ -81,6 +81,37 @@ def test_place_and_quote_intents_route_to_distinct_modalities() -> None:
     assert quote.modality == "kinetic_quote"
 
 
+def test_consecutive_place_clauses_never_loop_identical_globe() -> None:
+    director = SemanticShotDirector("The Silk Road and Eurasian Trade")
+    d1 = director.directive_for_clause(
+        "Caravans crossed the Pamir plateau along the southern trade route", "Silk Road", "geo"
+    )
+    d2 = director.directive_for_clause(
+        "Expeditions then descended toward the coast of the Mediterranean sea lanes", "Silk Road", "geo"
+    )
+    assert d1.modality == MODALITY_GLOBE
+    # The second globe would be an identical (subject, treatment) pair, so it reroutes to a diagram.
+    assert (d2.subject_key, d2.treatment) != (d1.subject_key, d1.treatment)
+    assert d2.modality == MODALITY_DIAGRAM
+
+
+def test_template_choice_is_per_subject_so_best_fit_is_not_stolen() -> None:
+    """A different topic's recent template must not deny a clause its category's best-fit
+    template (regression: an abstract attribution beat using particle_cluster forced the
+    'five known planets' space clause onto an unrelated terrain template)."""
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    attr = director.attribution_directive("Origins of Wonder: Greek Theamata", "Mediterranean", "people")
+    planets = director.directive_for_clause(
+        "perfection: five known planets plus the Sun and Moon", "Origins", "scene"
+    )
+    assert planets.diagram_template == "particle_cluster"
+    assert attr.subject_key != planets.subject_key
+    # Same space subject repeated still rotates its ladder rather than repeating adjacent.
+    again = director.directive_for_clause("the planets trace stable orbits through the cosmos", "Origins", "scene")
+    assert again.subject_key == planets.subject_key
+    assert again.diagram_template != planets.diagram_template
+
+
 def test_attribution_beats_are_bound_not_placeholder() -> None:
     director = SemanticShotDirector("How Volcanoes Erupt")
     d = director.attribution_directive("The Earth's Fiary Engine", "Pacific Ring of Fire", "people")

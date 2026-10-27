@@ -357,61 +357,63 @@ def _plan_turn_editorial_beats(
         directive = director.directive_for_clause(turn.text, scene_context, intent)
         return [(_camera_for_directive(directive, spk_cu), turn_end_sec, turn.text, directive)]
 
-    # ---- Clause-aligned beat construction: one bound directive per spoken clause ----
-    specs: list[tuple[CameraAngle, float, str, VisualDirective]] = []
+    # ---- Text-only beat construction first; directives are resolved only AFTER merging and
+    # splitting, so every stored clause has exactly one directive and the director's history
+    # order matches the scene-plan order the hard gate validates. ----
+    text_specs: list[tuple[float, str, bool]] = []  # (weight, clause, is_attribution)
     if lead_attribution_sec > 0.0:
         attr_clause = f"{chapter_title} {chapter_location}".strip() or turn.text
-        d_attr = director.attribution_directive(chapter_title, chapter_location, "people")
-        specs.append((_camera_for_directive(d_attr, spk_cu), lead_attribution_sec, attr_clause, d_attr))
+        text_specs.append((lead_attribution_sec, attr_clause, True))
 
-    clauses = _split_turn_clauses(turn.text)
-    for clause in clauses:
-        intent_c = _turn_visual_intent(clause)
-        directive_c = director.directive_for_clause(clause, scene_context, intent_c)
-        specs.append(
-            (
-                _camera_for_directive(directive_c, spk_cu),
-                float(max(3, len(clause.split()))),
-                clause,
-                directive_c,
-            )
-        )
+    for clause in _split_turn_clauses(turn.text):
+        text_specs.append((float(max(3, len(clause.split()))), clause, False))
 
-    # Merge beats that would fall below the 2.2s minimum shot length (merged beat keeps the
-    # first clause's directive; the combined clause text stays bound to both spoken fragments).
     def _scaled_min_ok(weights: list[float], total: float) -> bool:
         s = sum(weights)
         return all(w * total / s >= 2.2 for w in weights)
 
-    while len(specs) > 2 and not _scaled_min_ok([w for _, w, _, _ in specs], total_dur):
-        idx = min(range(1, len(specs)), key=lambda i: specs[i][1])
-        prev = specs[idx - 1]
-        nxt = specs[idx]
-        merged = (prev[0], prev[1] + nxt[1], f"{prev[2]} {nxt[2]}".strip(), prev[3])
-        specs[idx - 1] = merged
-        specs.pop(idx)
+    # Merge beats that would fall below the 2.2s minimum shot length (clause text concatenates;
+    # the single surviving directive is resolved later from the combined clause).
+    while len(text_specs) > 2 and not _scaled_min_ok([w for w, _, _ in text_specs], total_dur):
+        idx = min(range(1, len(text_specs)), key=lambda i: text_specs[i][0])
+        prev_w, prev_c, prev_attr = text_specs[idx - 1]
+        nxt_w, nxt_c, nxt_attr = text_specs[idx]
+        # A merged beat loses attribution status: the combined clause text is resolved normally,
+        # so the spoken fragment — not just the chapter title — drives the subject binding.
+        text_specs[idx - 1] = (prev_w + nxt_w, f"{prev_c} {nxt_c}".strip(), prev_attr and nxt_attr)
+        text_specs.pop(idx)
 
-    # Long-narration rule: never hold one picture beyond ~6.2s — split the heaviest clause and
-    # give the second half its own fresh directive (never an empty placeholder beat).
-    while len(specs) < 8:
-        wsum = sum(w for _, w, _, _ in specs)
+    # Long-narration rule: never hold one picture beyond ~6.2s — split the heaviest clause in
+    # half (both halves get their own directive in the final resolution pass, never placeholders).
+    while len(text_specs) < 8:
+        wsum = sum(w for w, _, _ in text_specs)
         scale0 = total_dur / max(1e-6, wsum)
-        heavy = [i for i, s in enumerate(specs) if s[1] * scale0 > 6.2]
+        heavy = [i for i, (w, _c, _a) in enumerate(text_specs) if w * scale0 > 6.2]
         if not heavy:
             break
-        i_h = max(heavy, key=lambda i: specs[i][1])
-        cam_h, w_h, cl_h, d_h = specs[i_h]
+        i_h = max(heavy, key=lambda i: text_specs[i][0])
+        w_h, cl_h, attr_h = text_specs[i_h]
         words_h = (cl_h or "").split()
         if len(words_h) >= 6:
             mid_h = len(words_h) // 2
             half1, half2 = " ".join(words_h[:mid_h]), " ".join(words_h[mid_h:])
-            d2 = director.directive_for_clause(half2, scene_context, _turn_visual_intent(half2))
-            specs[i_h : i_h + 1] = [
-                (cam_h, w_h / 2.0, half1, d_h),
-                (_camera_for_directive(d2, spk_cu), w_h / 2.0, half2, d2),
+            text_specs[i_h : i_h + 1] = [
+                (w_h / 2.0, half1, attr_h),
+                (w_h / 2.0, half2, False),
             ]
         else:
             break
+
+    # Final resolution pass: one directive per FINAL beat clause, in exact scene-plan order.
+    specs: list[tuple[CameraAngle, float, str, VisualDirective]] = []
+    for wgt, clause, is_attr in text_specs:
+        if is_attr:
+            directive_b = director.attribution_directive(chapter_title, chapter_location, "people")
+        else:
+            directive_b = director.directive_for_clause(
+                clause, scene_context, _turn_visual_intent(clause)
+            )
+        specs.append((_camera_for_directive(directive_b, spk_cu), wgt, clause, directive_b))
 
     weight_sum = sum(w for _, w, _, _ in specs)
     beats: list[tuple[CameraAngle, float, str, VisualDirective]] = []

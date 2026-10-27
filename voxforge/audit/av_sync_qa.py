@@ -36,7 +36,7 @@ import numpy as np
 
 from voxforge.models import AudioMasterMeta, EpisodeScript, StageAudit, AuditCheck
 from voxforge.video.procedural_world import match_wonder_scene_id
-from voxforge.video.semantic_router import ALL_TEMPLATES
+from voxforge.video.semantic_router import ALL_TEMPLATES, is_anaphoric_or_continuation
 
 # Plan visual family -> expected pixel-evidence group produced by the pure-code engine.
 _FAMILY_GROUPS: dict[str, set[str]] = {
@@ -53,7 +53,14 @@ _FAMILY_GROUPS: dict[str, set[str]] = {
 
 _PLACEHOLDER_CLAUSE = "(voice attribution / establishing beat)"
 _MONUMENT_MODALITIES = {"monument_3d", "lidar_cad", "physics_sim"}
-_KNOWN_SOURCES = {"wonder_keyword", "semantic_category", "place_globe", "citation_quote", "clause_diagram"}
+_KNOWN_SOURCES = {
+    "wonder_keyword",
+    "anaphora_continuation",
+    "semantic_category",
+    "place_globe",
+    "citation_quote",
+    "clause_diagram",
+}
 
 
 def classify_frame_group(frame_bgr: np.ndarray) -> str:
@@ -178,6 +185,7 @@ def _subject_hard_gate(entries: list[dict]) -> list[tuple[int, str]]:
     """
     failures: list[tuple[int, str]] = []
     prev_key: tuple[str, str] | None = None
+    prev_directive: dict | None = None
     for e in entries:
         seg = int(e.get("seg_index", -1))
         clause = str(e.get("narration_clause", "")).strip()
@@ -196,14 +204,30 @@ def _subject_hard_gate(entries: list[dict]) -> list[tuple[int, str]]:
                 reasons.append("subject_label_mismatch")
             modality = d.get("modality", "")
             sid = d.get("scene_id")
-            # Independent re-resolution through the SAME production matcher: the clause plus its
-            # recorded planning context must still keyword-match the bound wonder scene.
-            hint = f"{clause} || {d.get('context', '')}".strip(" |") if clause else ""
-            if modality in _MONUMENT_MODALITIES:
+            source = d.get("source", "")
+            # Clause-first subject verification. Monument geometry is only legal when the clause
+            # itself names the wonder, or the clause is an anaphora/continuation of a shot that
+            # did. Chapter-title context can never bind a monument onto a generic clause.
+            if modality in _MONUMENT_MODALITIES or (
+                modality in ("orbital_globe", "kinetic_quote") and isinstance(sid, int) and 0 <= sid <= 8
+            ):
                 if not isinstance(sid, int) or not 0 <= sid <= 8:
                     reasons.append("monument_shot_without_valid_scene_id")
-                elif hint and match_wonder_scene_id(hint) != sid:
-                    reasons.append("clause_subject_does_not_match_rendered_monument")
+                elif source == "anaphora_continuation":
+                    chain_ok = (
+                        is_anaphoric_or_continuation(clause)
+                        and prev_directive is not None
+                        and prev_directive.get("scene_id") == sid
+                        and prev_directive.get("source") in ("wonder_keyword", "anaphora_continuation")
+                    )
+                    if not chain_ok:
+                        reasons.append("anaphora_chain_broken_or_not_referential")
+                elif source in ("wonder_keyword", "place_globe", "citation_quote"):
+                    # Every non-anaphora monument binding must name the wonder in the clause itself.
+                    if match_wonder_scene_id(clause) != sid:
+                        reasons.append("clause_subject_does_not_match_rendered_monument")
+                else:
+                    reasons.append("monument_bound_without_clause_or_anaphora_binding")
             elif modality == "semantic_diagram":
                 # Neutral clause-derived diagrams never bind to monument geometry.
                 if sid != -1:
@@ -211,21 +235,15 @@ def _subject_hard_gate(entries: list[dict]) -> list[tuple[int, str]]:
                 if d.get("diagram_template") not in ALL_TEMPLATES:
                     reasons.append("unknown_diagram_template")
             elif modality in ("orbital_globe", "kinetic_quote"):
-                # Generic place/citation shots use -1; wonder-context globe/quote shots carry the
-                # wonder's id and must independently re-match it (no monument geometry is drawn).
-                if sid == -1:
-                    pass
-                elif isinstance(sid, int) and 0 <= sid <= 8:
-                    if hint and match_wonder_scene_id(hint) != sid:
-                        reasons.append("clause_subject_does_not_match_rendered_monument")
-                else:
-                    reasons.append("invalid_scene_id_for_globe_quote_shot")
+                if sid != -1:
+                    reasons.append("invalid_scene_id_for_generic_globe_quote_shot")
             else:
                 reasons.append("unknown_modality")
             key = (str(d.get("subject_key", "")), str(d.get("treatment", "")))
             if prev_key is not None and key == prev_key:
                 reasons.append("consecutive_identical_subject_treatment")
             prev_key = key
+            prev_directive = d
 
         if reasons:
             failures.append((seg, ";".join(reasons)))

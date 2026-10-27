@@ -34,9 +34,11 @@ from voxforge.video.semantic_router import (
 
 GOLD = (229, 169, 60)
 CYAN = (56, 189, 248)
-INK = (7, 11, 20)
-GRID = (26, 38, 58)
-PANEL = (12, 19, 33)
+# Floor luma tuned so every template decodes above Stage D's Y>8 black-frame gate even after
+# H.264 losses, while remaining well inside the Stage E darkhud group (mean luma well under 70).
+INK = (12, 17, 28)
+GRID = (33, 48, 70)
+PANEL = (17, 26, 44)
 TEXT = (238, 242, 248)
 MUTED = (158, 176, 200)
 
@@ -93,7 +95,7 @@ class SemanticDiagramEngine:
     def _base_canvas(self, w: int, h: int, rng: np.random.Generator) -> np.ndarray:
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         rad = np.sqrt(((xx - w * 0.5) / 980.0) ** 2 + ((yy - h * 0.52) / 600.0) ** 2)
-        vig = np.clip(1.0 - rad * 0.55, 0.32, 1.0)
+        vig = np.clip(1.0 - rad * 0.55, 0.44, 1.0)
         canvas = np.zeros((h, w, 3), dtype=np.uint8)
         canvas[..., 0] = (INK[0] * vig).astype(np.uint8)
         canvas[..., 1] = (INK[1] * vig).astype(np.uint8)
@@ -105,7 +107,7 @@ class SemanticDiagramEngine:
         # sparse deterministic "data dust" so different subjects have different texture
         for _ in range(90):
             px, py = int(rng.integers(0, w)), int(rng.integers(0, h))
-            val = int(rng.integers(28, 70))
+            val = int(rng.integers(36, 82))
             canvas[py, px] = (val, val + 8, min(255, val + 22))
         return canvas
 

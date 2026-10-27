@@ -35,6 +35,17 @@ def test_subject_seed_changes_geometry() -> None:
     assert float(np.mean(np.abs(a.astype(np.int16) - b.astype(np.int16)))) > 2.0
 
 
+def test_every_template_clears_stage_d_black_frame_luma_floor() -> None:
+    # Regression for Stage D D3 failure: the sparsest templates (particle/timeline) encoded
+    # below the Y>8.0 black-frame gate. Raw frames must clear ~11 so H.264 losses stay safe.
+    engine = SemanticDiagramEngine()
+    clause = "five known planets plus the Sun and Moon orbit in a stable cosmic system"
+    for template in ALL_TEMPLATES:
+        for u in (0.15, 0.5, 0.9):
+            frame = engine.render_frame(template, "Planet", clause, u, u * 2.0, seed=5)
+            assert float(frame.mean()) >= 11.0, (template, u, float(frame.mean()))
+
+
 def test_every_template_classifies_as_darkhud_for_stage_e() -> None:
     # Regression guard: semantic diagrams must read as the darkhud pixel-evidence group
     # (terrain fills once used neutral slate that the classifier read as monument stone).

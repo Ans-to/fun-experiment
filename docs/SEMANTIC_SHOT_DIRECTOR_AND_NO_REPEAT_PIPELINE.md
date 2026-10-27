@@ -23,6 +23,15 @@ caches but is no longer used to decide what a shot depicts.
 
 ### 2. Semantic router — `video/semantic_router.py`
 
+**Clause-first binding (the core rule).** A wonder scene is bound only when the wonder is named
+*inside the narration clause itself* (`match_wonder_scene_id(clause)`, no context fallback).
+Chapter-title keywords never force monument geometry onto an abstract clause — this was the
+root cause of shots like a lighthouse under the line "five known planets plus the Sun". When a
+clause is a mid-sentence fragment or referential anaphora (lowercase-starting split fragment,
+connective, opening pronoun, or a reference noun such as "the monument"/"the casing"), it
+inherits the *previous* monument subject; the anaphora chain must originate from a clause that
+named the wonder. Everything else routes to a neutral diagram, globe, or quote card.
+
 `SemanticShotDirector.directive_for_clause(clause, context, intent)` returns an immutable
 `VisualDirective` per clause:
 
@@ -33,12 +42,20 @@ caches but is no longer used to decide what a shot depicts.
 | Citation language or `quote` intent | `kinetic_quote` (scene_id −1) | primary-source typography |
 | Anything else | `semantic_diagram` (scene_id −1) | one of six clause-driven diagram engines |
 
-Six semantic categories (geoscience, biology/health, food/process, technology,
-society/economy, history/humanities) each own a template ladder; unmatched text uses the
-abstract ladder. A rolling 5-shot history guarantees the same `(subject_key, treatment)` pair
+Seven semantic categories (space science, geoscience, biology/health, food/process,
+technology, society/economy, history/humanities) each own a template ladder; unmatched text
+uses the abstract ladder. Directives are resolved **after** beat merging/splitting, so every
+stored clause has exactly one directive and the director's history order matches the
+scene-plan order the hard gate validates (resolving before merging orphaned clauses). A rolling 5-shot history guarantees the same `(subject_key, treatment)` pair
 never repeats inside the window — full ladder is exhausted before rotation. Openers, closers
 and voice-attribution moments are resolved from real chapter/clause text; **empty placeholder
 beats no longer exist**.
+
+Template variety is tracked **per subject key**, not globally: one topic must exhaust its
+category ladder before reusing a template, while a different topic (e.g. space science) always
+gets its most fitting template (orbital `particle_cluster`) even if another topic recently used
+that template. The immediately preceding template is still avoided when the ladder offers an
+alternative, so adjacent shots never look identical across subject boundaries.
 
 ### 3. Six semantic diagram engines — `video/semantic_diagrams.py`
 
@@ -54,7 +71,10 @@ All pure code, animated at 24fps, obsidian HUD palette that classifies as the St
 6. `timeline_arc` — phase arc with progress beam, pulse ring and drifting ticks
 
 Each frame carries the spoken clause and resolved subject as on-screen chrome, so the picture
-is literally labelled with what the narrator is saying.
+is literally labelled with what the narrator is saying. The obsidian base luma (`INK`,
+vignette floor and data-dust range) is tuned so every template clears Stage D's decoded
+`Y > 8.0` black-frame gate after H.264 losses (raw frame mean ≥ 11) while remaining well inside
+the Stage E `darkhud` group (mean ≪ 70); a unit test locks this floor for all six templates.
 
 ### 4. Stage E subject hard gate — `audit/av_sync_qa.py::_subject_hard_gate`
 
@@ -63,12 +83,26 @@ Every scene-plan entry must satisfy all of the following or certification fails:
 - bound to a real clause (non-empty, ≥ 12 chars, never the placeholder string);
 - carries a complete `semantic_directive` with a known resolution source;
 - the entry's `scene_id` and `subject` match the directive;
-- monument shots independently re-match a wonder keyword via the same production matcher on
-  `clause || recorded context` — an unrelated monument can never be drawn for a clause;
-- neutral diagram shots stay on `scene_id = -1` with a known template; wonder-context globe
-  and quote shots may carry the wonder's id (they draw no monument geometry) but must
-  re-match that same wonder keyword, while generic place/citation shots keep `-1`;
+- monument shots with source `wonder_keyword`/`place_globe`/`citation_quote` independently
+  re-match a wonder keyword **in the clause alone** — an unrelated monument can never be drawn
+  for an abstract clause, regardless of chapter context;
+- `anaphora_continuation` shots must actually be referential (same detector the router uses)
+  and chain back to an immediately preceding directive bound to the same wonder scene; a broken
+  or non-referential chain fails as `anaphora_chain_broken_or_not_referential`;
+- neutral diagram shots stay on `scene_id = -1` with a known template; generic globe/quote
+  shots also keep `-1`;
 - no consecutive identical `(subject_key, treatment)` pair (the anti-loop invariant).
+
+## Narration continuity (no silent scenes)
+
+Standalone interior chapter cards created narration-free 2–2.4 s windows mid-film (the chapter
+card rendered over a gap in the spoken timeline). The showrunner now sets
+`card_duration_sec = 0.0` for every chapter, so no interior silent card is scheduled; chapter
+identity remains visible on every shot's persistent ACT/title HUD graphic. The branded intro
+and end-card bookends are tightened to 3.4 s / 4.2 s (still inside the Stage C 3–5 s / ≥4 s
+contract) and are music-led by design. Narration coverage per scene is auditable from
+`scene_plan.json`; `silencedetect` at −45 dB / 0.35 s reports zero narration-free gaps outside
+the two branded bookends.
 
 Failures write `failed:subject_gate` plus the reason into the plan, add a failing
 `subject_hard_gate` check, cost 6 points each, and are part of the hard `passed` condition.
@@ -107,6 +141,14 @@ director's verdict is now physically enforced on the rendered pixels:
 Static fallback plates still resolve through the legacy resolver; they are only used by the
 non-pipe marathon-CPU path, never by the standard rawvideo production pipe whose animated
 frames Stage E audits.
+
+## Lexicon corrections
+
+- `theamata` (the generic Greek term for the wonders *list*) was removed from the Pharos
+  keyword rule — it routed every abstract "origins of the seven wonders" clause to the
+  lighthouse model even though the word names no monument.
+- The Giza rule's misspelled `hemunu` is corrected to `hemiunu` (old spelling retained as an
+  alias) and `akhet` (Akhet Khufu) is added.
 
 ## Test coverage
 

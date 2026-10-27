@@ -49,6 +49,15 @@ ALL_TEMPLATES = (TPL_TERRAIN, TPL_NETWORK, TPL_PARTICLES, TPL_PROCESS, TPL_STATS
 # template ladder so consecutive clauses about one topic still receive distinct pictures.
 _CATEGORY_LEXICON: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     (
+        "space_science",
+        (
+            "planet", "planets", "sun", "moon", "star", "stars", "orbit", "orbital", "cosmos",
+            "cosmic", "galaxy", "solar", "astronomy", "astronomical", "celestial", "meteor",
+            "asteroid", "comet", "universe", "gravity", "spacecraft", "telescope",
+        ),
+        (TPL_PARTICLES, TPL_TERRAIN, TPL_STATS, TPL_TIMELINE),
+    ),
+    (
         "geoscience",
         (
             "volcano", "lava", "magma", "eruption", "earthquake", "tectonic", "tsunami",
@@ -120,6 +129,42 @@ _WONDER_TREATMENTS = (
 )
 _REPEAT_WINDOW = 5
 
+# A clause that does not name a monument itself may still be ABOUT the chapter's monument when
+# it is a sentence fragment or refers back anaphorically. Only these linguistic references
+# inherit the previous monument subject — chapter-title keywords alone never force a binding.
+# Referential pronouns only count when they OPEN the clause; mid-clause "that"/"this" are
+# usually complementizers/determiners ("chroniclers wrote that..."), not subject references.
+_ANAPHORA_OPEN_RE = re.compile(
+    r"^(?:it|its|they|them|their|this|that|these|those)\b",
+    re.I,
+)
+# Specific reference nouns inherit anywhere they appear — they can only denote the chapter subject.
+_REFERENCE_NOUN_RE = re.compile(
+    r"\b(?:the monument|the structure|the temple|the site|the wonder|the building|the mausoleum|"
+    r"the lighthouse|the pyramid|the statue|the wall|the city|the sanctuary|the casing)\b",
+    re.I,
+)
+_CONNECTIVE_RE = re.compile(
+    r"^(?:and|but|or|yet|so|nor|while|whereas|because|when|then|to|of|in|on|with|by|as|at|from|"
+    r"into|over|under|through|after|before|for|remaining|crowned|connected|built|standing|"
+    r"located|situated|earthquakes|fire)\b",
+    re.I,
+)
+
+
+def is_anaphoric_or_continuation(clause: str) -> bool:
+    """True when a clause is a mid-sentence fragment or refers back to the previous subject."""
+    text = (clause or "").strip()
+    if not text:
+        return False
+    if text[0].islower():  # clause splitter/merger fragment continuing the prior sentence
+        return True
+    if _CONNECTIVE_RE.match(text):
+        return True
+    if _ANAPHORA_OPEN_RE.match(text):
+        return True
+    return bool(_REFERENCE_NOUN_RE.search(text))
+
 
 @dataclass(frozen=True)
 class VisualDirective:
@@ -133,7 +178,9 @@ class VisualDirective:
     treatment: str
     on_screen_label: str
     confidence: float
-    source: str  # wonder_keyword | semantic_category | place_globe | citation_quote | clause_diagram
+    # wonder_keyword (clause itself names the monument) | anaphora_continuation (fragment/pronoun
+    # inheriting the prior monument) | semantic_category | place_globe | citation_quote
+    source: str
     # Exact clause||context hint the router resolved from, enabling independent Stage E re-checks.
     context: str = ""
 
@@ -206,15 +253,37 @@ class SemanticShotDirector:
         """
         clause = (clause or "").strip()
         hint = f"{clause} || {context}".strip(" |")
-        wonder_id = match_wonder_scene_id(hint)
 
-        if wonder_id is not None:
-            directive = self._wonder_directive(wonder_id, clause, intent)
+        # 1. Clause-first binding: only a wonder named IN THE CLAUSE ITSELF binds monument
+        #    geometry. Chapter-title context must never force a monument onto a generic clause.
+        clause_wonder = match_wonder_scene_id(clause)
+        prev = self._history[-1] if self._history else None
+        if clause_wonder is not None:
+            directive = self._monument_directive(clause_wonder, clause, intent, "wonder_keyword")
+        elif (
+            prev is not None
+            and 0 <= prev.scene_id <= 8
+            and is_anaphoric_or_continuation(clause)
+        ):
+            # 2. Fragment/pronoun continuing the sentence about the previous monument subject.
+            directive = self._monument_directive(
+                prev.scene_id, clause, "scene", "anaphora_continuation"
+            )
         elif intent == "geo" or self._is_place_driven(clause):
+            # 3. Explicit place/route language -> orbital globe (never an unrelated monument).
             directive = self._globe_directive(clause, context)
         elif intent == "quote":
             directive = self._quote_directive(clause, context)
         else:
+            # 4. Any other generic/abstract clause -> a neutral clause-derived diagram.
+            directive = self._diagram_directive(clause, context, intent)
+
+        # Never emit the same (subject, treatment) pair twice in a row: globe/quote fallbacks
+        # reroute to a clause-derived diagram rather than looping an identical cutaway.
+        if self._history and (
+            (directive.subject_key, directive.treatment)
+            == (self._history[-1].subject_key, self._history[-1].treatment)
+        ):
             directive = self._diagram_directive(clause, context, intent)
 
         directive = dataclasses.replace(directive, context=hint)
@@ -230,23 +299,28 @@ class SemanticShotDirector:
 
     # -- wonder routing -----------------------------------------------------
 
-    def _wonder_directive(self, scene_id: int, clause: str, intent: str) -> VisualDirective:
+    def _monument_directive(
+        self, scene_id: int, clause: str, intent: str, source: str
+    ) -> VisualDirective:
         key, label = _wonder_subject(scene_id)
-        if intent == "geo":
+        # Intent-based modality only for direct keyword clauses; anaphora continuations use the
+        # treatment ladder so fragments still vary exterior/close-up/LiDAR/sim instead of
+        # collapsing every continuation into one globe or quote card.
+        if source == "wonder_keyword" and intent == "geo":
             directive = VisualDirective(
                 key, label, MODALITY_GLOBE, scene_id, "", "orbital_context", label, 0.95, "place_globe"
             )
-        elif intent == "quote":
+        elif source == "wonder_keyword" and intent == "quote":
             directive = VisualDirective(
                 key, label, MODALITY_QUOTE, scene_id, "", "kinetic_typography", label, 0.9, "citation_quote"
             )
-        elif intent == "eng":
+        elif source == "wonder_keyword" and intent == "eng":
             directive = VisualDirective(
-                key, label, MODALITY_PHYSICS_SIM, scene_id, "", "physics_simulation", label, 0.95, "wonder_keyword"
+                key, label, MODALITY_PHYSICS_SIM, scene_id, "", "physics_simulation", label, 0.95, source
             )
         else:
             treatment, modality = self._pick_wonder_treatment(key)
-            directive = VisualDirective(key, label, modality, scene_id, "", treatment, label, 0.95, "wonder_keyword")
+            directive = VisualDirective(key, label, modality, scene_id, "", treatment, label, 0.95, source)
         return self._avoid_repeat(directive, key, clause)
 
     def _pick_wonder_treatment(self, key: str) -> tuple[str, str]:
@@ -279,20 +353,31 @@ class SemanticShotDirector:
             preferred = (TPL_PROCESS, *[t for t in templates if t != TPL_PROCESS])
         else:
             preferred = templates
-        template = self._pick_template(preferred)
-        label = kw.replace("_", " ").title() if kw else (self.episode_subject or "Explainer")
         key = f"{self.episode_slug}_{category}"
+        template = self._pick_template(preferred, key)
+        label = kw.replace("_", " ").title() if kw else (self.episode_subject or "Explainer")
         return VisualDirective(
             key, label, MODALITY_DIAGRAM, -1, template, f"diagram_{template}", label, 0.75, "semantic_category"
         )
 
-    def _pick_template(self, templates: tuple[str, ...]) -> str:
-        recent = {h.diagram_template for h in self._history[-_REPEAT_WINDOW:] if h.diagram_template}
-        for tpl in templates:
-            if tpl not in recent:
-                return tpl
-        # Whole ladder recently used: rotate deterministically rather than repeat the newest one.
-        return templates[len(self._history) % len(templates)]
+    def _pick_template(self, templates: tuple[str, ...], subject_key: str) -> str:
+        """Pick a template that fits the clause category without looping.
+
+        Variety is tracked PER SUBJECT (same topic must rotate its whole ladder before reuse);
+        different topics legitimately reuse their most fitting template. The immediately
+        preceding template is still avoided when the ladder offers an alternative, so two
+        back-to-back shots never look identical even across subject boundaries.
+        """
+        adjacent = self._history[-1].diagram_template if self._history else ""
+        subject_recent = {
+            h.diagram_template
+            for h in self._history[-_REPEAT_WINDOW:]
+            if h.diagram_template and h.subject_key == subject_key
+        }
+        candidates = [t for t in templates if t not in subject_recent] or list(templates)
+        if adjacent and adjacent in candidates and len(candidates) > 1:
+            candidates = [t for t in candidates if t != adjacent] + [adjacent]
+        return candidates[0]
 
     # -- guards -------------------------------------------------------------
 

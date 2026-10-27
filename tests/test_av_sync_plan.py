@@ -91,6 +91,40 @@ def test_planner_returns_clause_bound_directives_without_placeholders() -> None:
     assert all(pairs[i] != pairs[i - 1] for i in range(1, len(pairs)))
 
 
+def test_post_merge_directives_always_match_their_stored_clause() -> None:
+    """Regression: directives resolved before beat merging orphaned clauses, producing
+    monument bindings whose stored clause named no monument (hard-gate failures seg02/03/14)."""
+    from voxforge.audit.av_sync_qa import _subject_hard_gate
+    from voxforge.video.renderer import _plan_turn_editorial_beats
+    from voxforge.video.semantic_router import SemanticShotDirector
+
+    turn = _turn(
+        "Out of the original Seven Wonders cataloged by Greek travelers, earthquakes and fire "
+        "destroyed six, leaving only a 4,500-year-old limestone mountain on the edge of Cairo. "
+        "The question is simple: what did these builders understand about stone and weight?"
+    )
+    env = np.full(2500, 0.1, dtype=np.float32)
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    beats = _plan_turn_editorial_beats(
+        turn, 4.0, 26.0, env, director, "Origins of Wonder", "Mediterranean",
+        scene_context="Origins of Wonder Mediterranean",
+    )
+    entries = []
+    for i, (cam, end_t, clause, directive) in enumerate(beats, start=1):
+        entries.append({
+            "scene_id": directive.scene_id, "seg_index": i, "chapter_index": 0, "turn_id": 1,
+            "narration_clause": clause, "subject": directive.subject_label, "visual_family": cam,
+            "semantic_directive": directive.to_dict(), "validation_status": "pending",
+            "scene_start_sec": 0.0, "scene_end_sec": end_t,
+        })
+    # Every surviving beat's directive must be independently valid for its stored clause.
+    assert _subject_hard_gate(entries) == []
+    # The Cairo clause is the only fragment naming a monument -> exactly one Giza binding.
+    giza = [e for e in entries if e["semantic_directive"]["scene_id"] == 0]
+    assert giza and all("cairo" in e["narration_clause"].lower() or "giza" in e["narration_clause"].lower()
+                        or e["semantic_directive"]["source"] == "anaphora_continuation" for e in giza)
+
+
 def test_planner_arbitrary_topic_uses_diagram_family_not_monuments() -> None:
     from voxforge.video.renderer import _plan_turn_editorial_beats
     from voxforge.video.semantic_router import MODALITY_DIAGRAM, SemanticShotDirector
@@ -325,28 +359,85 @@ def test_subject_hard_gate_blocks_placeholder_wrong_subject_and_repeats() -> Non
     assert entries[3]["validation_status"].startswith("failed")
 
 
-def test_subject_hard_gate_accepts_wonder_context_globe_and_quote_shots() -> None:
+def test_subject_hard_gate_accepts_clause_keyword_and_anaphora_chain_shots() -> None:
     from voxforge.audit.av_sync_qa import _subject_hard_gate
 
+    # Direct clause-keyword globe: the clause itself names Giza.
     globe = _valid_entry(
-        0, "Across the Giza plateau and the Nile valley the monument's reach extended",
+        0, "Across the Giza plateau the survey map traces every causeway and harbor basin",
         scene_id=0, modality="orbital_globe", subject="Great Pyramid of Giza",
         key="great_pyramid_of_giza", treatment="orbital_context", template="",
         source="place_globe",
     )
     globe["visual_family"] = "wide_studio"
-    globe["semantic_directive"]["context"] = "Great Pyramid of Giza Necropolis"
     assert _subject_hard_gate([globe]) == []
+
+    # Anaphora chain: keyword head followed by lowercase-fragment continuations inherits Giza.
+    head = _valid_entry(
+        1, "The Great Pyramid at Giza was raised for Pharaoh Khufu from limestone blocks",
+        scene_id=0, modality="monument_3d", subject="Great Pyramid of Giza",
+        key="great_pyramid_of_giza", treatment="exterior_wide", template="",
+        source="wonder_keyword",
+    )
+    head["visual_family"] = "broll_cinema"
+    cont = _valid_entry(
+        2, "remaining the tallest human-made structure on Earth for more than 3,800 years",
+        scene_id=0, modality="lidar_cad", subject="Great Pyramid of Giza",
+        key="great_pyramid_of_giza", treatment="lidar_scan", template="",
+        source="anaphora_continuation",
+    )
+    cont["visual_family"] = "studio_insert"
+    assert _subject_hard_gate([head, cont]) == []
+
+    # Broken chain: anaphora source without a monument predecessor must fail.
+    orphan = dict(cont)
+    orphan["seg_index"] = 3
+    failures = _subject_hard_gate([orphan])
+    assert failures and "anaphora_chain_broken_or_not_referential" in failures[0][1]
 
     # Generic-topic globe keeps scene_id -1 and also passes.
     generic_globe = _valid_entry(
-        1, "Trade routes stretched across three continents and many remote regions",
+        4, "Trade routes stretched across three continents and many remote regions",
         scene_id=-1, modality="orbital_globe", subject="Trade Routes",
         key="trade_routes_place", treatment="orbital_context", template="",
         source="place_globe",
     )
     generic_globe["visual_family"] = "wide_studio"
     assert _subject_hard_gate([generic_globe]) == []
+
+
+def test_generic_clause_inside_wonder_chapter_never_binds_monument() -> None:
+    """Regression for the user-reported mismatch: abstract clauses (cosmology, planets,
+    rhetoric) must render neutral diagrams even when the chapter context names a wonder."""
+    from voxforge.video.semantic_router import (
+        MODALITY_DIAGRAM,
+        SemanticShotDirector,
+        is_anaphoric_or_continuation,
+    )
+
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    generic_clauses = [
+        "Hellenistic scholars chose the number seven",
+        "in classical Greek cosmology it represented completeness and perfection",
+        "five known planets plus the Sun and Moon",
+        "Proof of what happens when geometry and imagination refuse the impossible",
+    ]
+    for c in generic_clauses:
+        d = director.directive_for_clause(c, "Origins of Wonder · Pharos Lighthouse chapter", "scene")
+        assert d.scene_id == -1 and d.modality == MODALITY_DIAGRAM, (c, d)
+
+    # The same chapter's real monument references still bind the monument directly.
+    d0 = director.directive_for_clause(
+        "Out of the original Seven Wonders, the Giza plateau monument alone survives", "ch", "scene"
+    )
+    assert d0.scene_id == 0 and d0.source == "wonder_keyword"
+
+    # Referential fragments inherit the previous monument rather than becoming diagrams.
+    d1 = director.directive_for_clause("the casing stones caught the sun across the valley", "ch", "scene")
+    assert d1.scene_id == 0 and d1.source == "anaphora_continuation"
+    assert is_anaphoric_or_continuation("the casing stones caught the sun")
+    # Mid-clause complementizer "that" is not anaphora.
+    assert not is_anaphoric_or_continuation("A chronicler wrote that the stone gleamed at dawn")
 
 
 def test_subject_hard_gate_blocks_diagram_bound_to_monument_scene() -> None:

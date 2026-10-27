@@ -878,7 +878,10 @@ def generate_episode_script(
                 era_or_date=st.era_or_date,
                 location=st.location,
                 music_cue=cue,
-                card_duration_sec=0.0 if idx == 1 else (2.4 if spec.target_duration_sec >= 120 else 2.0),
+                # No standalone interior chapter cards: they created narration-free 2-2.4s
+                # windows mid-film (perceived as silent scenes). Chapter identity already rides
+                # on every shot's persistent ACT/title HUD graphic instead.
+                card_duration_sec=0.0,
                 card_asset_path=card_asset,
                 turns=turns,
             )
@@ -891,7 +894,8 @@ def generate_episode_script(
         chapters=chapters,
         llm_backend_used=env.llm_backend,
         revision_number=1,
-        intro_duration_sec=4.2,
-        outro_duration_sec=5.0,
+        # Tight music-only bookends (visual QA requires intro 3-5s, outro >=4s).
+        intro_duration_sec=3.4,
+        outro_duration_sec=4.2,
         next_episode_tease=_generate_next_episode_tease(spec.topic),
     )

@@ -90,8 +90,10 @@ _SCENE_KEYWORD_RULES: list[tuple[tuple[str, ...], int]] = [
     (("colosseum", "flavian", "vespasian", "titus", "hypogeum", "amphitheatre", "travertine"), SCENE_COLOSSEUM),
     (("petra", "khazneh", "nabataean", "nabataeans", "siq"), SCENE_PETRA),
     (("great wall", "jinshanling", "jiayuguan", "meng tian", "amylopectin", "ming"), SCENE_GREAT_WALL),
-    (("pharos", "alexandria", "rhodes", "colossus", "artemis", "ephesus", "babylon", "olympia", "halicarnassus", "theamata"), SCENE_PHAROS),
-    (("giza", "khufu", "mokattam", "grand gallery", "hemunu", "pyramid", "egypt", "nile", "pharaoh", "sphinx", "cairo"), SCENE_GIZA),
+    # NB: "theamata" (the generic Greek term for the wonders *list*) is deliberately absent:
+    # routing an abstract catalog reference to the Pharos model produced wrong-subject shots.
+    (("pharos", "alexandria", "rhodes", "colossus", "artemis", "ephesus", "babylon", "olympia", "halicarnassus"), SCENE_PHAROS),
+    (("giza", "khufu", "mokattam", "grand gallery", "hemiunu", "hemunu", "pyramid", "egypt", "nile", "pharaoh", "sphinx", "cairo", "akhet"), SCENE_GIZA),
 ]
 
 

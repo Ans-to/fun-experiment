@@ -1,7 +1,7 @@
 {
   "episode_slug": "7-wonders-of-the-world-90s",
-  "overall_initial_score": 97.4,
-  "overall_final_score": 99.4,
+  "overall_initial_score": 97.2,
+  "overall_final_score": 99.2,
   "studio_certified": true,
   "stages": [
     {
@@ -72,8 +72,8 @@
     },
     {
       "stage_name": "Stage B \u00b7 Broadcast Audio & Loudness QA",
-      "initial_score": 100.0,
-      "final_score": 100.0,
+      "initial_score": 99.0,
+      "final_score": 99.0,
       "passed": true,
       "iterations": 1,
       "improvements_applied": [
@@ -112,7 +112,7 @@
           "name": "Dynamic Loudness Range (LRA)",
           "passed": true,
           "score": 100.0,
-          "measured_value": "4.90 LU",
+          "measured_value": "4.20 LU",
           "target_spec": "1.5 \u2013 11.5 LU",
           "notes": ""
         },
@@ -129,8 +129,8 @@
           "check_id": "A6",
           "name": "Episode Runtime Lock vs Requested Duration",
           "passed": true,
-          "score": 100.0,
-          "measured_value": "87.5s (1.46 min) vs target 90.0s",
+          "score": 93.2,
+          "measured_value": "83.9s (1.40 min) vs target 90.0s",
           "target_spec": "Within \u00b112% of requested target duration",
           "notes": ""
         },
@@ -139,7 +139,7 @@
           "name": "Vocal Sibilance Comfort & Dynamic Crest",
           "passed": true,
           "score": 100.0,
-          "measured_value": "Sibilance -15.1 dB rel core, Crest 16.3 dB",
+          "measured_value": "Sibilance -14.9 dB rel core, Crest 16.2 dB",
           "target_spec": "5.5-8.5kHz <= -6.0 dB vs speech core & Crest 7.5-20.0 dB",
           "notes": ""
         }
@@ -188,7 +188,7 @@
           "name": "Visual Pacing & Camera Cut Cadence",
           "passed": true,
           "score": 100.0,
-          "measured_value": "20 camera cuts (avg 4.4s / shot)",
+          "measured_value": "20 camera cuts (avg 4.2s / shot)",
           "target_spec": "Avg shot length 3.0s \u2013 22.0s for viewer retention",
           "notes": ""
         },
@@ -197,7 +197,7 @@
           "name": "Multicam Coverage, Inserts, Callouts & Bookends",
           "passed": true,
           "score": 100.0,
-          "measured_value": "Intro 4.2s, Outro 5.0s, Angles=5 (Wide/CU/React/Insert/Callout=6/6)",
+          "measured_value": "Intro 3.4s, Outro 4.2s, Angles=5 (Wide/CU/React/Insert/Callout=6/6)",
           "target_spec": "Intro 3-5s + Wide + Close-ups + Reactions + Studio Inserts + Callouts + Outro",
           "notes": ""
         }
@@ -227,7 +227,7 @@
           "name": "Audio/Video Stream Synchronization Lock",
           "passed": true,
           "score": 100.0,
-          "measured_value": "Video 87.17s / Audio 87.15s (drift 21 ms)",
+          "measured_value": "Video 83.71s / Audio 83.69s (drift 18 ms)",
           "target_spec": "A/V duration drift <= 350 ms",
           "notes": ""
         },
@@ -236,7 +236,7 @@
           "name": "Decoded Frame Integrity & Live Motion Telemetry",
           "passed": true,
           "score": 100.0,
-          "measured_value": "4 checkpoints decoded, min Y=23.4, motion delta=7.409",
+          "measured_value": "4 checkpoints decoded, min Y=11.6, motion delta=7.333",
           "target_spec": "Zero black frames (Y > 8.0) & active motion (> 0.02)",
           "notes": ""
         },
@@ -254,7 +254,7 @@
           "name": "Branded Intro Bumper, Outro End-Card & Rec.709 Grade",
           "passed": true,
           "score": 100.0,
-          "measured_value": "Intro Y=57.8, Outro Y=50.4, Color=bt709 (Rec.709 TV)",
+          "measured_value": "Intro Y=58.1, Outro Y=50.4, Color=bt709 (Rec.709 TV)",
           "target_spec": "Decoded Intro (3-5s) + Outro End-Card + Rec.709 colorimetry",
           "notes": ""
         },
@@ -263,7 +263,7 @@
           "name": "24fps Documentary Parallax, Cartography & Telemetry Liveness",
           "passed": true,
           "score": 100.0,
-          "measured_value": "p75 frame step min=2.60, mean=4.78 across 4 acts",
+          "measured_value": "p75 frame step min=1.95, mean=3.28 across 4 acts",
           "target_spec": "Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames)",
           "notes": ""
         }
@@ -276,7 +276,7 @@
       "passed": true,
       "iterations": 1,
       "improvements_applied": [
-        "Validated 19 scene-plan entries against decoded final-render frames."
+        "Validated 20 scene-plan entries against decoded final-render frames."
       ],
       "checks": [
         {
@@ -302,8 +302,8 @@
           "name": "Semantic scene match",
           "passed": true,
           "score": 100.0,
-          "measured_value": "19/19",
-          "target_spec": "19/19",
+          "measured_value": "20/20",
+          "target_spec": "20/20",
           "notes": "Decoded frames of every planned scene match the family promised for its narration clause."
         },
         {
@@ -338,8 +338,8 @@
           "name": "Subject hard gate (clause-bound, no wrong-subject or repeated shots)",
           "passed": true,
           "score": 100.0,
-          "measured_value": "19/19",
-          "target_spec": "19/19",
+          "measured_value": "20/20",
+          "target_spec": "20/20",
           "notes": "Each rendered scene_id must match the clause-resolved subject; placeholder-bound shots and consecutive identical (subject, treatment) pairs fail certification."
         },
         {
