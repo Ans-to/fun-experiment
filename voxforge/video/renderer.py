@@ -248,6 +248,11 @@ def _scene_resolution_text(clause: str, full_turn: str, chapter_context: str) ->
     return " || ".join(parts)
 
 
+def _shot_lens_variant(base_variant: int, seg_index: int) -> int:
+    """Rotate established optical coverage deterministically across repeated subject shots."""
+    return (base_variant + (seg_index % 5)) % 3
+
+
 def _caption_for_asset(p: Path | None, ch: ChapterScript, fallback: str = "", turn_text: str = "") -> str:
     del p
     _, scene_title = resolve_procedural_scene_id(
@@ -897,6 +902,7 @@ def render_episode_video(
                     prev_map_hint = scene_resolution_hint
                 elif beat_cam in ("closeup_host_a", "closeup_host_b"):
                     chosen_p, cur_lens_variant = _next_distinct_plate(scene_resolution_hint)
+                    cur_lens_variant = _shot_lens_variant(cur_lens_variant, seg_idx)
                     cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, scene_resolution_hint)
                     layout, hud_overlay = compositor.render_host_closeup(
                         turn,
@@ -972,6 +978,7 @@ def render_episode_video(
                     )
                 else:
                     chosen_p, cur_lens_variant = _next_distinct_plate(scene_resolution_hint)
+                    cur_lens_variant = _shot_lens_variant(cur_lens_variant, seg_idx)
                     cap_txt = _caption_for_asset(chosen_p, ch, turn.visual_caption, scene_resolution_hint)
                     layout = compositor.render_broll_cinema(
                         turn,

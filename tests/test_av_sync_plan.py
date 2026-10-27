@@ -75,7 +75,7 @@ def test_planner_returns_clause_triples_covering_turn() -> None:
 
 def test_clause_scene_resolution_uses_full_active_turn_before_chapter_fallback() -> None:
     from voxforge.video.procedural_world import SCENE_MACHU_PICCHU, resolve_procedural_scene_id
-    from voxforge.video.renderer import _scene_resolution_text
+    from voxforge.video.renderer import _scene_resolution_text, _shot_lens_variant
 
     clause = "Perched on a narrow granite fault saddle nearly eight"
     active_turn = (
@@ -156,6 +156,13 @@ def test_generic_explanatory_simulation_renders() -> None:
     )
     assert frame.shape == (360, 640, 3)
     assert float(frame.mean()) > 5.0  # not a black frame; glyphs/panels drawn
+
+
+def test_repeated_landmark_shots_rotate_lens_coverage_by_segment() -> None:
+    from voxforge.video.renderer import _shot_lens_variant
+
+    assert _shot_lens_variant(0, 33) != _shot_lens_variant(0, 34)
+    assert _shot_lens_variant(0, 42) != _shot_lens_variant(0, 48)
 
 
 def test_fact_card_metrics_are_filtered_to_the_active_landmark() -> None:

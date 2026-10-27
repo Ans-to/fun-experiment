@@ -137,7 +137,7 @@ def audit_and_improve_audio(
     work_dir: Path,
     output_dir: Path,
 ) -> tuple[AudioMasterMeta, StageAudit]:
-    """Synthesize, measure premaster vs broadcast master, and self-heal pace/LUFS/peaks."""
+    """Synthesize, measure premaster vs -16 LUFS web master, and self-heal pace/LUFS/peaks."""
     meta, synth = synthesize_and_master_episode(script, env, work_dir, output_dir, speed_scale=1.0)
 
     # Measure raw premaster to capture genuine pre-mastering baseline score

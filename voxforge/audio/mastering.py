@@ -237,7 +237,7 @@ def synthesize_and_master_episode(
     output_dir: Path,
     speed_scale: float = 1.0,
 ) -> tuple[AudioMasterMeta, StudioVoiceSynthesizer]:
-    """Synthesize all dialogue turns, score chapters, apply sidechain ducking & 2-pass EBU R128 mastering."""
+    """Synthesize all dialogue turns, score chapters, apply sidechain ducking & 2-pass BS.1770-4 mastering (-16 LUFS web target)."""
     sr = AUDIO_SPEC.sample_rate
     tts_cache = CACHE_ROOT / "utterances"
     synth = StudioVoiceSynthesizer(env, tts_cache)
@@ -412,7 +412,7 @@ def synthesize_and_master_episode(
     vb_path.unlink(missing_ok=True)
     mb_path.unlink(missing_ok=True)
 
-    # 5. Two-Pass FFmpeg EBU R128 / ITU-R BS.1770-4 Cinema Documentary Mastering
+    # 5. Two-Pass FFmpeg ITU-R BS.1770-4 Mastering (-16 LUFS Web/Streaming Delivery Target)
     pass1 = measure_ebur128_loudnorm(env.ffmpeg_bin, premaster_wav)
     output_dir.mkdir(parents=True, exist_ok=True)
     master_wav = work_dir / "master_48k.wav"

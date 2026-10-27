@@ -1025,8 +1025,9 @@ class Monument3DEngine:
             sx = 3.4 * math.sin(zt * 0.15) + 1.1 * math.cos(zt * 0.31)
             return (sx + (4.8 if lv % 2 == 0 else -4.8), 6.2 - 0.5 * u, zt + 7.2), (3.4 * math.sin((zt - 5.5) * 0.15), 3.4, zt - 5.5), (0.68, 0.24, -0.68), 1.28
         elif scene_id == SCENE_PETRA:
-            ro = (-0.65 + 1.30 * u, 2.55 + 0.55 * u, (6.0 - 2.3 * u) if lv == 0 else (3.5 - 1.0 * u))
-            return ro, (0.0, 3.65, -2.85), (0.44, 0.52, 0.72), (1.18 if lv == 0 else 1.36)
+            # Establish the rock-cut facade within its sandstone canyon; avoid an unidentifiable lintel crop.
+            ro = (-0.75 + 1.50 * u, 4.4 + 0.35 * u, (11.5 - 1.2 * u) if lv == 0 else (8.4 - 0.7 * u))
+            return ro, (0.0, 3.3, -2.85), (0.44, 0.52, 0.72), (1.52 if lv == 0 else 1.42)
         elif scene_id == SCENE_COLOSSEUM:
             ang = (-0.38 + 0.56 * u) + lv * 0.85
             rad = 10.8 - 1.6 * u if lv != 2 else 7.2 - 0.9 * u
@@ -1041,9 +1042,10 @@ class Monument3DEngine:
             rad = 9.8 - 1.6 * u
             return (math.sin(ang) * rad, 3.05 + 0.85 * u, math.cos(ang) * rad), (0.0, 2.25, 0.0), (-0.70, 0.28, 0.65), 1.32
         elif scene_id == SCENE_TAJ_MAHAL:
-            xo = (-0.55 + 1.10 * u) if lv == 0 else (4.2 - 1.4 * u)
-            zp = (7.8 - 2.4 * u) if lv == 0 else (5.2 - 1.4 * u)
-            return (xo, 1.72 + 0.35 * u, zp), (0.0, 2.35, -4.2), (0.62, 0.32, 0.72), 1.24
+            # Wide frontal master followed by a distinct side three-quarter; keep dome, minarets and plinth legible.
+            xo = (-0.55 + 1.10 * u) if lv == 0 else (5.0 - 1.0 * u)
+            zp = (10.8 - 1.2 * u) if lv == 0 else (7.2 - 0.8 * u)
+            return (xo, 3.0 + 0.25 * u, zp), (0.0, 2.35, -4.2), (0.62, 0.32, 0.72), 1.44
         elif scene_id == SCENE_CHRIST_REDEEMER:
             ang = (-0.48 + 0.58 * u) + lv * 0.75
             rad = 7.4 - 1.2 * u
