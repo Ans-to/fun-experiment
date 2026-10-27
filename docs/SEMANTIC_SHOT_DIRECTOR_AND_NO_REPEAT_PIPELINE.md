@@ -68,15 +68,38 @@ longitude. Generic (`scene_id == -1`) globes render a neutral rotating Earth wit
 highlight, site pin or place callout — a clause that names no place can no longer inherit the
 chapter's "Giza Plateau · Egypt" card.
 
+### 2b. Clause meaning analysis — `video/clause_semantics.py`
+
+Subject binding only proved a clause was *not* about the wrong monument; it did not make the
+neutral plate depict the clause's meaning. Every diagram clause now runs through
+`analyze_clause(clause) -> ClauseSemantics`, a pure, deterministic parser producing:
+
+- **archetype** — `build_process`, `destruction_forces`, `enduring_legacy`, `history_timeline`,
+  `measured_quantity`, `catalog_count`, `cosmos_system`, `natural_world`, `journey_route`,
+  `abstract_concept` — scored from ordered lexicons, with action verbs beating time-mark
+  promotion and physical measurements beating durations;
+- **direction** — `rising` / `falling` / `stable` / `neutral` from prefix-stemmed verb sets, so
+  "constructed" rises, "destroyed" falls, "endure" holds;
+- **terms** — clause content words (entity-first ranking plus a clause-order variant);
+- **quantities** — real `(number, unit, noun)` triples preserving the spoken decimal precision
+  and grouping thousands (`21196` → `21,196`, `146.6` unchanged);
+- **time_marks** — verbatim years/eras/durations; **relations** — best-effort entity triples;
+- **labels** — every string an engine is allowed to render; `labels_are_clause_derived` proves
+  each token traces back to the clause, so no on-diagram text can be invented.
+
 ### 3. Six semantic diagram engines — `video/semantic_diagrams.py`
 
 All pure code, animated at 24fps, obsidian HUD palette that classifies as the Stage E
-`darkhud` pixel group. Seeds are **`subject_seed(subject_key) XOR subject_seed("clause::" + clause)`**,
-so the same subject on a different clause always produces different geometry — a subject-only
-seed previously made four abstract shots pixel-identical across the film. Every engine
-consumes the RNG (including `process_flow`'s shuffled glyph order/row jitter and
-`timeline_arc`'s marker count, spacing and arc heights), which is what makes the clause salt
-take effect:
+`darkhud` pixel group. The engines now **depict the `ClauseSemantics` payload** instead of
+drawing generic wallpaper: a destruction clause gets downward force arrows over strata labeled
+with its force words; a build clause gets a rising staircase whose boxes are its own process
+terms; a timeline labels its axis with the clause's verbatim time marks; a cosmos clause puts
+the spoken bodies on labeled orbital anchors; a catalog becomes a numbered chain of its
+entities; a stat panel shows only the clause's real quantity or honest key-signal chips.
+Seeds are **`subject_seed(subject_key) XOR subject_seed("clause::" + clause)`**, so the same
+subject on a different clause always produces different geometry. Every engine consumes the
+RNG (network layout mode/positions, process jitter, timeline spacing and arc heights), which
+is what makes the clause salt take effect, and all labels render in one PIL pass for 24fps:
 
 1. `terrain_tectonic` — layered strata, travelling seismic scanline, shock rings, ejecta
 2. `node_network` — 4×6 relationship graph with lit edges and travelling packets
@@ -110,6 +133,10 @@ Every scene-plan entry must satisfy all of the following or certification fails:
   or non-referential chain fails as `anaphora_chain_broken_or_not_referential`;
 - neutral diagram shots stay on `scene_id = -1` with a known template; generic globe/quote
   shots also keep `-1`;
+- every `semantic_diagram` carries a `semantic_payload` with a known archetype, at least two
+  labels, and labels whose tokens all appear in the spoken clause
+  (`semantic_label_not_clause_derived` fails invented text); the stored payload's archetype
+  and label set must match an independent re-analysis of the clause (no semantic drift);
 - no consecutive identical `(subject_key, treatment)` pair (the anti-loop invariant).
 
 **Whole-film repeated-shot gate (`no_repeated_shots`).** The per-entry hard gate only sees

@@ -73,7 +73,8 @@ def test_stat_panel_never_fabricates_percentage_without_numbers() -> None:
 
     honest = stat_panel_content("Out of the original Seven Wonders cataloged by travelers", 0.9)
     assert honest["kind"] == "keywords"
-    assert honest["terms"] and "PER CENT" not in honest["unit"]
+    # Numberless clauses get term chips and no invented caption/unit at all.
+    assert honest["terms"] and honest["unit"] is None
 
 
 def test_clause_salted_seeds_change_geometry_for_same_subject() -> None:
@@ -112,3 +113,19 @@ def test_stat_panel_preserves_clause_decimal_precision() -> None:
     assert integer["label"] == "2" and integer["unit"] == "MILLION"
     count = stat_panel_content("the wall spans 21196 kilometres", 1.0)
     assert count["label"] == "21,196" and count["unit"] == "KILOMETRES"
+
+
+def test_labels_never_render_ellipsis_or_invented_tokens() -> None:
+    # Regression: long labels used to truncate with an ellipsis, which is not a clause token
+    # and therefore violates the Stage E label-honesty contract.
+    engine = SemanticDiagramEngine()
+    long_clause = (
+        "Mediterranean Basin Hellenistic scholars cataloged extraordinarily long "
+        "Global Monuments heritage chronology observations"
+    )
+    for tpl in ALL_TEMPLATES:
+        frame = engine.render_frame(tpl, "V", long_clause, 0.8, 1.2, seed=11)
+        assert frame.shape == (1080, 1920, 3)
+    # Inspect the label buffer directly: no ellipsis character ever queued.
+    engine.render_frame(ALL_TEMPLATES[0], "V", long_clause, 0.8, 1.2, seed=11)
+    assert all("…" not in lab.text and "..." not in lab.text for lab in engine._labels)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from voxforge.models import DialogueTurn, ScenePlan, ScenePlanEntry
+from voxforge.video.clause_semantics import analyze_clause
 
 
 def _turn(text: str, camera: str = "broll_cinema") -> DialogueTurn:
@@ -313,6 +314,10 @@ def _valid_entry(seg: int, clause: str, *, scene_id: int = -1, modality: str = "
             "subject_key": key, "subject_label": subject, "modality": modality,
             "scene_id": scene_id, "diagram_template": template, "treatment": treatment,
             "on_screen_label": subject, "confidence": 0.75, "source": source,
+            # Real meaning payload, exactly as the router now attaches in production.
+            "semantic_payload": (
+                analyze_clause(clause).to_dict() if modality == "semantic_diagram" else None
+            ),
         },
     }
 
@@ -484,3 +489,32 @@ def test_duplicate_frame_pairs_catches_repeated_shots_across_film() -> None:
     soft = cv2.addWeighted(distinct[0], 0.98, np.full_like(distinct[0], 4), 0.02, 0)
     fingers[6] = _frame_fingerprint(soft)
     assert any(a == 1 and b == 6 for a, b, _c in duplicate_frame_pairs(fingers))
+
+
+def _diagram_payload_entry(seg: int, clause: str, payload: dict | None) -> dict:
+    entry = _valid_entry(seg, clause)
+    entry["semantic_directive"]["semantic_payload"] = payload
+    return entry
+
+
+def test_subject_gate_requires_honest_semantic_payload() -> None:
+    from voxforge.audit.av_sync_qa import _subject_hard_gate
+    from voxforge.video.clause_semantics import analyze_clause
+
+    clause = "fire and earthquakes destroyed the ancient harbor district"
+    good = _diagram_payload_entry(0, clause, analyze_clause(clause).to_dict())
+    assert _subject_hard_gate([good]) == []
+
+    missing = _diagram_payload_entry(1, clause, None)
+    invented = _diagram_payload_entry(
+        2, clause, {"archetype": "destruction_forces", "labels": ["FIRE", "ZEPPELIN"]}
+    )
+    thin = _diagram_payload_entry(3, clause, {"archetype": "destruction_forces", "labels": ["FIRE"]})
+    bad_archetype = _diagram_payload_entry(
+        4, clause, {"archetype": "made_up_archetype", "labels": ["FIRE", "EARTHQUAKES"]}
+    )
+    failures = dict((s, why) for s, why in _subject_hard_gate([missing, invented, thin, bad_archetype]))
+    assert "semantic_payload_missing" in failures[1]
+    assert "semantic_label_not_clause_derived" in failures[2]
+    assert "semantic_payload_too_thin" in failures[3]
+    assert "semantic_archetype_unknown" in failures[4]

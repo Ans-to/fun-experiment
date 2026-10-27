@@ -31,7 +31,30 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "Out of the original Seven Wonders cataloged || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "catalog_count",
+          "direction": "neutral",
+          "terms": [
+            "Seven Wonders",
+            "cataloged",
+            "original"
+          ],
+          "ordered_terms": [
+            "original",
+            "Seven Wonders",
+            "cataloged"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "SEVEN WONDERS",
+            "CATALOGED",
+            "ORIGINAL"
+          ],
+          "rationale": "archetype=catalog_count direction=neutral terms=3 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -64,7 +87,42 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "by Greek travelers two thousand years ago earthquakes || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "destruction_forces",
+          "direction": "falling",
+          "terms": [
+            "Greek",
+            "earthquakes",
+            "travelers",
+            "thousand",
+            "years",
+            "ago"
+          ],
+          "ordered_terms": [
+            "Greek",
+            "travelers",
+            "thousand",
+            "years",
+            "ago",
+            "earthquakes"
+          ],
+          "quantities": [],
+          "time_marks": [
+            "thousand years"
+          ],
+          "relations": [],
+          "labels": [
+            "THOUSAND YEARS",
+            "GREEK",
+            "EARTHQUAKES",
+            "TRAVELERS",
+            "THOUSAND",
+            "YEARS",
+            "AGO"
+          ],
+          "rationale": "archetype=destruction_forces direction=falling terms=6 quantities=0 time_marks=1"
+        }
       }
     },
     {
@@ -97,7 +155,39 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "fire, and human greed destroyed six \u2014 leaving only || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "destruction_forces",
+          "direction": "falling",
+          "terms": [
+            "destroyed",
+            "leaving",
+            "human",
+            "greed",
+            "fire",
+            "six"
+          ],
+          "ordered_terms": [
+            "fire",
+            "human",
+            "greed",
+            "destroyed",
+            "six",
+            "leaving"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "DESTROYED",
+            "LEAVING",
+            "HUMAN",
+            "GREED",
+            "FIRE",
+            "SIX"
+          ],
+          "rationale": "archetype=destruction_forces direction=falling terms=6 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -130,7 +220,8 @@
         "confidence": 0.95,
         "source": "wonder_keyword",
         "context": "a 4,500-year-old limestone mountain on the edge of Cairo. || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": null
       }
     },
     {
@@ -163,7 +254,42 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "The question is simple: what did these builders understand about stone, weight, and time? || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "build_process",
+          "direction": "rising",
+          "terms": [
+            "understand",
+            "question",
+            "builders",
+            "simple",
+            "weight",
+            "stone",
+            "time"
+          ],
+          "ordered_terms": [
+            "question",
+            "simple",
+            "builders",
+            "understand",
+            "stone",
+            "weight",
+            "time"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "UNDERSTAND",
+            "QUESTION",
+            "BUILDERS",
+            "SIMPLE",
+            "WEIGHT",
+            "STONE",
+            "TIME"
+          ],
+          "rationale": "archetype=build_process direction=rising terms=7 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -196,7 +322,53 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites Hellenistic scholars chose the number seven || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "history_timeline",
+          "direction": "neutral",
+          "terms": [
+            "Global Monuments Mediterranean",
+            "Basin Global Heritage",
+            "Sites Hellenistic",
+            "Greek Theamata",
+            "Origins",
+            "Wonder",
+            "scholars"
+          ],
+          "ordered_terms": [
+            "Origins",
+            "Wonder",
+            "Greek Theamata",
+            "Global Monuments Mediterranean",
+            "Basin Global Heritage",
+            "Sites Hellenistic",
+            "scholars"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [
+            [
+              "Wonder",
+              "FROM",
+              "scholars"
+            ],
+            [
+              "Wonder",
+              "TO",
+              "scholars"
+            ]
+          ],
+          "labels": [
+            "GLOBAL MONUMENTS MEDITERRANEAN",
+            "BASIN GLOBAL HERITAGE",
+            "SITES HELLENISTIC",
+            "GREEK THEAMATA",
+            "ORIGINS",
+            "WONDER",
+            "SCHOLARS"
+          ],
+          "rationale": "archetype=history_timeline direction=neutral terms=7 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -229,7 +401,36 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "in classical Greek cosmology it represented completeness || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "abstract_concept",
+          "direction": "neutral",
+          "terms": [
+            "Greek",
+            "completeness",
+            "represented",
+            "classical",
+            "cosmology"
+          ],
+          "ordered_terms": [
+            "classical",
+            "Greek",
+            "cosmology",
+            "represented",
+            "completeness"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "GREEK",
+            "COMPLETENESS",
+            "REPRESENTED",
+            "CLASSICAL",
+            "COSMOLOGY"
+          ],
+          "rationale": "archetype=abstract_concept direction=neutral terms=5 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -262,7 +463,36 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "perfection: five known planets plus the Sun || Origins of Wonder: From Greek Theamata to Global Monuments Mediterranean Basin & Global Heritage Sites",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "cosmos_system",
+          "direction": "neutral",
+          "terms": [
+            "Sun",
+            "perfection",
+            "planets",
+            "known",
+            "five"
+          ],
+          "ordered_terms": [
+            "perfection",
+            "five",
+            "known",
+            "planets",
+            "Sun"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "SUN",
+            "PERFECTION",
+            "PLANETS",
+            "KNOWN",
+            "FIVE"
+          ],
+          "rationale": "archetype=cosmos_system direction=neutral terms=5 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -295,7 +525,8 @@
         "confidence": 0.95,
         "source": "wonder_keyword",
         "context": "The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt Built for Pharaoh Khufu under royal vizier || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 1
+        "variation_index": 1,
+        "semantic_payload": null
       }
     },
     {
@@ -328,7 +559,8 @@
         "confidence": 0.95,
         "source": "wonder_keyword",
         "context": "chief architect Hemiunu, the Great Pyramid stood 146.6 meters tall \u2014 || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 2
+        "variation_index": 2,
+        "semantic_payload": null
       }
     },
     {
@@ -361,7 +593,8 @@
         "confidence": 0.95,
         "source": "anaphora_continuation",
         "context": "remaining the tallest human-made structure on Earth for more than 3,800 years. || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 3
+        "variation_index": 3,
+        "semantic_payload": null
       }
     },
     {
@@ -394,7 +627,8 @@
         "confidence": 0.95,
         "source": "wonder_keyword",
         "context": "The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 4
+        "variation_index": 4,
+        "semantic_payload": null
       }
     },
     {
@@ -427,7 +661,42 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "Constructed over roughly twenty to twenty-seven years during || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "build_process",
+          "direction": "rising",
+          "terms": [
+            "Constructed",
+            "twenty-seven",
+            "twenty",
+            "years"
+          ],
+          "ordered_terms": [
+            "Constructed",
+            "twenty",
+            "twenty-seven",
+            "years"
+          ],
+          "quantities": [],
+          "time_marks": [
+            "twenty-seven years"
+          ],
+          "relations": [
+            [
+              "twenty",
+              "TO",
+              "twenty-seven"
+            ]
+          ],
+          "labels": [
+            "TWENTY-SEVEN YEARS",
+            "CONSTRUCTED",
+            "TWENTY-SEVEN",
+            "TWENTY",
+            "YEARS"
+          ],
+          "rationale": "archetype=build_process direction=rising terms=4 quantities=0 time_marks=1"
+        }
       }
     },
     {
@@ -460,7 +729,8 @@
         "confidence": 0.95,
         "source": "wonder_keyword",
         "context": "Egypt's Old Kingdom around 2560 BCE Khufu's horizon monument || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 5
+        "variation_index": 5,
+        "semantic_payload": null
       }
     },
     {
@@ -493,7 +763,8 @@
         "confidence": 0.95,
         "source": "wonder_keyword",
         "context": "originally named Akhet Khufu crowned a vast necropolis || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 6
+        "variation_index": 6,
+        "semantic_payload": null
       }
     },
     {
@@ -526,7 +797,8 @@
         "confidence": 0.95,
         "source": "place_globe",
         "context": "connected directly to the Nile via artificial harbor basins. || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 7
+        "variation_index": 7,
+        "semantic_payload": null
       }
     },
     {
@@ -559,7 +831,8 @@
         "confidence": 0.8,
         "source": "place_globe",
         "context": "Across millennia of shifting empires || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": null
       }
     },
     {
@@ -592,7 +865,41 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "earthquakes, and desert winds, the 7 Wonders of || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "natural_world",
+          "direction": "falling",
+          "terms": [
+            "Wonders",
+            "earthquakes",
+            "desert",
+            "winds"
+          ],
+          "ordered_terms": [
+            "earthquakes",
+            "desert",
+            "winds",
+            "Wonders"
+          ],
+          "quantities": [
+            {
+              "number_text": "7",
+              "unit": "",
+              "noun": "wonders",
+              "value": 7.0
+            }
+          ],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "7",
+            "WONDERS",
+            "EARTHQUAKES",
+            "DESERT",
+            "WINDS"
+          ],
+          "rationale": "archetype=natural_world direction=falling terms=4 quantities=1 time_marks=0"
+        }
       }
     },
     {
@@ -625,7 +932,39 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "the World endure as humanity's boldest signature in stone. || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "enduring_legacy",
+          "direction": "stable",
+          "terms": [
+            "World",
+            "humanity's",
+            "signature",
+            "boldest",
+            "endure",
+            "stone"
+          ],
+          "ordered_terms": [
+            "World",
+            "endure",
+            "humanity's",
+            "boldest",
+            "signature",
+            "stone"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [],
+          "labels": [
+            "WORLD",
+            "HUMANITY'S",
+            "SIGNATURE",
+            "BOLDEST",
+            "ENDURE",
+            "STONE"
+          ],
+          "rationale": "archetype=enduring_legacy direction=stable terms=6 quantities=0 time_marks=0"
+        }
       }
     },
     {
@@ -658,7 +997,48 @@
         "confidence": 0.75,
         "source": "semantic_category",
         "context": "Proof of what happens when geometry and imagination refuse to accept the impossible. || The Great Pyramid of Giza: Precision in Two Million Stones Giza Plateau, Egypt",
-        "variation_index": 0
+        "variation_index": 0,
+        "semantic_payload": {
+          "archetype": "abstract_concept",
+          "direction": "neutral",
+          "terms": [
+            "Proof",
+            "imagination",
+            "impossible",
+            "geometry",
+            "happens",
+            "refuse",
+            "accept"
+          ],
+          "ordered_terms": [
+            "Proof",
+            "happens",
+            "geometry",
+            "imagination",
+            "refuse",
+            "accept",
+            "impossible"
+          ],
+          "quantities": [],
+          "time_marks": [],
+          "relations": [
+            [
+              "refuse",
+              "TO",
+              "accept"
+            ]
+          ],
+          "labels": [
+            "PROOF",
+            "IMAGINATION",
+            "IMPOSSIBLE",
+            "GEOMETRY",
+            "HAPPENS",
+            "REFUSE",
+            "ACCEPT"
+          ],
+          "rationale": "archetype=abstract_concept direction=neutral terms=7 quantities=0 time_marks=0"
+        }
       }
     }
   ],

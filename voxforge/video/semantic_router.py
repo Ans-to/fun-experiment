@@ -146,10 +146,13 @@ _REFERENCE_NOUN_RE = re.compile(
     r"the lighthouse|the pyramid|the statue|the wall|the city|the sanctuary|the casing)\b",
     re.I,
 )
+# NB: force/topic nouns such as "fire" or "earthquakes" are deliberately absent — only true
+# connectives belong here. Sentence-initial capitalized "Fire..." is a new clause, not a
+# fragment; lowercase-starting fragments are already caught by the islower() branch.
 _CONNECTIVE_RE = re.compile(
     r"^(?:and|but|or|yet|so|nor|while|whereas|because|when|then|to|of|in|on|with|by|as|at|from|"
     r"into|over|under|through|after|before|for|remaining|crowned|connected|built|standing|"
-    r"located|situated|earthquakes|fire)\b",
+    r"located|situated)\b",
     re.I,
 )
 
@@ -189,6 +192,9 @@ class VisualDirective:
     # a distinct camera lens variant (monuments) or orbital longitude offset (globes), so the
     # same subject never returns through the identical camera path.
     variation_index: int = 0
+    # Meaning payload (archetype, clause-derived labels, quantities, time marks) driving the
+    # diagram engines; Stage E verifies every label tokenizes back into the spoken clause.
+    semantic_payload: dict | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -203,6 +209,7 @@ class VisualDirective:
             "source": self.source,
             "context": self.context,
             "variation_index": self.variation_index,
+            "semantic_payload": self.semantic_payload,
         }
 
 
@@ -378,19 +385,27 @@ class SemanticShotDirector:
         return VisualDirective(key, label, MODALITY_QUOTE, -1, "", "kinetic_typography", label, 0.8, "citation_quote")
 
     def _diagram_directive(self, clause: str, context: str, intent: str) -> VisualDirective:
+        from voxforge.video.clause_semantics import ARCHETYPE_TEMPLATE, analyze_clause
+
         category, kw = classify_semantic_category(f"{clause} {context} {self.episode_subject}")
+        sem = analyze_clause(clause)
         templates = _category_templates(category)
-        # Mechanism/engineering language prefers process/terrain explanations; number-heavy
-        # clauses prefer the stat dashboard.
-        if intent == "eng" and TPL_PROCESS in templates:
-            preferred = (TPL_PROCESS, *[t for t in templates if t != TPL_PROCESS])
-        else:
-            preferred = templates
+        # Meaning first: the clause archetype (build, destruction, timeline, cosmos, quantity…)
+        # chooses the layout that can actually depict it; the category ladder fills alternatives
+        # for the no-repeat budget. Engineering language still biases toward process/terrain.
+        archetype_template = ARCHETYPE_TEMPLATE.get(sem.archetype)
+        ordered = [archetype_template] if archetype_template else []
+        if intent == "eng" and TPL_PROCESS not in ordered:
+            ordered.append(TPL_PROCESS)
+        ordered.extend(t for t in templates if t not in ordered)
+        ordered.extend(t for t in ALL_TEMPLATES if t not in ordered)
+        preferred = tuple(ordered)
         key = f"{self.episode_slug}_{category}"
         template = self._pick_template(preferred, key, clause)
         label = kw.replace("_", " ").title() if kw else (self.episode_subject or "Explainer")
         return VisualDirective(
-            key, label, MODALITY_DIAGRAM, -1, template, f"diagram_{template}", label, 0.75, "semantic_category"
+            key, label, MODALITY_DIAGRAM, -1, template, f"diagram_{template}", label, 0.75,
+            "semantic_category", semantic_payload=sem.to_dict(),
         )
 
     # A stat dashboard is only honest when the clause actually contains a quantity; otherwise
@@ -408,17 +423,16 @@ class SemanticShotDirector:
         honest = [t for t in templates if t != TPL_STATS or self._NUMBER_RE.search(clause or "")]
         ladder = honest or list(templates)
         adjacent = self._history[-1].diagram_template if self._history else ""
-        subject_recent = {
-            h.diagram_template
-            for h in self._history[-_REPEAT_WINDOW:]
-            if h.diagram_template and h.subject_key == subject_key
-        }
 
+        # Meaning dominates: the archetype's preferred template (ladder[0]) wins unless it would
+        # sit back-to-back with the identical template family. Clause-salted seeds plus the
+        # Stage E duplicate gate already guarantee non-adjacent same-template pictures are
+        # structurally distinct, so the whole-film usage budget is only a final tie-break.
         def rank(tpl: str) -> tuple[int, int, int]:
             return (
-                self._template_usage.get(tpl, 0),       # global budget first
-                1 if tpl in subject_recent else 0,      # then per-subject window
-                1 if tpl == adjacent else 0,            # then adjacency
+                1 if tpl == adjacent else 0,            # never identical family back-to-back
+                self._template_usage.get(tpl, 0),       # then spread via whole-film usage budget
+                ladder.index(tpl),                      # then archetype preference order
             )
 
         return sorted(ladder, key=rank)[0]

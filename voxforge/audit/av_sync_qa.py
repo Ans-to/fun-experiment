@@ -262,6 +262,31 @@ def _subject_hard_gate(entries: list[dict]) -> list[tuple[int, str]]:
                     reasons.append("non_monument_shot_bound_to_monument_scene_id")
                 if d.get("diagram_template") not in ALL_TEMPLATES:
                     reasons.append("unknown_diagram_template")
+                # Semantic-drift guard: the diagram's meaning payload must exist, use a known
+                # archetype, carry at least two clause-derived labels, and every label token
+                # must trace back to the spoken clause (nothing invented on screen).
+                from voxforge.video.clause_semantics import (
+                    KNOWN_ARCHETYPES,
+                    analyze_clause,
+                    labels_are_clause_derived,
+                )
+                payload = d.get("semantic_payload")
+                if not isinstance(payload, dict):
+                    reasons.append("semantic_payload_missing")
+                else:
+                    if payload.get("archetype") not in KNOWN_ARCHETYPES:
+                        reasons.append("semantic_archetype_unknown")
+                    payload_labels = payload.get("labels") or []
+                    if len(payload_labels) < 2:
+                        reasons.append("semantic_payload_too_thin")
+                    if not labels_are_clause_derived(clause, payload_labels):
+                        reasons.append("semantic_label_not_clause_derived")
+                    # The stored payload must match what the clause independently re-analyzes to.
+                    fresh = analyze_clause(clause)
+                    if fresh.archetype != payload.get("archetype"):
+                        reasons.append("semantic_archetype_drift")
+                    if sorted(fresh.labels) != sorted(payload_labels):
+                        reasons.append("semantic_label_set_drift")
             elif modality in ("orbital_globe", "kinetic_quote"):
                 if sid != -1:
                     reasons.append("invalid_scene_id_for_generic_globe_quote_shot")

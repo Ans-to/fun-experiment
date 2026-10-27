@@ -236,7 +236,7 @@
           "name": "Decoded Frame Integrity & Live Motion Telemetry",
           "passed": true,
           "score": 100.0,
-          "measured_value": "4 checkpoints decoded, min Y=11.8, motion delta=13.273",
+          "measured_value": "4 checkpoints decoded, min Y=11.7, motion delta=13.488",
           "target_spec": "Zero black frames (Y > 8.0) & active motion (> 0.02)",
           "notes": ""
         },
@@ -263,7 +263,7 @@
           "name": "24fps Documentary Parallax, Cartography & Telemetry Liveness",
           "passed": true,
           "score": 100.0,
-          "measured_value": "p75 frame step min=0.99, mean=4.35 across 4 acts",
+          "measured_value": "p75 frame step min=0.70, mean=4.23 across 4 acts",
           "target_spec": "Continuous 24fps camera/map/telemetry motion >= 0.12 on all checkpoints (zero static frames)",
           "notes": ""
         }

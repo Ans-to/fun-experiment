@@ -151,18 +151,30 @@ def test_stat_dashboard_requires_real_numbers_in_clause() -> None:
     assert numbered.scene_id == SCENE_GIZA  # clause binds the monument before template choice
 
 
-def test_whole_film_template_budget_spreads_diagrams_across_ladder() -> None:
-    # Twelve abstract, numberless shots must rotate across the ladder instead of replaying one look.
+def test_meaning_first_template_never_repeats_adjacent_family() -> None:
+    # The clause archetype's preferred template wins, but two back-to-back shots never share a
+    # template family; clause-salted seeds keep non-adjacent same-family shots distinct anyway.
     director = SemanticShotDirector("Seven Wonders of the Ancient World")
-    used: dict[str, int] = {}
+    seq: list[str] = []
     for i in range(12):
         directive = director.directive_for_clause(
             f"an abstract reflection about legacy and meaning, chapter {i}", "Origins", "scene"
         )
         if directive.diagram_template:
-            used[directive.diagram_template] = used.get(directive.diagram_template, 0) + 1
-    assert len(used) >= 4
-    assert max(used.values()) - min(used.values()) <= 1
+            seq.append(directive.diagram_template)
+    assert all(seq[k] != seq[k - 1] for k in range(1, len(seq)))
+    # Meaning-driven archetype still surfaces more than one family over a long abstract run.
+    assert len(set(seq)) >= 2
+
+
+def test_archetype_preference_is_honoured_when_not_adjacent() -> None:
+    # A destruction clause must get the forces/terrain template even after an unrelated shot.
+    director = SemanticShotDirector("Seven Wonders of the Ancient World")
+    director.directive_for_clause("the Great Pyramid of Giza stands", "Giza", "scene")
+    fire = director.directive_for_clause("Fire and earthquakes destroyed the harbor", "Giza", "scene")
+    assert fire.diagram_template == "terrain_tectonic"
+    cosmos = director.directive_for_clause("five known planets plus the Sun", "Giza", "scene")
+    assert cosmos.diagram_template == "particle_cluster"
 
 
 def test_every_monument_emission_gets_a_distinct_variation_index() -> None:
