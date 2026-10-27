@@ -70,7 +70,7 @@ def test_subtitles_and_chapters_generation(tmp_path: Path) -> None:
     write_segment_ass(cues, 3.0, 10.0, ass)
     write_ffmetadata_chapters(script, 10.0, ffm)
 
-    assert "ALEX VANCE:" in srt.read_text()
+    assert "DR. MAYA LIN:" in srt.read_text()
     assert vtt.read_text().startswith("WEBVTT")
     assert "Dialogue:" in ass.read_text()
     assert "[CHAPTER]" in ffm.read_text()
@@ -254,3 +254,16 @@ def test_quote_resolution_does_not_borrow_unrelated_chapter_quote() -> None:
     quote2, author2, _ = resolve_historical_quote(matched, matched)
     assert "house of Artemis" in quote2
     assert author2 == "ANTIPATER OF SIDON"
+
+
+def test_monument_cinema_and_technical_lenses_are_distinct() -> None:
+    import numpy as np
+
+    from voxforge.video.procedural_world import Monument3DEngine, SCENE_GIZA
+
+    engine = Monument3DEngine()
+    cinema = engine.render_frame(SCENE_GIZA, 0.42, 2.0, 640, 360, lens_variant=0)
+    technical = engine.render_frame(SCENE_GIZA, 0.42, 2.0, 640, 360, lens_variant=1)
+    assert cinema.shape == technical.shape == (360, 640, 3)
+    assert float(np.mean(np.abs(cinema.astype(np.float32) - technical.astype(np.float32)))) > 2.0
+    assert float(cinema.std()) > 10.0 and float(technical.std()) > 10.0

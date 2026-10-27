@@ -9,6 +9,8 @@ I inspected the current flagship's actual script, Stage A-D report, Stage E scen
 - Documentary prose must be written for listening, not silent reading: conversational wording, active constructions, short comprehensible sentences, read-aloud review, and deliberate room for pictures/silence. New Doc Editing, “Ten Tips for Writing Documentary Narration” (accessed 2026-10-27): https://newdocediting.com/ten-tips-for-writing-documentary-narration/.
 - A narration-led edit should let the voice set the story rhythm; the picture can then be cut around meaningful clauses and events. This is an editorial practice, not a claim that every cut must align to every word. Research overview: Journalism University, “Mastering Voice-over Narration for Documentary Impact”: https://journalism.university/electronic-media/voice-over-narration-documentary-tips/.
 - Loudness is delivery-context dependent. EBU R 128's broadcast programme target is -23 LUFS, while this repository's -16 LUFS profile is intended for web/spoken-word playback. They must not be presented as the same standard. Official EBU R 128 publication: https://tech.ebu.ch/publications/r128.
+- Picture quality depends on shot sequencing, not just resolution: wides establish place/scale; medium/detail shots reveal action or structure; the next cut should change angle/size with a clear purpose. References: Journalism University, “Exploring Shot Sizes” (https://journalism.university/electronic-media/exploring-shot-sizes-close-ups-long-shots/); Adobe, “Camera shots and angles” (https://www.adobe.com/creativecloud/video/production/cinematography/camera-shots-and-angles.html).
+- Kokoro's official voice documentation warns that very short utterances and long/rushing text can underperform; punctuation, phrase length, pronunciation, and voice selection need human listening checks, not just loudness normalization. Official voice notes: https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md.
 
 ## Changes in this pass
 
@@ -22,6 +24,14 @@ I inspected the current flagship's actual script, Stage A-D report, Stage E scen
 ## Limits and next validation
 
 The local LLM prompt is only used when a local Ollama/GGUF model is available. The deterministic corpus showrunner is the default, so the changed compact opening and direct renderer fixes were also applied independently; prompt changes alone are not counted as the cause of this run's prose improvement. Automatic script and frame-family audits are not substitutes for listening to the complete narration or watching the whole film. I inspected decoded frames of the corrected quote scene and the Meng Tian/Xiongnu simulation; the Great Wall beat now shows tower/beacon-network visualizations, and the quote card displays the exact active narration line rather than the unrelated Artemis quote.
+
+## Follow-up quality pass (requested after prior result was rejected)
+
+A 12-frame decoded review showed that the visuals were too uniformly wireframe-heavy: the same cyan CAD treatment appeared on ordinary cinematic shots as well as technical inserts. The renderer now intentionally separates the lens passes. `lens_variant=0` uses shaded architectural surfaces and restrained warm silhouette accents; technical variants retain the LiDAR point cloud, compass/grid, and cyan CAD lines. The approved twilight-orb optics remain unchanged. A frame-level A/B regression test confirms both views render and are visually distinct.
+
+The prior alternating male/female co-host delivery made the documentary sound like a panel discussion. Documentary-writing sources recommend a consistent narrator for expository films, and Kokoro's own voice documentation notes that voice choice and chunk size affect quality. This pass converts finished generated turns to one continuous lead voice (Dr. Maya Lin), selects the documented A-grade `af_heart` voice instead of blending three male voices, centers narration in the stereo image, and changes the editorial gate from a two-host balance target to narrator continuity. The working script can still use question/answer-like beats, but they are delivered as one voiceover, not acted as a synthetic conversation.
+
+The opening factual hook was rewritten to short, concrete spoken lines (“Greek writers named seven wonders. Six are gone. Khufu's Great Pyramid still rises above Giza…”), replacing a long compound sentence with an unsupported attribution to “human greed.” This follows documentary writing guidance to make each line understandable once, vary sentence length, and use image/silence for part of the storytelling.
 
 ## Rendered result
 

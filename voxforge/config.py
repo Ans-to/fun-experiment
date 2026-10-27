@@ -49,8 +49,8 @@ class BroadcastAudioSpec:
     room_tone_dbfs: float = -54.0
     music_bed_dbfs: float = -29.5
     sidechain_duck_db: float = -16.5
-    host_a_pan: float = -0.07  # Intimate center-focused headphone stage (Host A slightly left)
-    host_b_pan: float = +0.07  # Intimate center-focused headphone stage (Host B slightly right)
+    host_a_pan: float = 0.0  # Single documentary narrator centered in the stereo image
+    host_b_pan: float = 0.0  # Neutral fallback for legacy/test scripts
 
 
 @dataclass(frozen=True)
@@ -95,15 +95,16 @@ class HostPersona:
 
 HOST_A = HostPersona(
     speaker_id="HOST_A",
-    display_name="Alex Vance",
-    short_name="ALEX",
-    role_title="Lead Narrator & Cultural Historian",
-    accent_hex="#E5A93C",  # Warm Cinema Gold
-    ass_bgr_color="&H3CA9E5&",
-    kokoro_voice="am_michael:0.55,am_fenrir:0.30,am_puck:0.15",
-    piper_voice="en_US-hfc_male-medium",
-    edge_voice="en-US-AndrewMultilingualNeural",
-    speaking_speed=0.97,
+    display_name="Dr. Maya Lin",
+    short_name="MAYA",
+    role_title="Lead Documentary Narrator & Field Archaeologist",
+    accent_hex="#38BDF8",  # Restrained broadcast cyan
+    ass_bgr_color="&HF8BD38&",
+    # One stable, high-quality Kokoro style rather than a multi-voice blend.
+    kokoro_voice="af_heart",
+    piper_voice="en_US-hfc_female-medium",
+    edge_voice="en-US-AvaMultilingualNeural",
+    speaking_speed=0.98,
     portrait_filename="",
 )
 

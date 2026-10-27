@@ -48,16 +48,16 @@ class ZeroKeyLLMClient:
             return None
 
         system_prompt = (
-            "You are an Emmy-winning BBC/Netflix documentary film writer composing dual-voice narration for "
-            "HOST_A (Alex Vance, cultural historian) and HOST_B (Dr. Maya Lin, structural archaeologist). "
-            "Write pure cinematic documentary voiceover — NEVER mention podcasts, studios, microphones, or hosts sitting at a table. "
+            "You are an experienced documentary film writer composing one continuous voiceover for HOST_A "
+            "(Dr. Maya Lin, field archaeologist and lead narrator). HOST_B is not a second on-camera or VO host. "
+            "Write pure cinematic documentary narration — NEVER mention podcasts, studios, microphones, or hosts sitting at a table. "
             "Use ONLY the provided verified research facts; do not invent numbers, motives, dates, causal claims, or quotations. "
             "Write for the ear: one clear idea per sentence, mostly 8–20 words, active verbs, concrete nouns, natural contractions, "
             "and varied sentence length. Keep each speaker turn to 1–3 sentences and at most 45 words. "
             "Explain unavoidable specialist terms in plain language. Cut generic praise, repeated summaries, filler transitions, "
             "and lines that merely describe what a viewer can already see. Give important facts room to land; do not cram lists. "
             "Never use clichés like 'delve', 'tapestry', 'testament to', or 'buckle up'. "
-            "Output ONLY a JSON array of objects: [{\"speaker\": \"HOST_A\", \"text\": \"...\"}, ...]."
+            "Output ONLY a JSON array of objects with every speaker set to HOST_A: [{\"speaker\": \"HOST_A\", \"text\": \"...\"}, ...]."
         )
         user_prompt = (
             f"Documentary Act: {chapter_title}\n"

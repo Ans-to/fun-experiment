@@ -852,13 +852,16 @@ def generate_episode_script(
 
         turns: list[DialogueTurn] = []
         n_pairs = len(dialogue_pairs)
-        for t_i, (speaker, text) in enumerate(dialogue_pairs):
+        for t_i, (_draft_speaker, text) in enumerate(dialogue_pairs):
             nxt_txt = dialogue_pairs[t_i + 1][1] if t_i + 1 < n_pairs else None
             turns.append(
                 DialogueTurn(
                     turn_id=turn_counter,
                     chapter_index=idx,
-                    speaker=speaker,
+                    # Documentary mode uses one consistent narrator; the dialogue composer
+                    # may use HOST_B internally as a drafting device, but the finished script
+                    # is authored and voiced as a single continuous narration.
+                    speaker="HOST_A",
                     text=text,
                     spoken_text=normalize_for_tts(text),
                     pause_after_ms=compute_turn_pause_ms(text, nxt_txt, t_i == n_pairs - 1, turn_counter),

@@ -270,7 +270,7 @@ def write_audit_reports(
             "| 3 | Rule-of-Thirds & Master-Shot Framing | **VERIFIED** | 6-trajectory Ken Burns 2.5D parallax across wide vistas & telephoto architectural masonry studies |",
             f"| 4 | Multi-Format Documentary Coverage | **VERIFIED** | Geo-Maps (`{cams.count('wide_studio')}`), Detail Studies (`{cams.count('closeup_host_a') + cams.count('closeup_host_b')}`), Archival Diptychs (`{cams.count('reaction_shot')}`) |",
             "| 5 | Cohesive Golden-Hour & Volumetric Lighting | **VERIFIED** | Volumetric sun-sweep + matched shadow/highlight curve across all 20 monument plates |",
-            "| 6 | Narrator Attribution Lower Thirds | **VERIFIED** | Transient `3.2s` voiceover narrator credits (`Alex Vance` & `Dr. Maya Lin`) + site location tags |",
+            "| 6 | Narrator Attribution Lower Thirds | **VERIFIED** | Transient `3.2s` voiceover narrator credit (`Dr. Maya Lin`) + site location tags |",
             "| 7 | Documentary Feature & Act Title Graphics | **VERIFIED** | Opening Feature Film banner + animated Chronology Scrubber Act cards + top-left Act pill |",
             "| 8 | Corner Brand Logo Bug | **VERIFIED** | Consistent top-right `DEEP HORIZON` horizon emblem across all shots |",
             f"| 9 | Synced Captions / Subtitles | **VERIFIED** | Burned-in Netflix/BBC-style ASS captions + sidecar `.srt` & `.vtt` across `{len(cams)}` segments |",

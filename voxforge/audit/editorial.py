@@ -93,19 +93,19 @@ def _evaluate_script(script: EpisodeScript) -> list[AuditCheck]:
         target_spec="0 synthetic filler clichés",
     )
 
-    # E4: Conversational breath-group & speaker balance
+    # E4: Documentary narrator continuity & breath-group length
     overlong = sum(1 for t in turns if t.word_count > 64)
-    host_a_words = sum(t.word_count for t in turns if t.speaker == "HOST_A")
-    ratio_a = host_a_words / max(1, total_w)
-    bal_ok = 0.36 <= ratio_a <= 0.64
-    e4_score = max(0.0, 100.0 - overlong * 12.0 - (0.0 if bal_ok else 25.0))
+    narrator_words = sum(t.word_count for t in turns if t.speaker == "HOST_A")
+    narrator_ratio = narrator_words / max(1, total_w)
+    single_narrator = narrator_ratio >= 0.98
+    e4_score = max(0.0, 100.0 - overlong * 12.0 - (0.0 if single_narrator else 25.0))
     c_e4 = AuditCheck(
         check_id="E4",
-        name="Conversational Cadence & Host Balance",
-        passed=(overlong == 0 and bal_ok),
+        name="Single-Narrator Continuity & Breath-Group Cadence",
+        passed=(overlong == 0 and single_narrator),
         score=round(e4_score, 1),
-        measured_value=f"Host A {ratio_a * 100:.1f}% / Host B {(1 - ratio_a) * 100:.1f}%, {overlong} overlong turns",
-        target_spec="Host split 36%-64% and 0 turns > 64 words",
+        measured_value=f"Lead narrator {narrator_ratio * 100:.1f}% of words, {overlong} overlong turns",
+        target_spec="One consistent narrator (>=98% of words) and 0 turns > 64 words",
     )
 
     # E5: Multicam visual variety & B-roll / Insert / Callout cutaway ratio
@@ -247,7 +247,7 @@ def audit_and_improve_script(
                     mid_w = len(words) // 2
                     p1 = " ".join(words[:mid_w]) + "."
                     p2 = " ".join(words[mid_w:])
-                other_spk = "HOST_B" if t.speaker == "HOST_A" else "HOST_A"
+                other_spk = "HOST_A"
                 t.text = p1
                 new_turns.append(t)
                 new_turns.append(
@@ -264,7 +264,7 @@ def audit_and_improve_script(
                 split_count += 1
             ch.turns = new_turns
         if split_count:
-            improvements.append(f"Split {split_count} monologue turns into tight 2-host exchanges.")
+            improvements.append(f"Split {split_count} long narration turns into concise single-narrator breath groups.")
 
         # 3. Remove any duplicate 6-gram turns if overlap exceeded 2.5%
         seen_ng: set[tuple[str, ...]] = set()
@@ -410,24 +410,13 @@ def audit_and_improve_script(
             if trimmed_w > 0:
                 improvements.append(f"Tightened pacing by trimming -{trimmed_w} surplus words to lock runtime.")
 
-        # 5. Enforce balanced Host A / Host B dialogue split (target ~50/50)
+        # 5. Normalize the finished documentary to a single narrator (not an acted two-host show).
         turns = script.all_turns
-        total_now = max(1, script.total_words)
-        ratio_a = sum(t.word_count for t in turns if t.speaker == "HOST_A") / total_now
-        if ratio_a > 0.62 or ratio_a < 0.38:
-            # Re-alternate speakers cleanly while protecting explicit self-introductions
-            desired: str = "HOST_A"
-            for t in turns:
-                if "I am Alex Vance" in t.text or "I'm Alex Vance" in t.text:
-                    t.speaker = "HOST_A"
-                    desired = "HOST_B"
-                elif "I am Dr. Maya Lin" in t.text or "I'm Dr. Maya Lin" in t.text or "I'm Maya Lin" in t.text:
-                    t.speaker = "HOST_B"
-                    desired = "HOST_A"
-                else:
-                    t.speaker = desired  # type: ignore[assignment]
-                    desired = "HOST_B" if desired == "HOST_A" else "HOST_A"
-            improvements.append("Harmonized conversational alternation between Alex Vance and Dr. Maya Lin.")
+        reassigned = sum(1 for t in turns if t.speaker != "HOST_A")
+        for t in turns:
+            t.speaker = "HOST_A"
+        if reassigned:
+            improvements.append(f"Unified {reassigned} drafted turns under the single lead narrator.")
 
         # 6. Re-choreograph multicam switching & renumber
         assign_multicam_choreography(script.chapters, dossier.subtopics)

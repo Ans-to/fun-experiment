@@ -378,7 +378,7 @@ def get_seven_wonders_dossier(topic_title: str) -> ResearchDossier:
             "staircases, river-well foundations, and human obsession with outlasting time."
         ),
         cold_open_hook_facts=[
-            "Out of the original Seven Wonders cataloged by Greek travelers two thousand years ago, earthquakes, fire, and human greed destroyed six — leaving only a 4,500-year-old limestone mountain on the edge of Cairo.",
+            "Greek writers named seven wonders. Six are gone. Khufu's Great Pyramid still rises above Giza, built about four thousand five hundred years ago.",
             "Hidden inside today's surviving wonders are secret corridors detected by cosmic rays from deep space, desert water networks that carried twelve million gallons a day, staircases engineered to chirp like tropical birds, and four-hundred-ton marble domes floating on submerged ebony wood.",
         ],
         synthesis_comparisons=[

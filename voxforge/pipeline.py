@@ -70,7 +70,7 @@ def run_podcast_pipeline(
         )
 
         # 2. Showrunner Script Creation + Stage A Editorial Audit & Rewrite Loop
-        notify("SCRIPT", "Drafting multi-act documentary narration script (Alex Vance & Dr. Maya Lin)...")
+        notify("SCRIPT", "Drafting single-narrator multi-act documentary script (Dr. Maya Lin)...")
         draft_script = generate_episode_script(spec, dossier, env)
         notify("AUDIT_A", f"Auditing draft script ({draft_script.total_words} words) & running editorial improvements...")
         script, stage_a = audit_and_improve_script(draft_script, dossier)

@@ -107,3 +107,4 @@ def test_one_hour_script_creation_and_editorial_audit(tmp_path: Path) -> None:
     assert "without further ado" not in joined
     # Zero turns exceeding 64 words
     assert all(t.word_count <= 64 for t in improved.all_turns)
+    assert all(t.speaker == "HOST_A" for t in improved.all_turns), "documentary voiceover must stay with one narrator"

@@ -256,7 +256,7 @@ def write_ffmetadata_chapters(script: EpisodeScript, total_duration_sec: float, 
     lines = [
         ";FFMETADATA1",
         f"title={script.spec.episode_title}",
-        "artist=Alex Vance & Dr. Maya Lin (Deep Horizon Studio)",
+        "artist=Dr. Maya Lin (Deep Horizon Documentary Studio)",
         f"comment={script.spec.episode_subtitle}",
         "",
     ]

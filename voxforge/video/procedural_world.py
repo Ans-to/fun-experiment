@@ -1169,41 +1169,43 @@ class Monument3DEngine:
                 tint = np.array([255.0, 196.0, 120.0], dtype=np.float32) / 255.0
                 img = np.clip(img.astype(np.float32) + rays_f * tint * 40.0, 0.0, 255.0).astype(np.uint8)
 
-        # Project Z-tested 28,000 Volumetric LiDAR Surface Points + Sweeping Laser Cross-Section!
+        wire_ov = np.zeros_like(img)
         focal = fov * float(h)
         hw, hh = 0.5 * w, 0.5 * h
-        d_pts = lidar_pts - np.array(ro, dtype=np.float32)
-        zc_p = d_pts @ np.array(fw, dtype=np.float32)
-        val_p = zc_p > 0.45
-        dv, zv, py_w, px_w = d_pts[val_p], zc_p[val_p], lidar_pts[val_p, 1], lidar_pts[val_p, 0]
-        px_s = (hw + (dv @ np.array(rt, dtype=np.float32)) * focal / zv).astype(np.int32)
-        py_s = (hh - (dv @ np.array(up, dtype=np.float32)) * focal / zv).astype(np.int32)
-        ib = (px_s >= 1) & (px_s < w - 1) & (py_s >= 1) & (py_s < h - 1)
-        px_s, py_s, zv, py_w, px_w = px_s[ib], py_s[ib], zv[ib], py_w[ib], px_w[ib]
-        vis = zv <= zbuf[py_s, px_s] + 0.24
-        px_s, py_s, py_w, px_w = px_s[vis], py_s[vis], py_w[vis], px_w[vis]
+        if lens_variant % 3 != 0:
+            # Project Z-tested 28,000 Volumetric LiDAR Surface Points + Sweeping Laser Cross-Section!
+            d_pts = lidar_pts - np.array(ro, dtype=np.float32)
+            zc_p = d_pts @ np.array(fw, dtype=np.float32)
+            val_p = zc_p > 0.45
+            dv, zv, py_w, px_w = d_pts[val_p], zc_p[val_p], lidar_pts[val_p, 1], lidar_pts[val_p, 0]
+            px_s = (hw + (dv @ np.array(rt, dtype=np.float32)) * focal / zv).astype(np.int32)
+            py_s = (hh - (dv @ np.array(up, dtype=np.float32)) * focal / zv).astype(np.int32)
+            ib = (px_s >= 1) & (px_s < w - 1) & (py_s >= 1) & (py_s < h - 1)
+            px_s, py_s, zv, py_w, px_w = px_s[ib], py_s[ib], zv[ib], py_w[ib], px_w[ib]
+            vis = zv <= zbuf[py_s, px_s] + 0.24
+            px_s, py_s, py_w, px_w = px_s[vis], py_s[vis], py_w[vis], px_w[vis]
 
-        wire_ov = np.zeros_like(img)
-        scan_x = -5.0 + 10.0 * u
-        near_s = np.abs(px_w - scan_x) < 0.20
-        hn = np.clip(py_w / 5.5, 0.0, 1.0)
-        wire_ov[py_s, px_s, 0] = np.where(near_s, 255, (48 + 175 * hn)).astype(np.uint8)
-        wire_ov[py_s, px_s, 1] = np.where(near_s, 198, (148 + 65 * hn)).astype(np.uint8)
-        wire_ov[py_s, px_s, 2] = np.where(near_s, 76, (232 - 60 * hn)).astype(np.uint8)
+            scan_x = -5.0 + 10.0 * u
+            near_s = np.abs(px_w - scan_x) < 0.20
+            hn = np.clip(py_w / 5.5, 0.0, 1.0)
+            wire_ov[py_s, px_s, 0] = np.where(near_s, 255, (48 + 175 * hn)).astype(np.uint8)
+            wire_ov[py_s, px_s, 1] = np.where(near_s, 198, (148 + 65 * hn)).astype(np.uint8)
+            wire_ov[py_s, px_s, 2] = np.where(near_s, 76, (232 - 60 * hn)).astype(np.uint8)
 
-        # 3D Ground Azimuth Compass Ring (`R = 6.2`) around monument center!
-        cz_ring = -4.2 if scene_id == SCENE_TAJ_MAHAL else (-2.8 if scene_id == SCENE_PETRA else 0.0)
-        ring_pts = []
-        for deg in range(0, 364, 4):
-            ar = math.radians(deg)
-            wx_r, wy_r, wz_r = 6.2 * math.cos(ar), 0.05, cz_ring + 6.2 * math.sin(ar)
-            dx, dy, dz = wx_r - ro[0], wy_r - ro[1], wz_r - ro[2]
-            zr = dx * fw[0] + dy * fw[1] + dz * fw[2]
-            if zr > 0.5:
-                ring_pts.append([int(hw + (dx * rt[0] + dy * rt[1] + dz * rt[2]) * focal / zr),
-                                 int(hh - (dx * up[0] + dy * up[1] + dz * up[2]) * focal / zr)])
-        if len(ring_pts) >= 4:
-            cv2.polylines(wire_ov, [np.array(ring_pts, dtype=np.int32)], False, (52, 148, 214), 1, lineType=cv2.LINE_AA)
+        if lens_variant % 3 != 0:
+            # 3D Ground Azimuth Compass Ring (`R = 6.2`) around monument center!
+            cz_ring = -4.2 if scene_id == SCENE_TAJ_MAHAL else (-2.8 if scene_id == SCENE_PETRA else 0.0)
+            ring_pts = []
+            for deg in range(0, 364, 4):
+                ar = math.radians(deg)
+                wx_r, wy_r, wz_r = 6.2 * math.cos(ar), 0.05, cz_ring + 6.2 * math.sin(ar)
+                dx, dy, dz = wx_r - ro[0], wy_r - ro[1], wz_r - ro[2]
+                zr = dx * fw[0] + dy * fw[1] + dz * fw[2]
+                if zr > 0.5:
+                    ring_pts.append([int(hw + (dx * rt[0] + dy * rt[1] + dz * rt[2]) * focal / zr),
+                                     int(hh - (dx * up[0] + dy * up[1] + dz * up[2]) * focal / zr)])
+            if len(ring_pts) >= 4:
+                cv2.polylines(wire_ov, [np.array(ring_pts, dtype=np.int32)], False, (52, 148, 214), 1, lineType=cv2.LINE_AA)
 
         # Z-tested Golden & Cyan CAD Architectural Wireframe Accents
         for j in range(edges.shape[0]):
@@ -1226,7 +1228,10 @@ class Monument3DEngine:
                 mx = (p_scr[0][0] + p_scr[1][0]) // 2
                 my = (p_scr[0][1] + p_scr[1][1]) // 2
                 zm = 0.5 * (z_vals[0] + z_vals[1])
-                if 0 <= mx < w and 0 <= my < h and (wt == 2 or zm <= zbuf[my, mx] + 0.30):
+                # Reserve dense cyan CAD edges for the dedicated technical lens pass.
+                # Cinematic lens variants retain only sparse warm silhouette accents so
+                # directional stone shading and procedural masonry texture can read cleanly.
+                if 0 <= mx < w and 0 <= my < h and (wt == 2 or (lens_variant % 3 != 0 and zm <= zbuf[my, mx] + 0.30)):
                     col = (248, 194, 78) if wt == 2 else (62, 154, 220)
                     cv2.line(wire_ov, p_scr[0], p_scr[1], col, 2 if wt == 2 else 1, lineType=cv2.LINE_AA)
 
